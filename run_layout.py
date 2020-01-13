@@ -16,6 +16,7 @@ script_path = f'{base_path}\\9.barata_layout'
 #sys.path.append(script_path)
 from barata_layout import *
 import read_kml
+import vessel_info
 
 #define project type and remove previous layer
 option = input("\nPilih tipe project (ship/oils): ")
@@ -258,7 +259,14 @@ layout_manager.setLayoutName(layer_name)
 outputproj_path = f'{output_folder}\\{layer_name}.qgz'
 project_layout.saveProject(outputproj_path)
     
-print ('\nLayout telah dibuat')
+print ('\nLayout telah dibuat\n')
+
+#get vessel info
+print ('======================================')
+ais_info = vessel_info.get_ais_info(shipdf_path)
+vms_info = vessel_info.get_vms_info(shipdf_path)
+print ('======================================')
+
 print ('\nSelesai')
 
 #exit QGIS application
