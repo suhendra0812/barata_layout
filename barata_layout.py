@@ -482,6 +482,8 @@ class DataElements:
                                                                         'DESC':'Asosiasi (VMS/AIS)',
                                                                         'AIS_MMSI':'MMSI'})
 
+                self.__ship_filter = self.__ship_filter.round(6)
+
                 self.__ship_filter.index+=1
                 self.__ship_filter.index.name = 'No.'
                 try:
@@ -575,7 +577,8 @@ class DataElements:
                                                                       'WSPDMEAN':'Kecepatan Angin (m/s)',
                                                                       'WDIRMEAN':'Arah Angin (deg)',
                                                                       'ALARM_LEV':'Tingkat Kepercayaan'})
-                
+                self.__oil_filter = self.__oil_filter.round(6)
+
                 self.__oil_filter.index+=1
                 self.__oil_filter.index.name = 'No.'
                 try:

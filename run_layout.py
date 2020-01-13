@@ -1,17 +1,18 @@
 import sys, os
 from qgis.core import QgsApplication
+from PyQt5.QtWidgets import QFileDialog
 
 #set QGIS application path and initialize it
-QgsApplication.setPrefixPath(r'C:\OSGeo4W64\apps\qgis', True)
+QgsApplication.setPrefixPath('C:\\OSGeo4W64\\apps\\qgis', True)
 qgs = QgsApplication([], False)
 qgs.initQgis()
 
 #source paths
 base_path = "D:\\BARATA"
 basemap_path = f'{base_path}\\1.basemaps'
-template_path = f'{base_path}\\14.templates'
-rdrvms_path = f'{base_path}\\11.radar&vms_outputs'
-script_path = f'{base_path}\\9.barata_layout'
+template_path = f'{base_path}\\4.templates'
+rdrvms_path = f'{base_path}\\7.barata_ship\\output'
+script_path = f'{base_path}\\11.barata_layout'
 
 #sys.path.append(script_path)
 from barata_layout import *
@@ -37,7 +38,7 @@ print (f'\nTipe project: {project_type}')
 basemap_group = project_layout.getBasemapGroup()
 data_group = project_layout.getDataGroup()
 
-#input directory path based on defined method
+#input directory path
 data_folder = QFileDialog.getExistingDirectory(None, 'Select Data Directory', f'{base_path}\\2.seonse_outputs')[:-4] + '*'
 
 print ('\nSumber data:')
@@ -140,7 +141,7 @@ if project_type == 'ship':
             if len(vms_path) > 0:
                 vms_list.append(vms_path[0])
             else:
-                corshipPath = os.path.dirname(raster_path).replace('2.seonse_outputs','13.correlated_ship')
+                corshipPath = os.path.dirname(raster_path).replace('2.seonse_outputs','12.correlated_ship')
                 vms_path = glob.glob(f'{corshipPath}\\*CORRELATED.shp')
                 if len(vms_path) > 0:
                     vms_list.append(vms_path[0])
@@ -263,6 +264,7 @@ print ('\nLayout telah dibuat\n')
 
 #get vessel info
 print ('======================================')
+print ('\nMendapatkan informasi vessel...\n')
 ais_info = vessel_info.get_ais_info(shipdf_path)
 vms_info = vessel_info.get_vms_info(shipdf_path)
 print ('======================================')

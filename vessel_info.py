@@ -7,7 +7,7 @@ from datetime import datetime, timedelta
 base_path = 'D:\\BARATA'
 rdrvms_path = f'{base_path}\\7.barata_ship\\output\\'
 
-aisdata_basepath = f'{base_path}\\6.ais'
+aisdata_basepath = f'{base_path}\\10.ais'
 ais_info_path = f'{aisdata_basepath}\\ais_info.csv'
 ais_infodf = pd.read_csv(ais_info_path)
 
@@ -139,7 +139,7 @@ def get_vms_info(ship_path):
                 print (f'Tidak terdapat data korelasi VMS di folder {vms_ff}\n')
 
                 #alternative correlated VMS directory
-                correlated_path = os.path.dirname(ship_path).replace('2.seonse_outputs','13.correlated_ship')
+                correlated_path = os.path.dirname(ship_path).replace('2.seonse_outputs','12.correlated_ship')
                 vms_list = glob.glob(f'{correlated_path}\\*CORRELATED.shp')
                 if len(vms_list) > 0:
                     vmsdata_list = glob.glob(f'{correlated_path}\\*vms.csv')

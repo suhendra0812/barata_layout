@@ -77,10 +77,10 @@ class AIS:
         self.__ais_mmsi = []
         self.__geometry = []
 
-        self.__zipfilelist = glob.glob(data_path + "//" + "*SHIPKML.zip")
+        self.__zipfilelist = glob.glob(f'{data_path}\\*SHIPKML.zip')
         if len(self.__zipfilelist) > 0:
             self.__zipfilepath = self.__zipfilelist[0]
-            self.__shipfilepath = glob.glob(data_path + "//" + "*SHIP.shp")[0]
+            self.__shipfilepath = glob.glob(f'{data_path}\\*SHIP.shp')[0]
 
             with ZipFile(self.__zipfilepath) as theZip:
                 self.__fileNames = theZip.namelist()

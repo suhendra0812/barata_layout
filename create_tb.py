@@ -10,21 +10,28 @@ from docx.shared import Mm
 import os, glob
 import pandas as pd
 from datetime import datetime
-from tkinter import Tk, filedialog
+from qgis.core import QgsApplication
+from PyQt5.QtWidgets import QFileDialog
+
+#set QGIS application path and initialize it
+QgsApplication.setPrefixPath('C:\\OSGeo4W64\\apps\\qgis', True)
+qgs = QgsApplication([], False)
+qgs.initQgis()
 
 #source paths
 base_path = "D:\\BARATA"
-tpl_path = f'{base_path}\\4.templates\\TB'
-tboutput_path = f'{base_path}\\8.technical_brief
+tpl_path = f'{base_path}\\11.barata_layout\\tb_templates'
+tboutput_path = f'{base_path}\\8.technical_brief'
 
 import sys
 sys.path.append(base_path)
 
 from barata_layout import RadarInfo
 
-#input directory path based on defined method
-Tk().withdraw()
-data_folder = filedialog.askdirectory(initialdir=f'{base_path}\\2.seonse_output',title='Select Data Directory')[:-4] + '*'
+#input directory path
+#Tk().withdraw()
+#data_folder = filedialog.askdirectory(initialdir=f'{base_path}\\2.seonse_output',title='Select Data Directory')[:-4] + '*'
+data_folder = QFileDialog.getExistingDirectory(None, 'Select Data Directory', f'{base_path}\\2.seonse_outputs')[:-4] + '*'
 
 print ('Sumber data:')
 print (data_folder)
@@ -85,7 +92,7 @@ project_type = 'ship'
 layout_basepath = os.path.dirname(data_folder).replace("2.seonse_outputs","3.layouts") + "\\" + local[:8]
 
 if project_type == 'ship':
-    output_tb = f'TB IUU_{local_datetime} {wil.upper}.docx'
+    output_tb = f'TB IUU_{local_datetime} {wil.upper()}.docx'
     
     ship_list = glob.glob(f'{data_folder}\\*ship.csv')
     layout_list = glob.glob(f'{layout_basepath}\\*{local_datetime}*ship.png')
@@ -148,7 +155,7 @@ if project_type == 'ship':
                 
         
         if ais_len > 0 and vms_len > 0:
-            tpl_path = \TB IUU TEMPLATE (AIS and VMS).docx"    
+            tpl_path = f'{tpl_path}\\TB IUU TEMPLATE (AIS and VMS).docx'
         elif ais_len > 0 or vms_len > 0:
             if ais_len > 0 and vms_len == 0:
                 tpl_path = f'{tpl_path}\\TB IUU TEMPLATE (AIS).docx' 
@@ -210,3 +217,4 @@ else:
 
 tpl.render(context)
 tpl.save(f'{tboutput_path}\\{output_tb}')
+print ('TB telah dibuat')
