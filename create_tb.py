@@ -13,7 +13,9 @@ from datetime import datetime
 from tkinter import Tk, filedialog
 
 #source paths
-base_path = "D://BARATA//"
+base_path = "D:\\BARATA"
+tpl_path = f'{base_path}\\4.templates\\TB'
+tboutput_path = f'{base_path}\\8.technical_brief
 
 import sys
 sys.path.append(base_path)
@@ -22,13 +24,13 @@ from barata_layout import RadarInfo
 
 #input directory path based on defined method
 Tk().withdraw()
-data_folder = filedialog.askdirectory(initialdir=base_path + '\\' + '2.seonse_output',title='Select Data Directory')[:-4] + '*'
+data_folder = filedialog.askdirectory(initialdir=f'{base_path}\\2.seonse_output',title='Select Data Directory')[:-4] + '*'
 
 print ('Sumber data:')
 print (data_folder)
 
 #define list of data based on data folder
-raster_list = glob.glob(data_folder + '\\' + '*.tif')
+raster_list = glob.glob(f'{data_folder}\\*.tif')
 
 if len(raster_list) > 0:
     print ('- Ada data raster')
@@ -41,8 +43,6 @@ if len(raster_list) > 0:
     wil = os.path.basename(os.path.dirname(raster_path))[:-16]
     radar_info = RadarInfo(raster_basename)
     rdr_name = radar_info.rdr_name
-    if rdr_name == 'RADARSAT':
-        rdr_name = 'RADARSAT-2'
     local = radar_info.local
     tgl_local = radar_info.tgl_local    
     bln_local = radar_info.bln_local
@@ -69,24 +69,26 @@ else:
 if method == 'gabungan':
     local_datetime = local[:-2]
     date_time = datetime.strptime(local_datetime, '%Y%m%d_%H%M')
-    time = jam_local + ':' + m
+    time = f'{jam_local}:{m}'
 else:
     local_datetime = local
     date_time = datetime.strptime(local_datetime, '%Y%m%d_%H%M%S')
-    time = jam_local + ':' + m + ':' + d
+    time = f'{jam_local}:{m}:{d}'
 
 location = wil.capitalize()
 radar = rdr_name
-date = tgl_local + ' ' + (bulan_dict[bln_local]).capitalize() + ' ' + thn_local
+date = f'{tgl_local} {(bulan_dict[bln_local]).capitalize()} {thn_local}'
 
 #project_type = input('Pilih jenis project (ship/oils): ')
 project_type = 'ship'
 
+layout_basepath = os.path.dirname(data_folder).replace("2.seonse_outputs","3.layouts") + "\\" + local[:8]
+
 if project_type == 'ship':
-    output_tb = "TB IUU_" + local_datetime + " " + wil.upper() + ".docx"
+    output_tb = f'TB IUU_{local_datetime} {wil.upper}.docx'
     
-    ship_list = glob.glob(data_folder + '\\' + '*ship.csv')
-    layout_list = glob.glob(os.path.dirname(data_folder).replace("2.seonse_outputs","3.layouts") + "\\" + local[:8] + "\\" + "*" + local_datetime + "*ship*" + "*.png")
+    ship_list = glob.glob(f'{data_folder}\\*ship.csv')
+    layout_list = glob.glob(f'{layout_basepath}\\*{local_datetime}*ship.png')
     
     if len(ship_list) > 0:
         print ('- Ada data kapal')
@@ -107,8 +109,8 @@ if project_type == 'ship':
         echo_text = str(echo_len)
         non_text = str(echo_len - (ais_len+vms_len))
         
-        ais_list = glob.glob(os.path.dirname(raster_path) + "\\" + "*ais.csv")
-        vms_list = glob.glob(os.path.dirname(raster_path) + "\\" + "*vms.csv")
+        ais_list = glob.glob(f'{os.path.dirname(raster_path)}\\*ais.csv')
+        vms_list = glob.glob(f'{os.path.dirname(raster_path)}\\*vms.csv')
     
         
         if len(ais_list) > 0:
@@ -119,7 +121,7 @@ if project_type == 'ship':
             
             ais_columns = ais_df.columns.to_list()
             ais_rows = [{'label': row.to_list()[0], 'cols': row.fillna('-').to_list()[1:]} for i, row in ais_df.iterrows()]
-            ais_text = "terdapat {}".format(ais_len)
+            ais_text = f"terdapat {ais_len}"
             
         else:
             print ('- Tidak ada data AIS')
@@ -136,7 +138,7 @@ if project_type == 'ship':
             
             vms_columns = vms_df.columns.to_list()
             vms_rows = [{'label': row.to_list()[0], 'cols': row.fillna('-').to_list()[1:]} for i, row in vms_df.iterrows()]
-            vms_text = "terdapat {}".format(vms_len)
+            vms_text = f"terdapat {vms_len}"
             
         else:
             print ('- Tidak data VMS')
@@ -146,14 +148,14 @@ if project_type == 'ship':
                 
         
         if ais_len > 0 and vms_len > 0:
-            tpl_path = r"D:\BARATA\15.technical_brief\TB IUU TEMPLATE (AIS and VMS).docx"    
+            tpl_path = \TB IUU TEMPLATE (AIS and VMS).docx"    
         elif ais_len > 0 or vms_len > 0:
             if ais_len > 0 and vms_len == 0:
-                tpl_path = r"D:\BARATA\15.technical_brief\TB IUU TEMPLATE (AIS).docx"  
+                tpl_path = f'{tpl_path}\\TB IUU TEMPLATE (AIS).docx' 
             elif ais_len == 0 and vms_len > 0:
-                tpl_path = r"D:\BARATA\15.technical_brief\TB IUU TEMPLATE (VMS).docx"
+                tpl_path = f'{tpl_path}\\TB IUU TEMPLATE (VMS).docx'
         else:
-            tpl_path = r"D:\BARATA\15.technical_brief\TB IUU TEMPLATE (No AIS and VMS).docx"
+            tpl_path = f'{tpl_path}\\TB IUU TEMPLATE (No AIS and VMS).docx'
         
     else:
         print ('- Tidak ada data kapal')
@@ -167,9 +169,7 @@ if project_type == 'ship':
         vms_columns = []
         vms_rows = []
         
-        tpl_path = r"D:\BARATA\15.technical_brief\TB IUU TEMPLATE (No Ship).docx"
-        
-    
+        tpl_path = f'{tpl_path}\\TB IUU TEMPLATE (No Ship).docx'   
     
     tpl=DocxTemplate(tpl_path)
 
@@ -179,19 +179,8 @@ if project_type == 'ship':
     else:
         print ('- Tidak ada layout')
         image = 'Tidak ada layout peta'
-
-else:
-    output_tb = "TB OILSPILL_" + local_datetime + " " + wil.upper() + ".docx"
     
-    oil_list = glob.glob(data_folder + '\\' + '*OIL.shp')
-    layout_path = glob.glob(os.path.dirname(data_folder).replace("2.seonse_outputs","3.layouts") + "\\" + local[:8] + "\\" + "*" + local + "*oils*" + "*.png")
-    if len(oil_list) > 0:
-        print ('- Ada data tumpahan minyak')
-    else:
-        print ('- Tidak ada data tumpahan minyak')
-
-
-context = {'image': image,
+    context = {'image': image,
            'location': location,
            'radar': radar,
            'date': date,
@@ -207,5 +196,17 @@ context = {'image': image,
            'vms_labels': vms_columns,
            'vms_contents': vms_rows,}
 
+else:
+    output_tb = f"TB OILSPILL_{local_datetime} {wil.upper()}.docx"
+    
+    oil_list = glob.glob(f'{data_folder}\\*OIL.shp')
+    layout_list = glob.glob(f'{layout_basepath}\*{local_datetime}*oils.png')
+
+    if len(oil_list) > 0:
+        print ('- Ada data tumpahan minyak')
+    else:
+        print ('- Tidak ada data tumpahan minyak')
+
+
 tpl.render(context)
-tpl.save(r"D:\BARATA\15.technical_brief" + "\\" + output_tb)
+tpl.save(f'{tboutput_path}\\{output_tb}')
