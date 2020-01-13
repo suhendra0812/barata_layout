@@ -83,7 +83,7 @@ for data_path in data_paths:
                 print ('-------------------------')
 
             #read VMS data in the data folder if available
-            vms_paths = glob.glob(os.path.dirname(ship_path) + "\\" + "*vms.csv")
+            vms_paths = glob.glob(f'{os.path.dirname(ship_path)}\\*vms.csv')
             if len(vms_paths) == 0:
                 #check if there is ship with VMS associated
                 if (shipfilterdf['Asosiasi (VMS/AIS)'] == 'VMS').any():
@@ -120,8 +120,11 @@ for data_path in data_paths:
                         shipvmsdf = shipvmsdf.round(6)
 
                     else:
-                        vms_list = glob.glob(os.path.dirname(ship_path).replace('2.seonse_outputs','13.correlated_ship') + '\\' + '*CORRELATED.shp')
-                        vmsdata_list = glob.glob(os.path.dirname(ship_path).replace('2.seonse_outputs','13.correlated_ship') + '\\' + '*vms.csv')
+
+                        #alternative correlated VMS directory
+                        correlated_path = os.path.dirname(ship_path).replace('2.seonse_outputs','13.correlated_ship')
+                        vms_list = glob.glob(f'{correlated_path}\\*CORRELATED.shp')
+                        vmsdata_list = glob.glob(f'{correlated_path}\\*vms.csv')
                         
                         vmsgdf = gpd.GeoDataFrame(pd.concat([gpd.read_file(vms_path) for vms_path in vms_list], ignore_index=True))
                         vmsgdf = vmsgdf[vmsgdf['STATUS'].isin(['VMS'])]
@@ -142,11 +145,11 @@ for data_path in data_paths:
 
                     print ('Nama kapal VMS:')
                     for j, vms_name in enumerate(shipvmsdf['Nama Kapal']):
-                        print (str(j+1)+'.', vms_name)
+                        print (f'{j+1}. {vms_name}')
 
                     shipvmsdf.set_index('No.', inplace=True)
                     shipvmsdf = shipvmsdf.sort_index()
-                    shipvmsdf.to_csv(ship_path[:-9] + '_vms.csv')
+                    shipvmsdf.to_csv(f'{ship_path[:-9]}_vms.csv')
                     print ('Tabel VMS telah dibuat')
                     print ('-------------------------')
                 else:
