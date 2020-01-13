@@ -38,24 +38,21 @@ for data_path in data_paths:
                     aisdf = shipfilterdf.copy()
                     aisdf = aisdf[aisdf['Asosiasi (VMS/AIS)'] == 'AIS']
         
-                    correlated_path = os.path.dirname(ship_path).replace('2.seonse_outputs','13.correlated_ship')
-                    aisdata_list = glob.glob(f'{correlated_path}\\*ais.csv')
+                    #define data datetime
+                    shipdate = datetime.strptime(data_path[-15:], '%Y%m%d_%H%M%S')
+                    startdate = (shipdate - timedelta(hours=1)).strftime('%Y-%m-%dT%H:%M:%S')
+                    stopdate = (shipdate + timedelta(hours=1)).strftime('%Y-%m-%dT%H:%M:%S')
 
-                    if len(aisdata_list) == 0:
-                        aisdatadf = pd.concat([pd.read_csv(aisdata) for aisdata in aisdata_list], ignore_index=True)
-                    else:
-                        #define data datetime
-                        shipdate = datetime.strptime(data_path[-15:], '%Y%m%d_%H%M%S')
-                        startdate = (shipdate - timedelta(hours=1)).strftime('%Y-%m-%dT%H:%M:%S')
-                        stopdate = (shipdate + timedelta(hours=1)).strftime('%Y-%m-%dT%H:%M:%S')
-
-                        aisdata_list = glob.glob(f'{aisdata_basepath}\\{data_path[-15:-11]}\\*{data_path[-15:-7]}*ais.csv')
+                    aisdata_list = glob.glob(f'{aisdata_basepath}\\{data_path[-15:-11]}\\*{data_path[-15:-7]}*ais.csv')
+                    if len(aisdata_list) > 0:
                         aisdata_path = aisdata_list[0]
-                        
-                        aisdatadf = pd.read_csv(aisdata_path)
-                        
-                        #filter ais data to data datetime
-                        aisdatadf = aisdatadf.loc[(aisdatadf['time'] >= startdate) & (aisdatadf['time'] <= stopdate)]
+                    else:
+                        print (f'Data AIS pada periode {data_path[-15:-7]} tidak tersedia')
+
+                    aisdatadf = pd.read_csv(aisdata_path)
+
+                    #filter ais data to data datetime
+                    aisdatadf = aisdatadf.loc[(aisdatadf['time'] >= startdate) & (aisdatadf['time'] <= stopdate)]
 
                     #get vessel name, ship type and country from ais data
                     aisdf['Nama Kapal'] = [aisdatadf[aisdatadf['mmsi'] == int(mmsi)]['vessel_name'].array[0] for mmsi in aisdf['MMSI']]
