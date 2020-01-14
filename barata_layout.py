@@ -885,7 +885,7 @@ class Layout:
             if layout[0] == 1:
                 self.atlas_name = "@layout_name"
             elif layout[0] == 3:
-                self.atlas_name = "@layout_name||@atlasnumber"
+                self.atlas_name = "@layout_name||@atlas_featurenumber"
             #set atlas
             layout[1].atlas().setCoverageLayer(layer)
             layout[1].atlas().setEnabled(True)

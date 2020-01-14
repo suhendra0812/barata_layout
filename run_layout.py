@@ -262,12 +262,15 @@ project_layout.saveProject(outputproj_path)
     
 print ('\nLayout telah dibuat\n')
 
-#get vessel info
-print ('======================================')
-print ('\nMendapatkan informasi vessel...\n')
-ais_info = vessel_info.get_ais_info(shipdf_path)
-vms_info = vessel_info.get_vms_info(shipdf_path)
-print ('======================================')
+if project_type == 'ship':
+    #get vessel info
+    print ('======================================')
+    print ('\nMendapatkan informasi vessel...\n')
+    ais_info = vessel_info.get_ais_info(shipdf_path)
+    vms_info = vessel_info.get_vms_info(shipdf_path)
+    print ('======================================')
+else:
+    pass
 
 print ('\nSelesai')
 
