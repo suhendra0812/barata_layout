@@ -1,10 +1,3 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Thu Dec 26 14:51:02 2019
-
-@author: WSBARATA01
-"""
-
 from docxtpl import DocxTemplate, InlineImage
 from docx.shared import Mm
 import os, glob
