@@ -483,6 +483,8 @@ class DataElements:
                                                                         'AIS_MMSI':'MMSI'})
 
                 self.__ship_filter = self.__ship_filter.round(6)
+                self.__ship_filter['Heading (deg)'] = self.__ship_filter['Heading (deg)'].astype(int)
+                self.__ship_filter['MMSI'] = self.__ship_filter['MMSI'].astype('Int64')
 
                 self.__ship_filter.index+=1
                 self.__ship_filter.index.name = 'No.'

@@ -128,7 +128,7 @@ if project_type == 'ship':
             
             ais_columns = ais_df.columns.to_list()
             ais_rows = [{'label': row.to_list()[0], 'cols': row.fillna('-').to_list()[1:]} for i, row in ais_df.iterrows()]
-            ais_text = f"terdapat {ais_len}"
+            ais_text = f"{ais_len}"
             
         else:
             print ('- Tidak ada data AIS')
@@ -145,7 +145,7 @@ if project_type == 'ship':
             
             vms_columns = vms_df.columns.to_list()
             vms_rows = [{'label': row.to_list()[0], 'cols': row.fillna('-').to_list()[1:]} for i, row in vms_df.iterrows()]
-            vms_text = f"terdapat {vms_len}"
+            vms_text = f"{vms_len}"
             
         else:
             print ('- Tidak data VMS')
@@ -178,7 +178,7 @@ if project_type == 'ship':
         
         tpl_path = f'{tpl_path}\\TB IUU TEMPLATE (No Ship).docx'   
     
-    tpl=DocxTemplate(tpl_path)
+    tpl = DocxTemplate(tpl_path)
 
     if len(layout_list) > 0:
         print ('- Ada layout')
@@ -188,20 +188,20 @@ if project_type == 'ship':
         image = 'Tidak ada layout peta'
     
     context = {'image': image,
-           'location': location,
-           'radar': radar,
-           'date': date,
-           'time': time,
-           'echo': echo_text,
-           'ais': ais_text,
-           'vms': vms_text,
-           'non': non_text,
-           'ship_labels': ship_columns, 
-           'ship_contents': ship_rows,
-           'ais_labels': ais_columns,
-           'ais_contents': ais_rows,
-           'vms_labels': vms_columns,
-           'vms_contents': vms_rows,}
+               'location': location,
+               'radar': radar,
+               'date': date,
+               'time': time,
+               'echo': echo_text,
+               'ais': ais_text,
+               'vms': vms_text,
+               'non': non_text,
+               'ship_labels': ship_columns, 
+               'ship_contents': ship_rows,
+               'ais_labels': ais_columns,
+               'ais_contents': ais_rows,
+               'vms_labels': vms_columns,
+               'vms_contents': vms_rows,}
 
 else:
     output_tb = f"TB OILSPILL_{local_datetime} {wil.upper()}.docx"
@@ -217,4 +217,8 @@ else:
 
 tpl.render(context)
 tpl.save(f'{tboutput_path}\\{output_tb}')
+
 print ('TB telah dibuat')
+
+#exit QGIS application
+qgs.exitQgis()

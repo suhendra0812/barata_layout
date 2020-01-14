@@ -56,6 +56,7 @@ def get_ais_info(ship_path):
                 #filter only some columns to appear
                 shipaisdf = aisshipdf[['No.','Nama Kapal','Tipe','Asal','Longitude','Latitude','Heading (deg)']]
                 shipaisdf = shipaisdf.round(6)
+                shipaisdf['Heading (deg)'] = shipaisdf['Heading (deg)'].astype(int)
 
                 print ('Informasi kapal AIS:')
                 for i, row in shipaisdf[['Nama Kapal', 'Tipe', 'Asal']].iterrows():
@@ -122,6 +123,7 @@ def get_vms_info(ship_path):
                 #filter only some columns to appear
                 shipvmsdf = vmsshipdf[['No.','Nama Kapal','Longitude','Latitude','Panjang (m)','Heading (deg)']]
                 shipvmsdf = shipvmsdf.round(6)
+                shipvmsdf['Heading (deg)'] = shipvmsdf['Heading (deg)'].astype(int)
 
                 print ('Informasi nama kapal VMS:')
                 for j, vms_name in enumerate(shipvmsdf['Nama Kapal']):
@@ -161,6 +163,7 @@ def get_vms_info(ship_path):
                     
                     shipvmsdf = vmsshipgdf[['No.','Nama Kapal','Longitude','Latitude','Panjang (m)','Heading (deg)']]
                     shipvmsdf = shipvmsdf.round(6)
+                    shipvmsdf['Heading (deg)'] = shipvmsdf['Heading (deg)'].astype(int)
 
                     print ('Informasi nama kapal VMS:')
                     for j, vms_name in enumerate(shipvmsdf['Nama Kapal']):
