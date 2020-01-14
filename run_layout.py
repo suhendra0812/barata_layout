@@ -22,9 +22,9 @@ import vessel_info
 #define project type and remove previous layer
 option = input("\nPilih tipe project (ship/oils): ")
 if option == "ship":
-    project_path = f'{base_path}\\layout_ship.qgz'
+    project_path = f'{script_path}\\project_templates\\layout_ship.qgz'
 else:
-    project_path = f'{base_path}\\layout_oils.qgz'
+    project_path = f'{script_path}\\project_templates\\layout_oils.qgz'
     
 
 project_layout = Project(project_path)
