@@ -84,7 +84,6 @@ radar = rdr_name
 date = f'{tgl_local} {(bulan_dict[bln_local]).capitalize()} {thn_local}'
 
 layout_basepath = f'{os.path.dirname(data_folder).replace("2.seonse_outputs","3.layouts")}\\{local[:8]}'
-print (layout_basepath)
 
 if project_type == 'ship':
     output_tb = f'TB IUU_{local_datetime} {wil.upper()}.docx'
