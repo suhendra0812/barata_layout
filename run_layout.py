@@ -17,6 +17,7 @@ script_path = f'{base_path}\\11.barata_layout'
 #sys.path.append(script_path)
 from barata_layout import *
 import read_kml
+from radar_info import RadarInfo
 import vessel_info
 
 #define project type and remove previous layer

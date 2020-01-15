@@ -3,13 +3,7 @@ from docx.shared import Mm
 import os, glob
 import pandas as pd
 from datetime import datetime
-from qgis.core import QgsApplication
-from PyQt5.QtWidgets import QFileDialog
-
-#set QGIS application path and initialize it
-QgsApplication.setPrefixPath('C:\\OSGeo4W64\\apps\\qgis', True)
-qgs = QgsApplication([], False)
-qgs.initQgis()
+from tkinter import Tk, filedialog
 
 #source paths
 base_path = "D:\\BARATA"
@@ -19,14 +13,14 @@ tboutput_path = f'{base_path}\\8.technical_brief'
 import sys
 sys.path.append(base_path)
 
-from barata_layout import RadarInfo
+from radar_info import RadarInfo
 
 project_type = input('Pilih jenis project (ship/oils): ')
 
 #input directory path
-#Tk().withdraw()
-#data_folder = filedialog.askdirectory(initialdir=f'{base_path}\\2.seonse_output',title='Select Data Directory')[:-4] + '*'
-data_folder = QFileDialog.getExistingDirectory(None, 'Select Data Directory', f'{base_path}\\2.seonse_outputs')[:-4] + '*'
+Tk().withdraw()
+data_folder = filedialog.askdirectory(initialdir=f'{base_path}\\2.seonse_output',title='Select Data Directory')[:-4] + '*'
+#data_folder = QFileDialog.getExistingDirectory(None, 'Select Data Directory', f'{base_path}\\2.seonse_outputs')[:-4] + '*'
 
 print ('Sumber data:')
 print (data_folder)
