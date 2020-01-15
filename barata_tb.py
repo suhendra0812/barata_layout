@@ -19,7 +19,7 @@ project_type = input('Pilih jenis project (ship/oils): ')
 
 #input directory path
 Tk().withdraw()
-data_folder = filedialog.askdirectory(initialdir=f'{base_path}\\2.seonse_output',title='Select Data Directory')[:-4] + '*'
+data_folder = filedialog.askdirectory(initialdir=f'{base_path}\\2.seonse_outputs',title='Select Data Directory')[:-4] + '*'
 #data_folder = QFileDialog.getExistingDirectory(None, 'Select Data Directory', f'{base_path}\\2.seonse_outputs')[:-4] + '*'
 
 print ('Sumber data:')
@@ -258,6 +258,3 @@ tpl.render(context)
 tpl.save(f'{tboutput_path}\\{output_tb}')
 
 print ('TB telah dibuat')
-
-#exit QGIS application
-qgs.exitQgis()
