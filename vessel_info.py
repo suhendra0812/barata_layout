@@ -35,7 +35,7 @@ def get_ais_info(ship_path):
             startdate = (shipdate - timedelta(hours=1)).strftime('%Y-%m-%dT%H:%M:%S')
             stopdate = (shipdate + timedelta(hours=1)).strftime('%Y-%m-%dT%H:%M:%S')
 
-            aisdata_list = glob.glob(f'{aisdata_basepath}\\{ship_basepath[-15:-11]}\\*{ship_basepath[-15:-7]}*ais.csv')
+            aisdata_list = glob.glob(f'{aisdata_basepath}\\{ship_basepath[-15:-11]}\\*{ship_basepath[-15:-7]}*_ais.csv')
             if len(aisdata_list) > 0:
                 aisdata_path = aisdata_list[0]
 
@@ -88,7 +88,7 @@ def get_vms_info(ship_path):
     shipfilterdf = shipfilterdf[~pd.isnull(shipfilterdf['Asosiasi (VMS/AIS)'])]
 
     #read VMS data in the data folder if available
-    vms_paths = glob.glob(f'{os.path.dirname(ship_path)}\\*vms.csv')
+    vms_paths = glob.glob(f'{os.path.dirname(ship_path)}\\*_vms.csv')
     if len(vms_paths) == 0:
         #check if there is ship with VMS associated
         if (shipfilterdf['Asosiasi (VMS/AIS)'] == 'VMS').any():
