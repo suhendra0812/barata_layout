@@ -8,7 +8,7 @@ from tkinter import Tk, filedialog
 #source paths
 base_path = "D:\\BARATA"
 tpl_path = f'{base_path}\\11.barata_layout\\tb_templates'
-tboutput_path = f'{base_path}\\8.technical_brief'
+tboutput_basepath = f'{base_path}\\8.technical_brief'
 
 import sys
 sys.path.append(base_path)
@@ -22,8 +22,11 @@ Tk().withdraw()
 data_folder = filedialog.askdirectory(initialdir=f'{base_path}\\2.seonse_outputs',title='Select Data Directory')[:-4] + '*'
 #data_folder = QFileDialog.getExistingDirectory(None, 'Select Data Directory', f'{base_path}\\2.seonse_outputs')[:-4] + '*'
 
-print ('Sumber data:')
+print ('\nSumber data:')
 print (data_folder)
+print ('\n')
+
+print ('Ketersediaan data:')
 
 #define list of data based on data folder
 raster_list = glob.glob(f'{data_folder}\\*.tif')
@@ -80,7 +83,7 @@ date = f'{tgl_local} {(bulan_dict[bln_local]).capitalize()} {thn_local}'
 layout_basepath = f'{os.path.dirname(data_folder).replace("2.seonse_outputs","3.layouts")}\\{local[:8]}'
 
 if project_type == 'ship':
-    output_tb = f'TB IUU_{local_datetime} {wil.upper()}.docx'
+    tbname_output = f'TB IUU_{local_datetime} {wil.upper()}.docx'
     
     ship_list = glob.glob(f'{data_folder}\\*ship.csv')
     layout_list = glob.glob(f'{layout_basepath}\\*{local_datetime}*ship.png')
@@ -192,7 +195,7 @@ if project_type == 'ship':
                'vms_contents': vms_rows,}
 
 else:
-    output_tb = f"TB OILSPILL_{local_datetime} {wil.upper()}.docx"
+    tbname_output = f"TB OILSPILL_{local_datetime} {wil.upper()}.docx"
     
     oil_list = glob.glob(f'{data_folder}\\*oils.csv')
     layout_list = glob.glob(f'{layout_basepath}\\*{local_datetime}*oils**.png')
@@ -255,6 +258,11 @@ else:
 
 
 tpl.render(context)
-tpl.save(f'{tboutput_path}\\{output_tb}')
+tboutput_path = f'{tboutput_basepath}\\{tbname_output}'
+tpl.save(tboutput_path)
+print ('\nTB telah dibuat\n')
 
-print ('TB telah dibuat')
+print ('Membuka TB...')
+os.startfile(tboutput_path)
+
+
