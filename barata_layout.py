@@ -70,11 +70,11 @@ class Project:
     
 class DataList:
     #list layer
-    def __init__(self, sourcePath):
-        self.__rasterList = glob.glob(f'{sourcePath}\\*.tif')
-        self.__shipList = glob.glob(f'{sourcePath}\\*SHIP.shp')
-        self.__oilList = glob.glob(f'{sourcePath}\\*OIL.shp')
-        self.__windList = glob.glob(f'{sourcePath}\\*Wind.gml')
+    def __init__(self, SOURCE_PATH):
+        self.__rasterList = glob.glob(f'{SOURCE_PATH}\\*.tif')
+        self.__shipList = glob.glob(f'{SOURCE_PATH}\\*SHIP.shp')
+        self.__oilList = glob.glob(f'{SOURCE_PATH}\\*OIL.shp')
+        self.__windList = glob.glob(f'{SOURCE_PATH}\\*Wind.gml')
     
     def getRasterList(self):
         return self.__rasterList
@@ -98,7 +98,7 @@ class RasterLayer:
         self.__extent.setMinimal()
         
         for raster_path in raster_list:
-            rasterbasename = os.path.basename(raster_path)[:-4]
+            rasterbasename = QFileInfo(raster_path).baseName()
             rasterlayer = QgsRasterLayer(raster_path, rasterbasename)
             if not rasterlayer.isValid():
                 print("rasterlayer is not valid")
@@ -185,9 +185,9 @@ class WindData:
     
     def getWindGeoDataFrame(self):
         return self.__windgdf
-        
+
 class DataLayer:
-    def __init__(self, data_list, layer_name=None):
+    def __init__(self, data_list):
         self.__datagdf = gpd.GeoDataFrame(pd.concat([gpd.read_file(data) for data in data_list], sort=False, ignore_index=True))
         
         self.__feat_list = []
@@ -195,10 +195,7 @@ class DataLayer:
         self.__layer_list = []
         
         for data_path in data_list:
-            if layer_name != None:
-                self.__baseName = layer_name
-            else:
-                self.__baseName = os.path.basename(data_path)[:-4]
+            self.__baseName = QFileInfo(data_path).baseName()
 
             self.__layer = QgsVectorLayer(data_path, self.__baseName, 'ogr')   
             self.__layer_list.append(self.__layer)
@@ -277,14 +274,11 @@ class AggregationLayer:
 class TransmittedLayer:
     def __init__(self, feat_list, attr_list, vms_list, layer_name):
         if len(vms_list) > 0:
-            print ('- Ada data VMS')
             self.__vmsgdf = gpd.GeoDataFrame(pd.concat([gpd.read_file(vms) for vms in vms_list], ignore_index=True))
             try:
                 self.__vmsstat = self.__vmsgdf[self.__vmsgdf['status'] == 'vms']
             except:
-                self.__vmsstat = self.__vmsgdf[self.__vmsgdf['STATUS'] == 'VMS']
-        else:
-            print ('- Tidak ada data VMS')
+                self.__vmsstat = self.__vmsgdf[self.__vmsgdf['STATUS'] == 'VMS']  
                 
         self.__trmlayer = QgsVectorLayer("Point?crs=epsg:4326", layer_name, "memory")
         self.__trmlayer_data = self.__trmlayer.dataProvider()
@@ -315,13 +309,11 @@ class TransmittedLayer:
             self.__trmfeat_geom = trmfeat.geometry()
             
             if len(vms_list) > 0:
-                for i, vms in self.__vmsstat.iterrows():
+                for _, vms in self.__vmsstat.iterrows():
                     self.__vms_geom = vms.geometry
                     self.__vms_geom_qgs = QgsGeometry.fromPointXY(QgsPointXY(self.__vms_geom.x, self.__vms_geom.y))
                     if self.__trmfeat_geom.intersects(self.__vms_geom_qgs):
                         self.__desc = {(self.__trmattr_len-1):'VMS'}
-            else:
-                pass
                         
             self.__trmlayer.dataProvider().changeAttributeValues({self.__id:self.__desc})
         self.__trmlayer.commitChanges()
@@ -373,14 +365,15 @@ class ExportLayer:
 class DataElements:
     def __init__(self, project_type, datadf_path):
         if project_type == 'ship':
-            if datadf_path != None: 
+            if datadf_path != None:
                 self.__shipdf = pd.read_csv(datadf_path)
+
                 self.__ship_filter = self.__shipdf[['LON_CENTRE', 'LAT_CENTRE', 'TARGET_DIR', 'LENGTH', 'DESC', 'AIS_MMSI']]
                 self.__ship_filter = self.__ship_filter.rename(columns={'LON_CENTRE':'Longitude',
                                                                         'LAT_CENTRE':'Latitude',
                                                                         'TARGET_DIR':'Heading (deg)',
                                                                         'LENGTH':'Panjang (m)',
-                                                                        'DESC':'Asosiasi (VMS/AIS)',
+                                                                        'DESC':'Asosiasi (AIS/VMS)',
                                                                         'AIS_MMSI':'MMSI'})
 
                 self.__ship_filter = self.__ship_filter.round(6)
@@ -389,13 +382,11 @@ class DataElements:
 
                 self.__ship_filter.index+=1
                 self.__ship_filter.index.name = 'No.'
-                try:
-                    self.__ship_filter.to_csv(datadf_path)
-                except:
-                    print ('File csv info kapal sedang dibuka')
-                
+
+                self.__ship_filter.to_csv(datadf_path)
+
                 #get VMS count
-                self.vms = self.__ship_filter[self.__ship_filter['Asosiasi (VMS/AIS)'] == 'VMS']
+                self.vms = self.__shipdf[self.__shipdf['DESC'] == 'VMS']
                 self.fv = len(self.vms)
                 
                 #define ship size category
@@ -472,6 +463,7 @@ class DataElements:
         else:
             if datadf_path != None:
                 self.__oilgdf = gpd.read_file(datadf_path)
+
                 self.__oil_filter = self.__oilgdf[['BARIC_LON', 'BARIC_LAT', 'LENGTH_KM', 'AREA_KM', 'WSPDMEAN', 'WDIRMEAN', 'ALARM_LEV']]
                 self.__oil_filter = self.__oil_filter.rename(columns={'BARIC_LON':'Longitude',
                                                                       'BARIC_LAT':'Latitude',
@@ -484,10 +476,7 @@ class DataElements:
 
                 self.__oil_filter.index+=1
                 self.__oil_filter.index.name = 'No.'
-                try:
-                    self.__oil_filter.to_csv(f'{datadf_path[:-4]}.csv')
-                except:
-                    print ('File csv info kapal sedang dibuka')
+                self.__oil_filter.to_csv(f'{datadf_path[:-4]}.csv')
                 
                 #oil size stat
                 self.lenmin = self.__oilgdf['LENGTH_KM'].min()
@@ -504,7 +493,7 @@ class DataElements:
                 self.lo = len(self.low)
                 
             else:
-                self.lenmin=self.lenmax=self.widmin=self.widmax=self.hi=self.lo=None
+                self.lenmin=self.lenmax=self.widmin=self.widmax=self.hi=self.lo=0
                 
             print ("\nMenghitung statistik tumpahan minyak")
             print (f"\nPanjang tumpahan minyak terendah\t\t= {self.lenmin} km")
@@ -533,10 +522,10 @@ class WindOilLayer:
         self.__meandir_in_polys = []
         self.__maxspd_in_polys = []
         self.__minspd_in_polys = []
-        for i, poly in self.__polygon.iterrows():
+        for _, poly in self.__polygon.iterrows():
             self.__spd_in_this_poly = []
             self.__dir_in_this_poly = []
-            for j, pt in self.__pts.iterrows():
+            for _, pt in self.__pts.iterrows():
                 if poly.geometry.intersects(pt.geometry):
                     self.__speed = float(f"{pt['speed']:.2f}")
                     self.__direction = float(f"{pt['direction']:.2f}")

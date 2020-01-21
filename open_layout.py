@@ -1,8 +1,7 @@
 import sys, os, glob
 import pandas as pd
 
-script_path = 'D:\\BARATA\\11.barata_layout'
-sys.path.append(script_path)
+sys.path.append('D:\\BARATA\\11.barata_layout')
 from barata_layout import Project, Layout
 
 #define project type and project path

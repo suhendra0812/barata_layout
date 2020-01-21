@@ -6,12 +6,12 @@ from datetime import datetime
 from tkinter import Tk, filedialog
 
 #source paths
-base_path = "D:\\BARATA"
-tpl_path = f'{base_path}\\11.barata_layout\\tb_templates'
-tboutput_basepath = f'{base_path}\\8.technical_brief'
+BASE_PATH = "D:\\BARATA"
+TEMPLATE_PATH = 'templates\\tb'
+TBOUTPUT_BASEPATH = f'{BASE_PATH}\\8.technical_brief'
 
 import sys
-sys.path.append(base_path)
+sys.path.append(BASE_PATH)
 
 from radar_info import RadarInfo
 
@@ -19,8 +19,8 @@ project_type = input('Pilih jenis project (ship/oils): ')
 
 #input directory path
 Tk().withdraw()
-data_folder = filedialog.askdirectory(initialdir=f'{base_path}\\2.seonse_outputs',title='Select Data Directory')[:-4] + '*'
-#data_folder = QFileDialog.getExistingDirectory(None, 'Select Data Directory', f'{base_path}\\2.seonse_outputs')[:-4] + '*'
+data_folder = filedialog.askdirectory(initialdir=f'{BASE_PATH}\\2.seonse_outputs',title='Select Data Directory')[:-4] + '*'
+#data_folder = QFileDialog.getExistingDirectory(None, 'Select Data Directory', f'{BASE_PATH}\\2.seonse_outputs')[:-4] + '*'
 
 print ('\nSumber data:')
 print (data_folder)
@@ -37,7 +37,18 @@ if len(raster_list) > 0:
     raster_basename = os.path.basename(raster_path)
     
     #get radar info from raster filename
-    bulan_dict = {'01':'JANUARI','02':'FEBRUARI','03':'MARET','04':'APRIL','05':'MEI','06':'JUNI','07':'JULI','08':'AGUSTUS','09':'SEPTEMBER','10':'OKTOBER','11':'NOVEMBER','12':'DESEMBER'}
+    bulan_dict={'01':'JANUARI',
+                '02':'FEBRUARI',
+                '03':'MARET',
+                '04':'APRIL',
+                '05':'MEI',
+                '06':'JUNI',
+                '07':'JULI',
+                '08':'AGUSTUS',
+                '09':'SEPTEMBER',
+                '10':'OKTOBER',
+                '11':'NOVEMBER',
+                '12':'DESEMBER'}
     
     wil = os.path.basename(os.path.dirname(raster_path))[:-16]
     radar_info = RadarInfo(raster_basename)
@@ -83,7 +94,7 @@ date = f'{tgl_local} {(bulan_dict[bln_local]).capitalize()} {thn_local}'
 layout_basepath = f'{os.path.dirname(data_folder).replace("2.seonse_outputs","3.layouts")}\\{local[:8]}'
 
 if project_type == 'ship':
-    tbname_output = f'TB IUU_{local_datetime} {wil.upper()}.docx'
+    TBOUTPUT_NAME = f'TB IUU_{local_datetime} {wil.upper()}.docx'
     
     ship_list = glob.glob(f'{data_folder}\\*ship.csv')
     layout_list = glob.glob(f'{layout_basepath}\\*{local_datetime}*ship.png')
@@ -101,8 +112,8 @@ if project_type == 'ship':
         
         echo_len = len(ship_df)
         
-        ais_len = len(ship_df[ship_df['Asosiasi (VMS/AIS)'] == 'AIS'])
-        vms_len = len(ship_df[ship_df['Asosiasi (VMS/AIS)'] == 'VMS'])
+        ais_len = len(ship_df[ship_df['Asosiasi (AIS/VMS)'] == 'AIS'])
+        vms_len = len(ship_df[ship_df['Asosiasi (AIS/VMS)'] == 'VMS'])
         
         echo_text = str(echo_len)
         non_text = str(echo_len - (ais_len+vms_len))
@@ -146,14 +157,14 @@ if project_type == 'ship':
                 
         
         if ais_len > 0 and vms_len > 0:
-            tpl_path = f'{tpl_path}\\TB IUU TEMPLATE (AIS and VMS).docx'
+            TEMPLATE_PATH = f'{TEMPLATE_PATH}\\TB IUU TEMPLATE (AIS and VMS).docx'
         elif ais_len > 0 or vms_len > 0:
             if ais_len > 0 and vms_len == 0:
-                tpl_path = f'{tpl_path}\\TB IUU TEMPLATE (AIS).docx' 
+                TEMPLATE_PATH = f'{TEMPLATE_PATH}\\TB IUU TEMPLATE (AIS).docx' 
             elif ais_len == 0 and vms_len > 0:
-                tpl_path = f'{tpl_path}\\TB IUU TEMPLATE (VMS).docx'
+                TEMPLATE_PATH = f'{TEMPLATE_PATH}\\TB IUU TEMPLATE (VMS).docx'
         else:
-            tpl_path = f'{tpl_path}\\TB IUU TEMPLATE (No AIS and VMS).docx'
+            TEMPLATE_PATH = f'{TEMPLATE_PATH}\\TB IUU TEMPLATE (No AIS and VMS).docx'
         
     else:
         print ('- Tidak ada data kapal')
@@ -167,9 +178,9 @@ if project_type == 'ship':
         vms_columns = []
         vms_rows = []
         
-        tpl_path = f'{tpl_path}\\TB IUU TEMPLATE (No Ship).docx'   
+        TEMPLATE_PATH = f'{TEMPLATE_PATH}\\TB IUU TEMPLATE (No Ship).docx'   
     
-    tpl = DocxTemplate(tpl_path)
+    tpl = DocxTemplate(TEMPLATE_PATH)
 
     if len(layout_list) > 0:
         print ('- Ada layout')
@@ -195,7 +206,7 @@ if project_type == 'ship':
                'vms_contents': vms_rows,}
 
 else:
-    tbname_output = f"TB OILSPILL_{local_datetime} {wil.upper()}.docx"
+    TBOUTPUT_NAME = f"TB OILSPILL_{local_datetime} {wil.upper()}.docx"
     
     oil_list = glob.glob(f'{data_folder}\\*oils.csv')
     layout_list = glob.glob(f'{layout_basepath}\\*{local_datetime}*oils**.png')
@@ -216,16 +227,16 @@ else:
         latitude = oil_df[oil_df['Luas (km2)'] == max_area]['Latitude'].array[0]
 
         if oil_count > 1:
-            tpl_path = f'{tpl_path}\\TB OILSPILL TEMPLATE (More Oils).docx'
+            TEMPLATE_PATH = f'{TEMPLATE_PATH}\\TB OILSPILL TEMPLATE (More Oils).docx'
         elif oil_count == 1:
-            tpl_path = f'{tpl_path}\\TB OILSPILL TEMPLATE (One Oil).docx'
+            TEMPLATE_PATH = f'{TEMPLATE_PATH}\\TB OILSPILL TEMPLATE (One Oil).docx'
         else:
-            tpl_path = f'{tpl_path}\\TB OILSPILL TEMPLATE (No Oil).docx'
+            TEMPLATE_PATH = f'{TEMPLATE_PATH}\\TB OILSPILL TEMPLATE (No Oil).docx'
 
     else:
         print ('- Tidak ada data tumpahan minyak')
     
-    tpl = DocxTemplate(tpl_path)
+    tpl = DocxTemplate(TEMPLATE_PATH)
 
     if len(layout_list) > 0:
         print ('- Ada layout')
@@ -258,7 +269,7 @@ else:
 
 
 tpl.render(context)
-tboutput_path = f'{tboutput_basepath}\\{tbname_output}'
+tboutput_path = f'{TBOUTPUT_BASEPATH}\\{TBOUTPUT_NAME}'
 tpl.save(tboutput_path)
 print ('\nTB telah dibuat\n')
 

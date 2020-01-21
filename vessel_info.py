@@ -4,12 +4,12 @@ import geopandas as gpd
 from datetime import datetime, timedelta
 #from tkinter import Tk, filedialog
 
-base_path = 'D:\\BARATA'
-rdrvms_path = f'{base_path}\\7.barata_ship\\output\\'
+BASE_PATH = 'D:\\BARATA'
+BARATA_SHIP_PATH = f'{BASE_PATH}\\7.barata_ship\\output\\'
 
-aisdata_basepath = f'{base_path}\\10.ais'
-ais_info_path = f'{aisdata_basepath}\\ais_info.csv'
-ais_infodf = pd.read_csv(ais_info_path)
+AISDATA_BASEPATH = f'{BASE_PATH}\\10.ais'
+AIS_INFO_PATH = f'{AISDATA_BASEPATH}\\ais_info.csv'
+ais_infodf = pd.read_csv(AIS_INFO_PATH)
 
 def get_ais_info(ship_path):
     #read ship data
@@ -17,7 +17,7 @@ def get_ais_info(ship_path):
 
     #filter ship data to show only transmitted ship
     shipfilterdf = shipdf.copy()
-    shipfilterdf = shipfilterdf[~pd.isnull(shipfilterdf['Asosiasi (VMS/AIS)'])]
+    shipfilterdf = shipfilterdf[~pd.isnull(shipfilterdf['Asosiasi (AIS/VMS)'])]
 
     ship_basepath = os.path.dirname(ship_path)
     
@@ -25,17 +25,17 @@ def get_ais_info(ship_path):
     ais_paths = glob.glob(f'{ship_basepath}\\*ais.csv')
     if len(ais_paths) == 0:
         #check if there is ship with AIS associated
-        if (shipfilterdf['Asosiasi (VMS/AIS)'] == 'AIS').any():
+        if (shipfilterdf['Asosiasi (AIS/VMS)'] == 'AIS').any():
             print ('Terdapat asosiasi dengan AIS\n')
             aisdf = shipfilterdf.copy()
-            aisdf = aisdf[aisdf['Asosiasi (VMS/AIS)'] == 'AIS']
+            aisdf = aisdf[aisdf['Asosiasi (AIS/VMS)'] == 'AIS']
 
             #define data datetime
             shipdate = datetime.strptime(ship_basepath[-15:], '%Y%m%d_%H%M%S')
             startdate = (shipdate - timedelta(hours=1)).strftime('%Y-%m-%dT%H:%M:%S')
             stopdate = (shipdate + timedelta(hours=1)).strftime('%Y-%m-%dT%H:%M:%S')
 
-            aisdata_list = glob.glob(f'{aisdata_basepath}\\{ship_basepath[-15:-11]}\\*{ship_basepath[-15:-7]}*_ais.csv')
+            aisdata_list = glob.glob(f'{AISDATA_BASEPATH}\\{ship_basepath[-15:-11]}\\*{ship_basepath[-15:-7]}*_ais.csv')
             if len(aisdata_list) > 0:
                 aisdata_path = aisdata_list[0]
 
@@ -51,7 +51,7 @@ def get_ais_info(ship_path):
 
                 #merge AIS dataframe to ship data
                 aisshipdf = pd.merge(aisdf, shipdf, how='right')
-                aisshipdf = aisshipdf[aisshipdf['Asosiasi (VMS/AIS)'] == 'AIS']
+                aisshipdf = aisshipdf[aisshipdf['Asosiasi (AIS/VMS)'] == 'AIS']
 
                 #filter only some columns to appear
                 shipaisdf = aisshipdf[['No.','Nama Kapal','Tipe','Asal','Longitude','Latitude','Heading (deg)']]
@@ -85,18 +85,18 @@ def get_vms_info(ship_path):
 
     #filter ship data to show only transmitted ship
     shipfilterdf = shipdf.copy()
-    shipfilterdf = shipfilterdf[~pd.isnull(shipfilterdf['Asosiasi (VMS/AIS)'])]
+    shipfilterdf = shipfilterdf[~pd.isnull(shipfilterdf['Asosiasi (AIS/VMS)'])]
 
     #read VMS data in the data folder if available
     vms_paths = glob.glob(f'{os.path.dirname(ship_path)}\\*_vms.csv')
     if len(vms_paths) == 0:
         #check if there is ship with VMS associated
-        if (shipfilterdf['Asosiasi (VMS/AIS)'] == 'VMS').any():
+        if (shipfilterdf['Asosiasi (AIS/VMS)'] == 'VMS').any():
             print ('Terdapat asosiasi dengan VMS\n')
 
             #read output of VMS correlation analysis
             vms_ff = os.path.dirname(ship_path)[-15:].replace('_','')[:-4]
-            vms_list = glob.glob(f'{rdrvms_path}\\{vms_ff}*\\*.csv')
+            vms_list = glob.glob(f'{BARATA_SHIP_PATH}\\{vms_ff}*\\*.csv')
 
             if len(vms_list) > 0:
 
@@ -187,7 +187,7 @@ def get_vms_info(ship_path):
         
 """
 Tk().withdraw()
-data_paths = glob.glob(filedialog.askdirectory(initialdir = base_path, title = "Choose data ship directory")[:-4] + "*")
+data_paths = glob.glob(filedialog.askdirectory(initialdir = BASE_PATH, title = "Choose data ship directory")[:-4] + "*")
 #data_paths = filedialog.askopenfilename(initialdir = basePath, title = "Choose data ship file", filetypes = (("CSV files","*.csv"),("all files","*.*")))
 #data_paths = QFileDialog.getOpenFileName(None, "Choose data ship file", basePath, 'CSV Files (*.csv)')[0]
 for data_path in data_paths:

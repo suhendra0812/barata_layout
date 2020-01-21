@@ -1,10 +1,3 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Sun Jul 14 18:06:05 2019
-
-@author: WSBARATA01
-"""
-
 from zipfile import ZipFile
 from xml.etree import ElementTree
 from shapely.geometry import Point
@@ -36,7 +29,7 @@ class DTO:
             def split_condition(x):
                 return x in {' '}
             
-            self.__grouper = groupby(info_list, key=split_condition)
+            self.__grouper = groupby(self.__info_list, key=split_condition)
             self.__info_grouped = dict(enumerate((list(j) for i, j in self.__grouper if not i), 1))
             
             self.__info = self.__info_grouped[i]

@@ -7,26 +7,23 @@ QgsApplication.setPrefixPath('C:\\OSGeo4W64\\apps\\qgis', True)
 qgs = QgsApplication([], False)
 qgs.initQgis()
 
-#source paths
-base_path = "D:\\BARATA"
-basemap_path = f'{base_path}\\1.basemaps'
-template_path = f'{base_path}\\4.templates'
-rdrvms_path = f'{base_path}\\7.barata_ship\\output'
-script_path = f'{base_path}\\11.barata_layout'
-
-#sys.path.append(script_path)
 from barata_layout import *
 import read_kml
 from radar_info import RadarInfo
 import vessel_info
 
+#source paths
+BASE_PATH = "D:\\BARATA"
+BASEMAP_PATH = f'{BASE_PATH}\\1.basemaps'
+BARATA_SHIP_PATH = f'{BASE_PATH}\\7.barata_ship\\output'
+TEMPLATE_PATH = 'templates'
+
 #define project type and remove previous layer
 option = input("\nPilih tipe project (ship/oils): ")
 if option == "ship":
-    project_path = f'{script_path}\\project_templates\\layout_ship.qgz'
+    project_path = f'{TEMPLATE_PATH}\\project\\layout_ship.qgz'
 else:
-    project_path = f'{script_path}\\project_templates\\layout_oils.qgz'
-    
+    project_path = f'{TEMPLATE_PATH}\\project\\layout_oils.qgz'
 
 project_layout = Project(project_path)
 project_layout.removeLayerPanel()
@@ -40,17 +37,17 @@ basemap_group = project_layout.getBasemapGroup()
 data_group = project_layout.getDataGroup()
 
 #input directory path
-data_folder = QFileDialog.getExistingDirectory(None, 'Select Data Directory', f'{base_path}\\2.seonse_outputs')[:-4] + '*'
+DATA_FOLDER = QFileDialog.getExistingDirectory(None, 'Select Data Directory', f'{BASE_PATH}\\2.seonse_outputs')[:-4] + '*'
 
 print ('\nSumber data:')
-print (data_folder)
+print (DATA_FOLDER)
 
 #define list of data based on data folder
-data_list = DataList(data_folder)
+data_list = DataList(DATA_FOLDER)
 raster_list = data_list.getRasterList()
 wind_list = data_list.getWindList()
 
-output_folder = os.path.dirname(raster_list[-1])
+OUTPUT_FOLDER = os.path.dirname(raster_list[-1])
 
 print ('\nKetersediaan data:')
 #load raster layer and get raster info
@@ -60,12 +57,12 @@ if len(raster_list) > 0:
     rasterbasename_list = RasterLayer(raster_list).getRasterBasename()
     raster_extent = RasterLayer(raster_list).getRasterExtent()
 
-    radar_info_list = []
     for rasterlayer in rasterlayer_list:
         LoadRasterLayer(rasterlayer, basemap_group)
 
     #get radar info from raster filename
-    wil = os.path.basename(output_folder)[:-16]
+    wil = os.path.basename(OUTPUT_FOLDER)[:-16]
+    radar_info_list = []
     for rasterbasename in rasterbasename_list:
         radar_info = RadarInfo(rasterbasename)
         radar_info_list.append(radar_info)
@@ -86,7 +83,7 @@ if len(raster_list) > 0:
     mode = radar_info.mode
     pola = radar_info.pola
     
-    #define metode layout berdasarkan jumlah data
+    #define layout method based on data length
     if len(raster_list) == 1:
         method = 'satu'
     else:
@@ -106,7 +103,7 @@ else:
     wind_range=wind_direction= 'n/a'
 
 #load wpp data and get WPP area which is overlaid within raster
-wpp_path = f'{basemap_path}\\wpp_juni_2011_fix.shp'
+wpp_path = f'{BASEMAP_PATH}\\wpp_juni_2011_fix.shp'
 wpp_layer = WPPLayer(wpp_path, raster_extent)
 wpp_area = wpp_layer.wpp_area
 
@@ -123,12 +120,12 @@ if project_type == 'ship':
         print ('- Ada data kapal')
 
         #define transmitted layer name and ship csv path
-        trmlayer_name = f'{layer_name[:-4]}_AIS/VMS'
-        shipdf_path = f'{output_folder}\\{layer_name}.csv'
+        trmlayer_name = f'{layer_name[:-4]}AIS/VMS'
+        shipdf_path = f'{OUTPUT_FOLDER}\\{layer_name}.csv'
         
         #define path of ship template
-        ship_template = f'{template_path}\\template_ship_size_color_layer_2.qml'
-        trm_template = f'{template_path}\\template_ais_vms_layer_2.qml'
+        ship_template = f'{TEMPLATE_PATH}\\layer\\ship_size_color_layer_template.qml'
+        trm_template = f'{TEMPLATE_PATH}\\layer\\ais_vms_layer_template.qml'
         
         for ship_path in ship_list:
             #get AIS_MMSI information on KML file
@@ -138,14 +135,14 @@ if project_type == 'ship':
         vms_list = []
         for raster_path in raster_list:
             vms_ff = os.path.dirname(raster_path)[-15:].replace('_','')
-            vms_path = glob.glob(f'{rdrvms_path}\\{vms_ff}*\\*.shp')
+            vms_path = glob.glob(f'{BARATA_SHIP_PATH}\\{vms_ff}*\\*.shp')
             if len(vms_path) > 0:
                 vms_list.append(vms_path[0])
-            else:
-                corshipPath = os.path.dirname(raster_path).replace('2.seonse_outputs','12.correlated_ship')
-                vms_path = glob.glob(f'{corshipPath}\\*CORRELATED.shp')
-                if len(vms_path) > 0:
-                    vms_list.append(vms_path[0])
+            # else:
+            #     corshipPath = os.path.dirname(raster_path).replace('2.seonse_outputs','12.correlated_ship')
+            #     vms_path = glob.glob(f'{corshipPath}\\*CORRELATED.shp')
+            #     if len(vms_path) > 0:
+            #         vms_list.append(vms_path[0])
 
         #get list of features and attributes and feature extent    
         shipfeat_list = DataLayer(ship_list).getFeatList()
@@ -193,10 +190,10 @@ else:
         print ('- Ada data tumpahan minyak')
 
         #define name and path
-        oilgdf_path = f'{output_folder}\\{layer_name}.shp'
+        oilgdf_path = f'{OUTPUT_FOLDER}\\{layer_name}.shp'
 
         #define path of oil template
-        oil_template = f'{template_path}\\template_level_oils_layer.qml'
+        oil_template = f'{TEMPLATE_PATH}\\layer\\oils_level_layer_template.qml'
         
         #get list of features and attributes, geodataframe and feature extent
         oilfeat_list = DataLayer(oil_list).getFeatList()
@@ -258,7 +255,7 @@ layout_manager.insertSourceText()
 layout_manager.setLayoutName(layer_name) 
 
 #save project
-outputproj_path = f'{output_folder}\\{layer_name}.qgz'
+outputproj_path = f'{OUTPUT_FOLDER}\\{layer_name}.qgz'
 project_layout.saveProject(outputproj_path)
     
 print ('\nLayout telah dibuat\n')
@@ -285,9 +282,9 @@ ymin = raster_extent.yMinimum()
 ymax = raster_extent.yMaximum()
 
 #define open layout script path
-openlayout_script = f'{script_path}\\open_layout.py'
+OPENLAYOUT_SCRIPT = 'open_layout.py'
 
 #open current project using command line
-os.system(f'qgis --projectfile {outputproj_path} --extent {xmin},{ymin},{xmax},{ymax} --code {openlayout_script}')
+os.system(f'qgis --projectfile {outputproj_path} --extent {xmin},{ymin},{xmax},{ymax} --code {OPENLAYOUT_SCRIPT}')
 
 print ('\nMembuka project layout...')
