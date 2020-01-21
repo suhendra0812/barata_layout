@@ -9,11 +9,14 @@ from barata_layout import Project, Layout
 project_type = Project().getProjectType()
 project_path = Project().getProjectPath()
 
+#define data folder
+data_folder = os.path.dirname(project_path)
+
 #get data list from directory based on project type
 if project_type == 'ship':
-	data_list = glob.glob(f'{os.path.dirname(project_path)}\\*ship.csv')
+	data_list = glob.glob(f'{data_folder}\\*ship.csv')
 else:
-	data_list = glob.glob(f'{os.path.dirname(project_path)}\\*oils.csv')
+	data_list = glob.glob(f'{data_folder}\\*oils.csv')
 
 #define feature number
 if len(data_list) > 0:
