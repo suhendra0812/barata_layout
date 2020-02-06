@@ -71,7 +71,8 @@ def get_ais_info(ship_path):
             return shipaisdf
 
         else:
-            print (f'Data AIS pada periode {ship_basepath[-15:-7]} tidak tersedia\n')
+            print (f'Data AIS pada periode {ship_basepath[-15:-7]} tidak tersedia')
+            print ('Tabel AIS tidak dapat dibuat')
 
     else:
         print ('Tidak ada asosiasi dengan AIS\n')
