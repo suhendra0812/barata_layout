@@ -1,7 +1,8 @@
-import os, sys, glob
+import os, sys, shutil, glob
 import pandas as pd
 import geopandas as gpd
 from datetime import datetime, timedelta
+from zipfile import ZipFile
 #from tkinter import Tk, filedialog
 
 BASE_PATH = 'D:\\BARATA'
@@ -35,12 +36,26 @@ def get_ais_info(ship_path):
         startdate = (shipdate - timedelta(hours=1)).strftime('%Y-%m-%dT%H:%M:%S')
         stopdate = (shipdate + timedelta(hours=1)).strftime('%Y-%m-%dT%H:%M:%S')
 
-        aisdata_list = glob.glob(f'{AISDATA_BASEPATH}\\{ship_basepath[-15:-11]}\\*{ship_basepath[-15:-7]}*_ais.csv')
+        #aisdata_list = glob.glob(f'{AISDATA_BASEPATH}\\{ship_basepath[-15:-11]}\\*{ship_basepath[-15:-7]}*_ais.csv')
+        aisdata_list = glob.glob(f'{AISDATA_BASEPATH}\\{ship_basepath[-15:-11]}\\*{ship_basepath[-15:-7]}*.zip')
+
         if len(aisdata_list) > 0:
-            aisdata_path = aisdata_list[0]
+            aisdatazip_path = aisdata_list[0]
+            aisdatacsv_path = f'{os.path.dirname(aisdatazip_path)}\\indo_{ship_basepath[-15:-7]}_ais.csv'
 
-            aisdatadf = pd.read_csv(aisdata_path)
+            #extract ais data csv in zip file
+            if not os.path.exists(aisdatacsv_path):
+                with ZipFile(aisdatazip_path) as theZip:
+                    fileNames = theZip.namelist()
+                    for fileName in fileNames:
+                        if fileName.endswith('csv'):
+                            with theZip.open(fileName) as f:
+                                with open(aisdatacsv_path, 'wb') as outfile:
+                                    shutil.copyfileobj(f, outfile)
 
+            #read ais data csv
+            aisdatadf = pd.read_csv(aisdatacsv_path)
+            
             #filter ais data to data datetime
             aisdatadf = aisdatadf.loc[(aisdatadf['time'] >= startdate) & (aisdatadf['time'] <= stopdate)]
 
@@ -72,7 +87,7 @@ def get_ais_info(ship_path):
 
         else:
             print (f'Data AIS pada periode {ship_basepath[-15:-7]} tidak tersedia')
-            print ('Tabel AIS tidak dapat dibuat')
+            print ('Tabel AIS tidak dapat dibuat\n')
 
     else:
         print ('Tidak ada asosiasi dengan AIS\n')
