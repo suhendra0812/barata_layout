@@ -1,16 +1,13 @@
 import sys, os
-from qgis.core import QgsApplication
-from PyQt5.QtWidgets import QFileDialog
-
-#set QGIS application path and initialize it
-QgsApplication.setPrefixPath('C:\\OSGeo4W64\\apps\\qgis', True)
-qgs = QgsApplication([], False)
-qgs.initQgis()
-
 from barata_layout import *
 import read_kml
 from radar_info import RadarInfo
 import vessel_info
+
+#set QGIS application path and initialize it
+qgs_path = 'C:\\OSGeo4W64\\apps\\qgis'
+qgs_app = QgsApp(qgs_path)
+qgs_app.start()
 
 #source paths
 BASE_PATH = "D:\\BARATA"
@@ -37,7 +34,8 @@ basemap_group = project_layout.getBasemapGroup()
 data_group = project_layout.getDataGroup()
 
 #input directory path
-DATA_FOLDER = QFileDialog.getExistingDirectory(None, 'Select Data Directory', f'{BASE_PATH}\\2.seonse_outputs')[:-4] + '*'
+# DATA_FOLDER = QFileDialog.getExistingDirectory(None, 'Select Data Directory', f'{BASE_PATH}\\2.seonse_outputs')[:-4] + '*'
+DATA_FOLDER = FileDialog(BASE_PATH).open()
 
 print ('\nSumber data:')
 print (DATA_FOLDER)
@@ -273,7 +271,7 @@ else:
 print ('\nSelesai')
 
 #exit QGIS application
-qgs.exitQgis()
+qgs_app.quit()
 
 #set raster extent
 xmin = raster_extent.xMinimum()
