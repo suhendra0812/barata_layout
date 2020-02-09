@@ -101,7 +101,7 @@ else:
     wind_range=wind_direction= 'n/a'
 
 #load wpp data and get WPP area which is overlaid within raster
-wpp_path = f'{BASEMAP_PATH}\\wpp_juni_2011_fix.shp'
+wpp_path = f'{BASEMAP_PATH}\\WPP_Full_PermenKP182014.shp'
 wpp_layer = WPPLayer(wpp_path, raster_extent)
 wpp_area = wpp_layer.wpp_area
 
