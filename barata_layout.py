@@ -1,4 +1,4 @@
-from qgis.core import QgsProject, QgsRectangle, QgsRasterLayer, QgsLayerTreeLayer, QgsVectorLayer, QgsField, QgsGeometry, QgsPointXY, QgsVectorFileWriter, QgsLayoutItemMap, QgsLayoutItemMapOverview, QgsLayoutItemLabel, QgsRasterRange
+from qgis.core import QgsApplication, QgsProject, QgsRectangle, QgsRasterLayer, QgsLayerTreeLayer, QgsVectorLayer, QgsField, QgsGeometry, QgsPointXY, QgsVectorFileWriter, QgsLayoutItemMap, QgsLayoutItemMapOverview, QgsLayoutItemLabel, QgsRasterRange
 from qgis.gui import QgsMapCanvas
 from qgis.utils import iface
 from PyQt5.QtCore import QFileInfo, QVariant
@@ -11,6 +11,24 @@ import os
 import glob
 import sip
 
+class QgsApp:
+    def __init__(self, path):
+        QgsApplication.setPrefixPath(path, True)
+        self.qgs = QgsApplication([], False)
+    
+    def start(self):
+        self.qgs.initQgis()
+    
+    def quit(self):
+        self.qgs.exitQgis()
+
+class FileDialog:
+    def __init__(self, base_path):
+        self.base_path = base_path
+
+    def open(self):
+        self.path = QFileDialog.getExistingDirectory(None, 'Select Data Directory', self.base_path)[:-4] + '*'
+        return self.path
 
 class Project:
     def __init__(self, project_path=None):
