@@ -609,7 +609,7 @@ class WPPLayer:
         self.__wppgdf = gpd.read_file(wpp_path)
         
         self.__wpp_filter = self.__wppgdf.cx[self.xmin:self.xmax, self.ymin:self.ymax]
-        self.__wpp_list = [wpp[-3:] for wpp in self.__wpp_filter['NAMA_WPP']]
+        self.__wpp_list = [wpp[-3:] for wpp in self.__wpp_filter['WPP']]
 
         if len(self.__wpp_list) == 1:
             self.wpp_area = f'WPP NRI {self.__wpp_list[0]}'
