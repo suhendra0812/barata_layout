@@ -386,7 +386,8 @@ class DataElements:
             if datadf_path != None:
                 self.__shipdf = pd.read_csv(datadf_path)
 
-                self.__ship_filter = self.__shipdf[['LON_CENTRE', 'LAT_CENTRE', 'TARGET_DIR', 'LENGTH', 'DESC', 'AIS_MMSI']]
+                self.__ship_filter = self.__shipdf.copy()
+                self.__ship_filter = self.__ship_filter[['LON_CENTRE', 'LAT_CENTRE', 'TARGET_DIR', 'LENGTH', 'DESC', 'AIS_MMSI']]
                 self.__ship_filter = self.__ship_filter.rename(columns={'LON_CENTRE':'Longitude',
                                                                         'LAT_CENTRE':'Latitude',
                                                                         'TARGET_DIR':'Heading (deg)',
