@@ -53,7 +53,7 @@ if len(raster_list) > 0:
     print ('- Ada data raster')
     rasterlayer_list = RasterLayer(raster_list).getRasterLayer()
     rasterbasename_list = RasterLayer(raster_list).getRasterBasename()
-    raster_extent = RasterLayer(raster_list).getRasterExtent()
+    raster_extent = LayerExtent(raster_list).getExtent()
 
     for rasterlayer in rasterlayer_list:
         LoadRasterLayer(rasterlayer, basemap_group)
