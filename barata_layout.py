@@ -106,39 +106,39 @@ class DataList:
     def getWindList(self):
         return self.__windList
     
+class LayerExtent:
+    def __init__(self, layer_list):
+        #set up extent
+        self.extent = QgsRectangle()
+        self.extent.setMinimal()
+
+        for layer in layer_list:
+            #zoom to raster layer
+            self.extent.combineExtentWith(layer.extent())
+
+        #set extent to canvas
+        QgsMapCanvas().mapCanvas().setExtent(self.extent)
+        QgsMapCanvas().mapCanvas().refresh()
+    
+    def getExtent(self):
+        return self.extent
+
 class RasterLayer:
     def __init__(self, raster_list):
         self.__rasterbasename_list = []
         self.__rasterlayer_list = []
-        
-        #set up extent
-        self.__extent = QgsRectangle()
-        self.__extent.setMinimal()
         
         for raster_path in raster_list:
             rasterbasename = QFileInfo(raster_path).baseName()
             rasterlayer = QgsRasterLayer(raster_path, rasterbasename)
             if not rasterlayer.isValid():
                 print("rasterlayer is not valid")
-                
-            self.__rasterbasename_list.append(rasterbasename)
-            self.__rasterlayer_list.append(rasterlayer)
-            
-            #zoom to raster layer
-            self.__extent.combineExtentWith(rasterlayer.extent())
-        
-        #set extent to canvas
-        QgsMapCanvas().setExtent(self.__extent)
-        QgsMapCanvas().refresh()
         
     def getRasterBasename(self):
         return self.__rasterbasename_list
         
     def getRasterLayer(self):
         return self.__rasterlayer_list
-    
-    def getRasterExtent(self):
-        return self.__extent
     
 class LoadRasterLayer:
     def __init__(self, layer, group):
