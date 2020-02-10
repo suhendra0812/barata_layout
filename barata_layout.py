@@ -2,7 +2,7 @@ from qgis.core import QgsApplication, QgsProject, QgsRectangle, QgsRasterLayer, 
 from qgis.gui import QgsMapCanvas
 from qgis.utils import iface
 from PyQt5.QtCore import QFileInfo, QVariant
-from PyQt5.QtWidgets import QInputDialog, QFileDialog
+from PyQt5.QtWidgets import QFileDialog
 from datetime import datetime, timedelta
 import geopandas as gpd
 import numpy as np
@@ -26,8 +26,11 @@ class FileDialog:
     def __init__(self, base_path):
         self.base_path = base_path
 
-    def open(self):
-        self.path = QFileDialog.getExistingDirectory(None, 'Select Data Directory', self.base_path)[:-4] + '*'
+    def open(self, type='folder'):
+        if type=='dto':
+            self.path = QFileDialog.getOpenFileName(None, "Select DTO Directory", self.base_path, 'DTO Files (*.kml *.shp)')[0]
+        else:
+            self.path = QFileDialog.getExistingDirectory(None, 'Select Data Directory', self.base_path)[:-4] + '*'
         return self.path
 
 class Project:
@@ -117,8 +120,8 @@ class LayerExtent:
             self.extent.combineExtentWith(layer.extent())
 
         #set extent to canvas
-        QgsMapCanvas().mapCanvas().setExtent(self.extent)
-        QgsMapCanvas().mapCanvas().refresh()
+        QgsMapCanvas().setExtent(self.extent)
+        QgsMapCanvas().refresh()
     
     def getExtent(self):
         return self.extent
@@ -261,6 +264,58 @@ class DataLayer:
                 self.__ymax = self.__datagdf.geometry.centroid.y.max() 
         
         return self.__xmin,self.__xmax,self.__ymin,self.__ymax
+
+class DTOLayer:
+    def __init__(self, dto_path):
+        self.baseName = QFileInfo(dto_path).baseName()
+        self.layer = QgsVectorLayer(dto_path, self.baseName, 'ogr')
+        self.subLayers = self.layer.dataProvider().subLayers()
+
+        self.dtolayer_list = []
+        for subLayer in self.subLayers:
+            self.name = subLayer.split('!!::!!')[1]
+            if self.name[:4] == 'PROG' or self.name == 'swath-1':
+                self.uri = "%s|layername=%s" % (dto_path, self.name)
+                
+                #Create layer
+                self.sub_vlayer = QgsVectorLayer(self.uri, self.name, 'ogr')
+                self.sublayer_feat = [feat for feat in self.sub_vlayer.getFeatures()]
+                if len(self.sublayer_feat) == 1:
+                    self.dto_feat = self.sublayer_feat
+                elif len(self.sublayer_feat) > 1:
+                    self.dto_feat = self.sublayer_feat[1:]
+                
+                self.dto_attr = self.sub_vlayer.dataProvider().fields().toList()
+                self.dtolayer = QgsVectorLayer("Polygon?crs=epsg:4326", self.name, "memory")
+                self.dtolayer_data = self.dtolayer.dataProvider()
+                self.dtolayer.startEditing()
+                self.dtolayer_data.addAttributes(self.dto_attr)
+                self.dtolayer.updateFields()
+                self.dtolayer_data.addFeatures(self.dto_feat)
+
+                self.dtolayer_list.append(self.dtolayer)
+    
+    def getFeatList(self):
+        return self.dto_feat
+    
+    def getLayerList(self):
+        return self.dtolayer_list
+    
+    def addInfo(self, dtoinfo_list):
+        date_attr = [QgsField("Datetime",QVariant.String, 'String', 80)]
+
+        dtolayer_list = []
+        for dtolayer in self.dtolayer_list:
+            for i,f in zip(dtoinfo_list, dtolayer.getFeatures()):
+                id=f.id()
+                attrib={(len(date_attr)-1):i}
+                dtolayer.dataProvider().changeAttributeValues({id:attrib})
+            
+            dtolayer.commitChanges()
+            dtolayer_list.append(dtolayer)
+        
+        return dtolayer_list
+
         
 class AggregationLayer:
     def __init__(self, feat_list, attr_list, layer_name):
@@ -622,7 +677,7 @@ class WPPLayer:
             self.wpp_area = 'LUAR INDONESIA'
         
     def getWPPGeoDataFrame(self):
-        return self.__wppgdf
+        return self.__wppgdf 
 
 class Layout:
     def __init__(self, project_type=None, method=None, feat_number=None, location=None, radar_info_list=None, wpp_layer=None, wind_data=None):
@@ -646,15 +701,15 @@ class Layout:
         self.wpp_layer = wpp_layer
         self.wind_data = wind_data
 
-        if self.project_type == 'ship':
-            self.__layout_id = [0] 
-        else:
+        if self.project_type == 'oils':
             if feat_number == 0:
                 self.__layout_id = [0]
             elif feat_number == 1:
                 self.__layout_id = [1]
             elif feat_number > 1:
                 self.__layout_id = [3,2]
+        else:
+            self.__layout_id = [0] 
         self.__layout_list = [(i, QgsProject.instance().layoutManager().layouts()[i]) for i in self.__layout_id]
 
     def getLayoutList(self):
@@ -710,7 +765,7 @@ class Layout:
         wind_txt = f'{wind.windrange}\n{wind.dire}'
         return wind_txt
             
-    def insertTitle(self):
+    def insertTitleText(self):
         title_txt = self.getTitleText()
         for layout, title in zip(self.__layout_list, title_txt):
             #add title map
@@ -805,6 +860,59 @@ class Layout:
             #open layout
             iface.openLayoutDesigner(layout[1])
             layout[1].refresh()
+
+class LayoutDTO(Layout):
+    def __init__(self, project_type=None, dtoinfo_list=None, wpp_layer=None):
+        self.__layout_list = super().__init__(project_type).getLayoutList()
+        self.dtoinfo_list = dtoinfo_list
+        self.wpplayer = wpp_layer
+    
+    def getTitleExp(self):
+        title_exp = """[%upper(to_date_indonesian("Datetime", 7) + ' PUKUL ' + format_date((to_datetime(left("Datetime", 19))) + to_interval('7 hours'), 'hh:mm:ss') + ' WIB')%]"""
+
+        return title_exp
+    
+    def getNoteExp(self):
+        note_exp = """[%title(to_date_indonesian("Datetime", (7-12)))%] sekitar pukul [%CASE WHEN to_time(substr("Datetime", 12, 8)) >  to_time('06:21:00') AND to_time(substr("Datetime", 12, 8)) <  to_time('18:21:00') THEN '06:00 WIB' ELSE '20:00 WIB' END%]"""
+
+        return note_exp
+    
+    def getAtlasExp(self):
+        atlas_exp = """(format_date(to_datetime(left("Datetime", 19))+to_interval('7 hours'), 'yyyyMMdd_hhmmss'))||'_dto'"""
+
+        return atlas_exp
+    
+    def setMap(self, extent):
+        for layout in self.__layout_list:
+            #setup extent on main map
+            self.map_item = sip.cast(layout.itemById("map"), QgsLayoutItemMap)
+            extent.scale(2)
+            self.map_item.zoomToExtent(extent)
+    
+    def setAtlas(self, layer):
+        atlas_exp = self.getAtlasExp()
+        for layout in self.__layout_list:
+            #set atlas
+            layout[1].atlas().setCoverageLayer(layer)
+            layout[1].atlas().setEnabled(True)
+            layout[1].atlas().setFilenameExpression(atlas_exp)
+    
+    def insertTitleText(self):
+        title_exp = self.getTitleExp()
+        sat = self.dtoinfo_list[-1].sat
+        wpp = self.wpp_layer.area
+        for layout in self.__layout_list:
+            #add title map
+            self.title_item = sip.cast(layout[1].itemById("judul"), QgsLayoutItemLabel)
+            self.title_item.setText(f'PETA AREA DETEKSI CITRA RADAR {sat} DI PERAIRAN {wpp}\r\nPERIODE {title_exp}') 
+    
+    def insertNoteText(self):
+        note_exp = self.getNoteExp()
+        for layout in self.__layout_list:
+            #add note
+            self.note_item = sip.cast(layout[1].itemById("note"), QgsLayoutItemLabel)
+            self.note_item.setText(f'CATATAN:\nNotifikasi citra dapat diakuisisi atau tidak:\n{note_exp}')
+
 		
 if __name__ == '__main__':
     pass

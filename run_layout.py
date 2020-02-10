@@ -16,7 +16,7 @@ BARATA_SHIP_PATH = f'{BASE_PATH}\\7.barata_ship\\output'
 TEMPLATE_PATH = 'templates'
 
 #define project type and remove previous layer
-option = input("\nPilih tipe project (ship/oils): ")
+option = sys.argv[1]
 if option == "ship":
     project_path = f'{TEMPLATE_PATH}\\project\\layout_ship.qgz'
 else:
@@ -34,7 +34,6 @@ basemap_group = project_layout.getBasemapGroup()
 data_group = project_layout.getDataGroup()
 
 #input directory path
-# DATA_FOLDER = QFileDialog.getExistingDirectory(None, 'Select Data Directory', f'{BASE_PATH}\\2.seonse_outputs')[:-4] + '*'
 DATA_FOLDER = FileDialog(BASE_PATH).open()
 
 print ('\nSumber data:')
@@ -247,7 +246,7 @@ else:
 
 #set and insert attribute to layout   
 layout_manager.setMap(raster_extent)
-layout_manager.insertTitle()
+layout_manager.insertTitleText()
 layout_manager.insertWindText()
 layout_manager.insertSourceText()
 layout_manager.setLayoutName(layer_name) 

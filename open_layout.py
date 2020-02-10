@@ -12,20 +12,19 @@ project_path = Project().getProjectPath()
 data_folder = os.path.dirname(project_path)
 
 #get data list from directory based on project type
-if project_type == 'ship':
-	data_list = glob.glob(f'{data_folder}\\*ship.csv')
-else:
+if project_type == 'oils':
 	data_list = glob.glob(f'{data_folder}\\*oils.csv')
-
-#define feature number
-if len(data_list) > 0:
-	datadf = pd.read_csv(data_list[-1])
-	feat_number = len(datadf)
+	if len(data_list) > 0:
+		datadf = pd.read_csv(data_list[-1])
+		feat_number = len(datadf)
+	else:
+		feat_number = 0
+	
+	#execute open layout for oils
+	Layout(project_type=project_type, feat_number=feat_number).openLayout()
 else:
-	feat_number = 0
-
-#execute open layout
-Layout(project_type=project_type, feat_number=feat_number).openLayout()
+	#execute open layout
+	Layout(project_type=project_type).openLayout()
 
 if __name__ == '__main__':
     pass
