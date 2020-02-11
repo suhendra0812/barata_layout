@@ -42,11 +42,16 @@ for f in range(len(dtofeat_list)):
     dtoinfo = DTOInfo(dto_path, idx)
     dtoinfo_list.append(dtoinfo)
 
-wil = os.path.basename(dto_path)[:-4][:-3][:-15]
+wil = os.path.basename(dto_path)[:-4][:-4][:-16]
 local = dtoinfo_list[-1].local
+layer_name = f'{wil}_{local}_{project_type}'
 OUTPUT_FOLDER = os.path.dirname(dto_path)
+dtogdf_path = f'{OUTPUT_FOLDER}\\{layer_name}.shp'
 
-dtolayer_list = DTOLayer(dto_path).addInfo(dtoinfo_list)
+templayer = DTOLayer(dto_path, dtoinfo_list).getLayer()
+ExportLayer(templayer, dtogdf_path).to_shp()
+
+dtolayer_list = DataLayer([dtogdf_path]).getLayerList()
 
 dto_template = f'{TEMPLATE_PATH}\\layer\\dto_layer_template.qml'
 for dtolayer in dtolayer_list:
@@ -54,21 +59,20 @@ for dtolayer in dtolayer_list:
     LoadVectorLayer(dtolayer, data_group, dto_template)
 
 #zoom to layer
-extent = LayerExtent(dtolayer_list).getExtent()
+extent = LayerExtent([dtolayer]).getExtent()
     
 #load wpp data and get WPP area which is overlaid within raster
 wpp_path = f'{BASEMAP_PATH}\\WPP_Full_PermenKP182014.shp'
 wpp_layer = WPPLayer(wpp_path, extent)
 
-layout_manager = LayoutDTO(project_type=project_type, dtoinfo_list=dtoinfo_list)
+layout_manager = LayoutDTO(project_type, dtoinfo_list, wpp_layer)
 layout_manager.setMap(extent)
-layout_manager.setAtlas(dtolayer_list[-1])
+layout_manager.setAtlas(dtolayer)
 layout_manager.insertTitleText()
 layout_manager.insertNoteText()
 
 #save project
-project_name = f'{wil}_{local}_{project_type}'
-outputproj_path = f'{OUTPUT_FOLDER}\\{project_name}.qgz'
+outputproj_path = f'{OUTPUT_FOLDER}\\{layer_name}.qgz'
 project_layout.saveProject(outputproj_path)
 
 qgs_app.quit()

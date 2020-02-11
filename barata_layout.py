@@ -266,56 +266,68 @@ class DataLayer:
         return self.__xmin,self.__xmax,self.__ymin,self.__ymax
 
 class DTOLayer:
-    def __init__(self, dto_path):
+    def __init__(self, dto_path, info_list=None):
         self.baseName = QFileInfo(dto_path).baseName()
         self.layer = QgsVectorLayer(dto_path, self.baseName, 'ogr')
         self.subLayers = self.layer.dataProvider().subLayers()
 
-        self.dtolayer_list = []
-        for subLayer in self.subLayers:
-            self.name = subLayer.split('!!::!!')[1]
-            if self.name[:4] == 'PROG' or self.name == 'swath-1':
-                self.uri = "%s|layername=%s" % (dto_path, self.name)
-                
-                #Create layer
-                self.sub_vlayer = QgsVectorLayer(self.uri, self.name, 'ogr')
-                self.sublayer_feat = [feat for feat in self.sub_vlayer.getFeatures()]
-                if len(self.sublayer_feat) == 1:
-                    self.dto_feat = self.sublayer_feat
-                elif len(self.sublayer_feat) > 1:
-                    self.dto_feat = self.sublayer_feat[1:]
-                
-                self.dto_attr = self.sub_vlayer.dataProvider().fields().toList()
-                self.dtolayer = QgsVectorLayer("Polygon?crs=epsg:4326", self.name, "memory")
-                self.dtolayer_data = self.dtolayer.dataProvider()
-                self.dtolayer.startEditing()
-                self.dtolayer_data.addAttributes(self.dto_attr)
-                self.dtolayer.updateFields()
-                self.dtolayer_data.addFeatures(self.dto_feat)
+        self.sublayer_list = []
+        self.subfeat_list = []
+        self.subattr_list = []
 
-                self.dtolayer_list.append(self.dtolayer)
+        for subLayer in self.subLayers:
+            name = subLayer.split('!!::!!')[1]
+            if name[:4] == 'PROG':
+                uri = "%s|layername=%s" % (dto_path, name)
+                
+                sub_layer = QgsVectorLayer(uri, name, 'ogr')
+                for feat in sub_layer.getFeatures():
+                    if feat.attributes()[:2][1] != None:
+                        self.subfeat_list.append(feat)
+                    
+                sub_attr = sub_layer.dataProvider().fields().toList()
+                
+                self.sublayer_list.append(sub_layer)
+                self.subattr_list.append(sub_attr)
+                    
+            elif name[:5] == 'swath':
+                uri = "%s|layername=%s" % (dto_path, name)
+
+                sub_layer = QgsVectorLayer(uri, name, 'ogr')
+                sub_feat = [feat for feat in sub_layer.getFeatures()]
+                sub_attr = sub_layer.dataProvider().fields().toList()
+            
+                self.sublayer_list.append(sub_layer)
+                self.subfeat_list.extend(sub_feat)
+                self.subattr_list.append(sub_attr)
+        
+        self.date_attr = [QgsField("Datetime",QVariant.String, 'String', 80)]
+
+        self.dtolayer = QgsVectorLayer("Polygon?crs=epsg:4326", self.baseName, "memory")
+        self.dtolayer_data = self.dtolayer.dataProvider()
+        self.dtolayer.startEditing()
+        self.dtolayer_data.addAttributes(self.subattr_list[0])
+        self.dtolayer_data.addAttributes(self.date_attr)
+        self.dtolayer.updateFields()
+        self.dtolayer_data.addFeatures(self.subfeat_list)
+
+        self.dtofeat_list = [feat for feat in self.dtolayer.getFeatures()]
+        self.dtoattr_list = self.dtolayer.dataProvider().fields().toList()
+        if info_list != None:
+            for i,f in zip(info_list, self.dtolayer.getFeatures()):
+                id=f.id()
+                attrib={(len(self.dtoattr_list)-1):i.time}
+                self.dtolayer.dataProvider().changeAttributeValues({id:attrib})
+        self.dtolayer.commitChanges()
     
     def getFeatList(self):
-        return self.dto_feat
+        return self.dtofeat_list
     
-    def getLayerList(self):
-        return self.dtolayer_list
+    def getAttrList(self):
+        return self.dtoattr_list
     
-    def addInfo(self, dtoinfo_list):
-        date_attr = [QgsField("Datetime",QVariant.String, 'String', 80)]
-
-        dtolayer_list = []
-        for dtolayer in self.dtolayer_list:
-            for i,f in zip(dtoinfo_list, dtolayer.getFeatures()):
-                id=f.id()
-                attrib={(len(date_attr)-1):i}
-                dtolayer.dataProvider().changeAttributeValues({id:attrib})
-            
-            dtolayer.commitChanges()
-            dtolayer_list.append(dtolayer)
-        
-        return dtolayer_list
-
+    def getLayer(self):
+        return self.dtolayer
         
 class AggregationLayer:
     def __init__(self, feat_list, attr_list, layer_name):
@@ -434,6 +446,9 @@ class ExportLayer:
     
     def to_shp(self):
         QgsVectorFileWriter.writeAsVectorFormat(self.layer, self.path, "utf-8", self.layer.crs(), "ESRI Shapefile")
+    
+    def to_kml(self):
+        QgsVectorFileWriter.writeAsVectorFormat(self.layer, self.path, "utf-8", self.layer.crs(), "KML")
 
 class DataElements:
     def __init__(self, project_type, datadf_path):
@@ -863,9 +878,10 @@ class Layout:
 
 class LayoutDTO(Layout):
     def __init__(self, project_type=None, dtoinfo_list=None, wpp_layer=None):
-        self.__layout_list = super().__init__(project_type).getLayoutList()
+        super().__init__(project_type)
+        self.__layout_list = super().getLayoutList()
         self.dtoinfo_list = dtoinfo_list
-        self.wpplayer = wpp_layer
+        self.wpp_layer = wpp_layer
     
     def getTitleExp(self):
         title_exp = """[%upper(to_date_indonesian("Datetime", 7) + ' PUKUL ' + format_date((to_datetime(left("Datetime", 19))) + to_interval('7 hours'), 'hh:mm:ss') + ' WIB')%]"""
@@ -885,7 +901,7 @@ class LayoutDTO(Layout):
     def setMap(self, extent):
         for layout in self.__layout_list:
             #setup extent on main map
-            self.map_item = sip.cast(layout.itemById("map"), QgsLayoutItemMap)
+            self.map_item = sip.cast(layout[1].itemById("map"), QgsLayoutItemMap)
             extent.scale(2)
             self.map_item.zoomToExtent(extent)
     
@@ -900,7 +916,7 @@ class LayoutDTO(Layout):
     def insertTitleText(self):
         title_exp = self.getTitleExp()
         sat = self.dtoinfo_list[-1].sat
-        wpp = self.wpp_layer.area
+        wpp = self.wpp_layer.wpp_area
         for layout in self.__layout_list:
             #add title map
             self.title_item = sip.cast(layout[1].itemById("judul"), QgsLayoutItemLabel)
