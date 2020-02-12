@@ -136,6 +136,9 @@ class RasterLayer:
             rasterlayer = QgsRasterLayer(raster_path, rasterbasename)
             if not rasterlayer.isValid():
                 print("rasterlayer is not valid")
+            
+            self.__rasterbasename_list.append(rasterbasename)
+            self.__rasterlayer_list.append(rasterlayer)
         
     def getRasterBasename(self):
         return self.__rasterbasename_list
@@ -920,7 +923,7 @@ class LayoutDTO(Layout):
         for layout in self.__layout_list:
             #add title map
             self.title_item = sip.cast(layout[1].itemById("judul"), QgsLayoutItemLabel)
-            self.title_item.setText(f'PETA AREA DETEKSI CITRA RADAR {sat} DI PERAIRAN {wpp}\r\nPERIODE {title_exp}') 
+            self.title_item.setText(f'PETA AREA DETEKSI CITRA RADAR {sat.upper()} DI PERAIRAN {wpp}\r\nPERIODE {title_exp}') 
     
     def insertNoteText(self):
         note_exp = self.getNoteExp()
