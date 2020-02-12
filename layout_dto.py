@@ -43,8 +43,8 @@ for f in range(len(dtofeat_list)):
     dtoinfo = DTOInfo(dto_path, idx)
     dtoinfo_list.append(dtoinfo)
 
-print(f'Jumlah DTO: {len(dtofeat_list)}')
-print(f'Radar: {dtoinfo_list[-1].sat}')
+print(f'Radar\t\t: {dtoinfo_list[-1].sat}')
+print(f'Jumlah DTO\t: {len(dtofeat_list)}')
 
 #get variable from dto info
 wil = os.path.basename(dto_path)[:-4][:-4][:-16]

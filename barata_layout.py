@@ -303,25 +303,61 @@ class DTOLayer:
                 self.sublayer_list.append(sub_layer)
                 self.subfeat_list.extend(sub_feat)
                 self.subattr_list.append(sub_attr)
-        
-        self.date_attr = [QgsField("Datetime",QVariant.String, 'String', 80)]
+
+        self.dtoattr_list = [
+            QgsField("Satellite", QVariant.String, 'String', 80),
+            QgsField("Mode", QVariant.String, 'String', 80),
+            QgsField("Start Time", QVariant.String, 'String', 80),
+            QgsField("Stop Time", QVariant.String, 'String', 80),
+            QgsField("Direction" ,QVariant.String, 'String', 80),
+            QgsField("Look Side", QVariant.String, 'String', 80),
+            QgsField("Look Angle", QVariant.Double, "double", 10, 3),
+            QgsField("Beam", QVariant.String, 'String', 80)
+        ]
 
         self.dtolayer = QgsVectorLayer("Polygon?crs=epsg:4326", self.baseName, "memory")
         self.dtolayer_data = self.dtolayer.dataProvider()
         self.dtolayer.startEditing()
-        self.dtolayer_data.addAttributes(self.subattr_list[0])
-        self.dtolayer_data.addAttributes(self.date_attr)
+        self.dtolayer_data.addAttributes(self.dtoattr_list)
         self.dtolayer.updateFields()
         self.dtolayer_data.addFeatures(self.subfeat_list)
 
-        self.dtofeat_list = [feat for feat in self.dtolayer.getFeatures()]
         self.dtoattr_list = self.dtolayer.dataProvider().fields().toList()
+        self.dtoattr_len = len(self.dtoattr_list)
+
         if info_list != None:
             for i,f in zip(info_list, self.dtolayer.getFeatures()):
+                sat = i.dto_info['Satellite']
+                mode = i.dto_info['Sensor Mode']
+                beam = i.dto_info['Beam']
+                if sat == 'RADARSAT-2': 
+                    start = i.dto_info['Start UTC Time']
+                    stop = i.dto_info['Stop UTC Time']
+                    dire = i.dto_info['Pass Direction']
+                    side = i.dto_info['Satellite Orientation']
+                    angle = i.dto_info['Incidence Angle']
+                else:
+                    start = i.dto_info['Sensing Start']
+                    stop = i.dto_info['Sensing Stop']
+                    dire = i.dto_info['Orbit Direction']
+                    side = i.dto_info['Look Side']
+                    angle = i.dto_info['Look Angle']
+
                 id=f.id()
-                attrib={(len(self.dtoattr_list)-1):i.time}
+                attrib={
+                    0:sat,
+                    1:mode,
+                    2:start,
+                    3:stop,
+                    4:dire,
+                    5:side,
+                    6:angle,
+                    7:beam,
+                }
                 self.dtolayer.dataProvider().changeAttributeValues({id:attrib})
         self.dtolayer.commitChanges()
+
+        self.dtofeat_list = [feat for feat in self.dtolayer.getFeatures()]
     
     def getFeatList(self):
         return self.dtofeat_list
@@ -662,9 +698,9 @@ class WindOilLayer:
         self.__wind_oilfeat = self.__wind_oillayer.getFeatures()
         self.__wind_oillayer.startEditing()
         for i,ii,iii,iv,f in zip(self.__spdmin,self.__spdmax,self.__spdmean,self.__dirmean,self.__wind_oilfeat):
-            self.__id=f.id()
-            self.__wind_oilattr={self.__wind_oilattr_len:i,self.__wind_oilattr_len+1:ii,self.__wind_oilattr_len+2:iii,self.__wind_oilattr_len+3:iv}
-            self.__wind_oillayer.dataProvider().changeAttributeValues({self.__id:self.__wind_oilattr})
+            id=f.id()
+            wind_oilattr={self.__wind_oilattr_len:i,self.__wind_oilattr_len+1:ii,self.__wind_oilattr_len+2:iii,self.__wind_oilattr_len+3:iv}
+            self.__wind_oillayer.dataProvider().changeAttributeValues({id:wind_oilattr})
         self.__wind_oillayer.commitChanges()
         
     def getWindOilLayer(self):
@@ -887,17 +923,17 @@ class LayoutDTO(Layout):
         self.wpp_layer = wpp_layer
     
     def getTitleExp(self):
-        title_exp = """[%upper(to_date_indonesian("Datetime", 7) + ' PUKUL ' + format_date((to_datetime(left("Datetime", 19))) + to_interval('7 hours'), 'hh:mm:ss') + ' WIB')%]"""
+        title_exp = """[%upper(to_date_indonesian("Start Time", 7) + ' PUKUL ' + format_date((to_datetime(left("Start Time", 19))) + to_interval('7 hours'), 'hh:mm:ss') + ' WIB')%]"""
 
         return title_exp
     
     def getNoteExp(self):
-        note_exp = """[%title(to_date_indonesian("Datetime", (7-12)))%] sekitar pukul [%CASE WHEN to_time(substr("Datetime", 12, 8)) >  to_time('06:21:00') AND to_time(substr("Datetime", 12, 8)) <  to_time('18:21:00') THEN '06:00 WIB' ELSE '20:00 WIB' END%]"""
+        note_exp = """[%title(to_date_indonesian("Start Time", (7-12)))%] sekitar pukul [%CASE WHEN to_time(substr("Start Time", 12, 8)) >  to_time('06:21:00') AND to_time(substr("Start Time", 12, 8)) <  to_time('18:21:00') THEN '06:00 WIB' ELSE '20:00 WIB' END%]"""
 
         return note_exp
     
     def getAtlasExp(self):
-        atlas_exp = """(format_date(to_datetime(left("Datetime", 19))+to_interval('7 hours'), 'yyyyMMdd_hhmmss'))||'_dto'"""
+        atlas_exp = """(format_date(to_datetime(left("Start Time", 19))+to_interval('7 hours'), 'yyyyMMdd_hhmmss'))||'_dto'"""
 
         return atlas_exp
     
