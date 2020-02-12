@@ -932,7 +932,7 @@ class LayoutDTO(Layout):
         return note_exp
     
     def getAtlasExp(self):
-        atlas_exp = f"'{user}_{location}_'||(format_date(to_datetime(left(\"Start Time\", 19))+to_interval('7 hours'), 'yyyyMMdd_hhmmss'))||'_dto'"
+        atlas_exp = """(format_date(to_datetime(left("Start Time", 19))+to_interval('7 hours'), 'yyyyMMdd_hhmmss'))||'_dto'"""
 
         return atlas_exp
     
