@@ -1,7 +1,7 @@
 import os
 
-runlayout_path = "barata_tb.py"
+baratatb_path = "barata_tb.py"
 
-os.system(f'python {runlayout_path}')
+os.system(f'python {baratatb_path}')
 
 input()
