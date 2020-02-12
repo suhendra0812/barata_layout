@@ -10,7 +10,7 @@ class DTOInfo:
             self.time = self.dto_info.get('Start UTC Time')
             self.sensing_utc = datetime.strptime(self.time[:19], '%Y-%m-%dT%H:%M:%S')
         else:
-            self.sat = 'COSMO-SKYMED'
+            self.sat = 'COSMO-SkyMed'
             self.sat_id = 'CS'
             self.time = self.dto_info.get('Sensing Start')
             self.sensing_utc = datetime.strptime(self.time[:19], '%Y-%m-%d %H:%M:%S')
