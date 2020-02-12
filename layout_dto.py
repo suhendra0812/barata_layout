@@ -65,7 +65,8 @@ if not os.path.exists(OUTPUT_FOLDER):
 
 dtogdf_path = f'{OUTPUT_FOLDER}\\{layer_name}.shp'
 newdto_path = f'{OUTPUT_FOLDER}\\{layer_name}.kml'
-if dto_path != newdto_path:
+
+if not os.path.samefile(dto_path, newdto_path):
     shutil.copyfile(dto_path, newdto_path)
 
 #create and get dto temporary layer
