@@ -323,7 +323,6 @@ class DTOLayer:
         self.dtolayer_data.addFeatures(self.subfeat_list)
 
         self.dtoattr_list = self.dtolayer.dataProvider().fields().toList()
-        self.dtoattr_len = len(self.dtoattr_list)
 
         if info_list != None:
             for i,f in zip(info_list, self.dtolayer.getFeatures()):
@@ -933,7 +932,7 @@ class LayoutDTO(Layout):
         return note_exp
     
     def getAtlasExp(self):
-        atlas_exp = """(format_date(to_datetime(left("Start Time", 19))+to_interval('7 hours'), 'yyyyMMdd_hhmmss'))||'_dto'"""
+        atlas_exp = f"'{user}_{location}_'||(format_date(to_datetime(left(\"Start Time\", 19))+to_interval('7 hours'), 'yyyyMMdd_hhmmss'))||'_dto'"
 
         return atlas_exp
     
@@ -954,7 +953,7 @@ class LayoutDTO(Layout):
     
     def insertTitleText(self):
         title_exp = self.getTitleExp()
-        sat = self.dtoinfo_list[-1].sat
+        sat = self.dtoinfo_list[0].sat
         wpp = self.wpp_layer.wpp_area
         for layout in self.layout_list:
             #add title map
