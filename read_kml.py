@@ -6,7 +6,7 @@ import pandas as pd
 import glob
 from itertools import groupby
 
-#dto_path = r"D:\BARATA\6.dto\cosmo_skymed\201907\20190704\psdkp_singkep_20190704_102120_dto.kml"
+#dto_path = r"D:\BARATA\6.dto\cosmo_skymed\201909\20190915\natuna_20190915_himage_1504_6814.kml"
                 
 class DTO:
     def __init__(self, dto_path, i):
