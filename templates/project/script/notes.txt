@@ -1,0 +1,2 @@
+add these two scripts to the following path:
+C:\Users\{username}\AppData\Roaming\QGIS\QGIS3\profiles\default\python\expressions
