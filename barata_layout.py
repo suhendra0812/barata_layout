@@ -40,50 +40,50 @@ class Project:
             QgsProject.instance().read(project_path)
         else:
             pass
-        self.__projectPath = QgsProject.instance().fileName()
-        self.__projectBasename = QFileInfo(self.__projectPath).baseName()
-        self.__projectType = self.__projectBasename[-4:]
+        self.projectPath = QgsProject.instance().fileName()
+        self.projectBasename = QFileInfo(self.projectPath).baseName()
+        self.projectType = self.projectBasename[-4:]
     
         #define group in project
-        self.__dataGroup = QgsProject.instance().layerTreeRoot().findGroups()[0]
-        self.__basemapGroup = QgsProject.instance().layerTreeRoot().findGroups()[1]
+        self.dataGroup = QgsProject.instance().layerTreeRoot().findGroups()[0]
+        self.basemapGroup = QgsProject.instance().layerTreeRoot().findGroups()[1]
     
     def getProjectPath(self):
-        return self.__projectPath
+        return self.projectPath
 
     def getProjectBasename(self):
-        self.__projectBasename
+        self.projectBasename
     
     def getProjectType(self):
-        return self.__projectType
+        return self.projectType
     
     def getDataGroup(self):
-        return self.__dataGroup
+        return self.dataGroup
     
     def getBasemapGroup(self):
-        return self.__basemapGroup
+        return self.basemapGroup
         
     #remove layer from layer panel
     def removeLayerPanel(self):
-        if len(self.__dataGroup.findLayers()) > 0:
-            for i in self.__dataGroup.children():
-                self.__dataGroup.removeChildNode(i)
+        if len(self.dataGroup.findLayers()) > 0:
+            for i in self.dataGroup.children():
+                self.dataGroup.removeChildNode(i)
         else:
             pass
 
-        if len(self.__basemapGroup.findLayers()) > 3:
-            self.__rasterlayerRemove = self.__basemapGroup.findLayers()[2:-1]
-            for layer in self.__rasterlayerRemove:
-                self.__basemapGroup.removeChildNode(layer)
+        if len(self.basemapGroup.findLayers()) > 3:
+            self.rasterlayerRemove = self.basemapGroup.findLayers()[2:-1]
+            for layer in self.rasterlayerRemove:
+                self.basemapGroup.removeChildNode(layer)
         else:
             pass
         
     #remove registry layer history
     def removeLayerHistory(self):
-        self.__registryLayers = QgsProject.instance().mapLayers().keys()
-        self.__legendLayers = QgsProject.instance().layerTreeRoot().findLayerIds()
-        self.__layerToRemove = set(self.__registryLayers) - set(self.__legendLayers)
-        QgsProject.instance().removeMapLayers(list(self.__layerToRemove))
+        self.registryLayers = QgsProject.instance().mapLayers().keys()
+        self.legendLayers = QgsProject.instance().layerTreeRoot().findLayerIds()
+        self.layerToRemove = set(self.registryLayers) - set(self.legendLayers)
+        QgsProject.instance().removeMapLayers(list(self.layerToRemove))
     
     #save project to specific directory
     def saveProject(self, output_path):
@@ -92,22 +92,22 @@ class Project:
 class DataList:
     #list layer
     def __init__(self, SOURCE_PATH):
-        self.__rasterList = glob.glob(f'{SOURCE_PATH}\\*.tif')
-        self.__shipList = glob.glob(f'{SOURCE_PATH}\\*SHIP.shp')
-        self.__oilList = glob.glob(f'{SOURCE_PATH}\\*OIL.shp')
-        self.__windList = glob.glob(f'{SOURCE_PATH}\\*Wind.gml')
+        self.rasterList = glob.glob(f'{SOURCE_PATH}\\*.tif')
+        self.shipList = glob.glob(f'{SOURCE_PATH}\\*SHIP.shp')
+        self.oilList = glob.glob(f'{SOURCE_PATH}\\*OIL.shp')
+        self.windList = glob.glob(f'{SOURCE_PATH}\\*Wind.gml')
     
     def getRasterList(self):
-        return self.__rasterList
+        return self.rasterList
     
     def getShipList(self):
-        return self.__shipList
+        return self.shipList
         
     def getOilList(self):
-        return self.__oilList
+        return self.oilList
     
     def getWindList(self):
-        return self.__windList
+        return self.windList
     
 class LayerExtent:
     def __init__(self, layer_list):
@@ -128,8 +128,8 @@ class LayerExtent:
 
 class RasterLayer:
     def __init__(self, raster_list):
-        self.__rasterbasename_list = []
-        self.__rasterlayer_list = []
+        self.rasterbasename_list = []
+        self.rasterlayer_list = []
         
         for raster_path in raster_list:
             rasterbasename = QFileInfo(raster_path).baseName()
@@ -137,14 +137,14 @@ class RasterLayer:
             if not rasterlayer.isValid():
                 print("rasterlayer is not valid")
             
-            self.__rasterbasename_list.append(rasterbasename)
-            self.__rasterlayer_list.append(rasterlayer)
+            self.rasterbasename_list.append(rasterbasename)
+            self.rasterlayer_list.append(rasterlayer)
         
     def getRasterBasename(self):
-        return self.__rasterbasename_list
+        return self.rasterbasename_list
         
     def getRasterLayer(self):
-        return self.__rasterlayer_list
+        return self.rasterlayer_list
     
 class LoadRasterLayer:
     def __init__(self, layer, group):
@@ -160,113 +160,113 @@ class LoadRasterLayer:
 class WindData:
     def __init__(self, wind_list):
         #read wind data 'gml' in a list
-        self.__windgdf = gpd.GeoDataFrame(pd.concat([gpd.read_file(wind) for wind in wind_list], ignore_index=True))
-        if self.__windgdf[['speed', 'meridionalSpeed', 'zonalSpeed']].isnull().all().all():
-            self.__windrange=self.__dire= 'n/a'
+        self.windgdf = gpd.GeoDataFrame(pd.concat([gpd.read_file(wind) for wind in wind_list], ignore_index=True))
+        if self.windgdf[['speed', 'meridionalSpeed', 'zonalSpeed']].isnull().all().all():
+            self.windrange=self.dire= 'n/a'
         else:
-            self.__windgdf['speed'] = self.__windgdf['speed'].astype(float)
-            self.__windgdf['meridionalSpeed'] = self.__windgdf['meridionalSpeed'].astype(float)
-            self.__windgdf['zonalSpeed'] = self.__windgdf['zonalSpeed'].astype(float)
+            self.windgdf['speed'] = self.windgdf['speed'].astype(float)
+            self.windgdf['meridionalSpeed'] = self.windgdf['meridionalSpeed'].astype(float)
+            self.windgdf['zonalSpeed'] = self.windgdf['zonalSpeed'].astype(float)
             
             #calculate wind direction using atan2 formula
-            self.__windgdf['direction'] = (np.arctan2(self.__windgdf['meridionalSpeed'], self.__windgdf['zonalSpeed']))*(180/np.pi) + 180
+            self.windgdf['direction'] = (np.arctan2(self.windgdf['meridionalSpeed'], self.windgdf['zonalSpeed']))*(180/np.pi) + 180
 
             #calculate wind speed (min, max, mean) and direction
-            self.__wind_sp=self.__windgdf['speed']
-            self.__wind_dir = self.__windgdf['direction']
-            self.__dir_mean = self.__wind_dir.mean()
-            self.__wind_min = self.__wind_sp.min()
-            self.__wind_max = self.__wind_sp.max()
-            self.__wmin = float(f"{self.__wind_min:.2f}")
-            self.__wmax = float(f"{self.__wind_max:.2f}")
-            self.__windmin = str(self.__wmin)
-            self.__windmax = str(self.__wmax)
-            self.windrange = f'{self.__windmin} - {self.__windmax} m/s'
+            self.wind_sp=self.windgdf['speed']
+            self.wind_dir = self.windgdf['direction']
+            self.dir_mean = self.wind_dir.mean()
+            self.wind_min = self.wind_sp.min()
+            self.wind_max = self.wind_sp.max()
+            self.wmin = float(f"{self.wind_min:.2f}")
+            self.wmax = float(f"{self.wind_max:.2f}")
+            self.windmin = str(self.wmin)
+            self.windmax = str(self.wmax)
+            self.windrange = f'{self.windmin} - {self.windmax} m/s'
             
             #define mean wind direction
-            if self.__dir_mean < 180:
-                self.__ar=self.__dir_mean + 180
-            elif self.__dir_mean > 180:
-                self.__ar=self.__dir_mean - 180
+            if self.dir_mean < 180:
+                self.ar=self.dir_mean + 180
+            elif self.dir_mean > 180:
+                self.ar=self.dir_mean - 180
 
             #define wind direction value to wind direction name
-            if self.__ar > 22.5 and self.__ar <= 67.5:
+            if self.ar > 22.5 and self.ar <= 67.5:
                 self.dire="Timur Laut"
-            elif self.__ar > 67.5 and self.__ar <= 112.5:
+            elif self.ar > 67.5 and self.ar <= 112.5:
                 self.dire="Timur"
-            elif self.__ar > 112.5 and self.__ar <= 157.5:
+            elif self.ar > 112.5 and self.ar <= 157.5:
                 self.dire="Tenggara"
-            elif self.__ar > 157.5 and self.__ar <= 202.5:
+            elif self.ar > 157.5 and self.ar <= 202.5:
                 self.dire="Selatan"
-            elif self.__ar > 202.5 and self.__ar <= 247.5:
+            elif self.ar > 202.5 and self.ar <= 247.5:
                 self.dire="Barat Daya"
-            elif self.__ar > 247.5 and self.__ar <= 292.5:
+            elif self.ar > 247.5 and self.ar <= 292.5:
                 self.dire="Barat"
-            elif self.__ar > 292.5 and self.__ar <= 337.5:
+            elif self.ar > 292.5 and self.ar <= 337.5:
                 self.dire="Barat Laut"
             else:
                 self.dire="Utara"
     
     def getWindGeoDataFrame(self):
-        return self.__windgdf
+        return self.windgdf
 
 class DataLayer:
     def __init__(self, data_list):
-        self.__datagdf = gpd.GeoDataFrame(pd.concat([gpd.read_file(data) for data in data_list], sort=False, ignore_index=True))
+        self.datagdf = gpd.GeoDataFrame(pd.concat([gpd.read_file(data) for data in data_list], sort=False, ignore_index=True))
         
-        self.__feat_list = []
-        self.__attr_list = []
-        self.__layer_list = []
+        self.feat_list = []
+        self.attr_list = []
+        self.layer_list = []
         
         for data_path in data_list:
-            self.__baseName = QFileInfo(data_path).baseName()
+            baseName = QFileInfo(data_path).baseName()
 
-            self.__layer = QgsVectorLayer(data_path, self.__baseName, 'ogr')   
-            self.__layer_list.append(self.__layer)
+            layer = QgsVectorLayer(data_path, baseName, 'ogr')   
+            self.layer_list.append(layer)
             
             #compile feature and attribute of layer(s) to a list
-            for feat in self.__layer.getFeatures():
-                self.__feat_list.append(feat)
-            for attr in self.__layer.dataProvider().fields().toList():
-                self.__attr_list.append(attr)
+            for feat in layer.getFeatures():
+                self.feat_list.append(feat)
+            for attr in layer.dataProvider().fields().toList():
+                self.attr_list.append(attr)
     
     def getFeatList(self):
-        return self.__feat_list
+        return self.feat_list
     
     def getAttrList(self):
-        return self.__attr_list
+        return self.attr_list
     
     def getLayerList(self):
-        return self.__layer_list
+        return self.layer_list
     
     def getGeoDataFrame(self):
-        return self.__datagdf
+        return self.datagdf
     
     def getFeatExtent(self):
-        if any(self.__datagdf.geometry.geom_type == 'Point'):
-            if len(self.__datagdf) == 1:
-                self.__xmin = self.__datagdf.geometry.x.min() - 0.001
-                self.__xmax = self.__datagdf.geometry.x.max() + 0.001
-                self.__ymin = self.__datagdf.geometry.y.min() - 0.001
-                self.__ymax = self.__datagdf.geometry.y.max() + 0.001
-            elif len(self.__datagdf) > 1:
-                self.__xmin = self.__datagdf.geometry.x.min()
-                self.__xmax = self.__datagdf.geometry.x.max()
-                self.__ymin = self.__datagdf.geometry.y.min()
-                self.__ymax = self.__datagdf.geometry.y.max()
+        if any(self.datagdf.geometry.geom_type == 'Point'):
+            if len(self.datagdf) == 1:
+                self.xmin = self.datagdf.geometry.x.min() - 0.001
+                self.xmax = self.datagdf.geometry.x.max() + 0.001
+                self.ymin = self.datagdf.geometry.y.min() - 0.001
+                self.ymax = self.datagdf.geometry.y.max() + 0.001
+            elif len(self.datagdf) > 1:
+                self.xmin = self.datagdf.geometry.x.min()
+                self.xmax = self.datagdf.geometry.x.max()
+                self.ymin = self.datagdf.geometry.y.min()
+                self.ymax = self.datagdf.geometry.y.max()
         else:
-            if len(self.__datagdf) == 1:
-                self.__xmin = self.__datagdf.geometry.centroid.x.min() - 0.001
-                self.__xmax = self.__datagdf.geometry.centroid.x.max() + 0.001
-                self.__ymin = self.__datagdf.geometry.centroid.y.min() - 0.001
-                self.__ymax = self.__datagdf.geometry.centroid.y.max() + 0.001
-            elif len(self.__datagdf) > 1:
-                self.__xmin = self.__datagdf.geometry.centroid.x.min()
-                self.__xmax = self.__datagdf.geometry.centroid.x.max() 
-                self.__ymin = self.__datagdf.geometry.centroid.y.min() 
-                self.__ymax = self.__datagdf.geometry.centroid.y.max() 
+            if len(self.datagdf) == 1:
+                self.xmin = self.datagdf.geometry.centroid.x.min() - 0.001
+                self.xmax = self.datagdf.geometry.centroid.x.max() + 0.001
+                self.ymin = self.datagdf.geometry.centroid.y.min() - 0.001
+                self.ymax = self.datagdf.geometry.centroid.y.max() + 0.001
+            elif len(self.datagdf) > 1:
+                self.xmin = self.datagdf.geometry.centroid.x.min()
+                self.xmax = self.datagdf.geometry.centroid.x.max() 
+                self.ymin = self.datagdf.geometry.centroid.y.min() 
+                self.ymax = self.datagdf.geometry.centroid.y.max() 
         
-        return self.__xmin,self.__xmax,self.__ymin,self.__ymax
+        return self.xmin,self.xmax,self.ymin,self.ymax
 
 class DTOLayer:
     def __init__(self, dto_path, info_list=None):
@@ -371,98 +371,98 @@ class DTOLayer:
 class AggregationLayer:
     def __init__(self, feat_list, attr_list, layer_name):
         if layer_name[-4:] == 'ship':
-            self.__agglayer = QgsVectorLayer("Point?crs=epsg:4326", layer_name, "memory")
+            self.agglayer = QgsVectorLayer("Point?crs=epsg:4326", layer_name, "memory")
         else:
-            self.__agglayer = QgsVectorLayer("Polygon?crs=epsg:4326", layer_name, "memory")
+            self.agglayer = QgsVectorLayer("Polygon?crs=epsg:4326", layer_name, "memory")
             
-        self.__agglayer_data = self.__agglayer.dataProvider()
-        self.__agglayer.startEditing()
-        self.__agglayer_data.addAttributes(attr_list)
-        self.__agglayer.updateFields()
-        self.__agglayer_data.addFeatures(feat_list)
-        self.__agglayer.commitChanges()
+        self.agglayer_data = self.agglayer.dataProvider()
+        self.agglayer.startEditing()
+        self.agglayer_data.addAttributes(attr_list)
+        self.agglayer.updateFields()
+        self.agglayer_data.addFeatures(feat_list)
+        self.agglayer.commitChanges()
         
         #duplicate agg layer to create transmitter/non transmitter ship category
-        self.__aggfeat_list = list(self.__agglayer.getFeatures())
-        self.__aggattr_list = self.__agglayer.dataProvider().fields().toList()
+        self.aggfeat_list = list(self.agglayer.getFeatures())
+        self.aggattr_list = self.agglayer.dataProvider().fields().toList()
     
     def getAggFeatList(self):
-        return self.__aggfeat_list
+        return self.aggfeat_list
         
     def getAggAttrList(self):
-        return self.__aggattr_list
+        return self.aggattr_list
         
     def getAggLayer(self):
-        return self.__agglayer
+        return self.agglayer
 
 class TransmittedLayer:
     def __init__(self, feat_list, attr_list, vms_list, layer_name):
         if len(vms_list) > 0:
-            self.__vmsgdf = gpd.GeoDataFrame(pd.concat([gpd.read_file(vms) for vms in vms_list], ignore_index=True))
+            self.vmsgdf = gpd.GeoDataFrame(pd.concat([gpd.read_file(vms) for vms in vms_list], ignore_index=True))
             try:
-                self.__vmsstat = self.__vmsgdf[self.__vmsgdf['status'] == 'vms']
+                self.vmsstat = self.vmsgdf[self.vmsgdf['status'] == 'vms']
             except:
-                self.__vmsstat = self.__vmsgdf[self.__vmsgdf['STATUS'] == 'VMS']  
+                self.vmsstat = self.vmsgdf[self.vmsgdf['STATUS'] == 'VMS']  
                 
-        self.__trmlayer = QgsVectorLayer("Point?crs=epsg:4326", layer_name, "memory")
-        self.__trmlayer_data = self.__trmlayer.dataProvider()
-        self.__trmlayer.startEditing()
-        self.__trmlayer_data.addAttributes(attr_list)
-        self.__trmlayer.updateFields()
-        self.__trmlayer_data.addFeatures(feat_list)
-        self.__trmlayer.commitChanges()
+        self.trmlayer = QgsVectorLayer("Point?crs=epsg:4326", layer_name, "memory")
+        self.trmlayer_data = self.trmlayer.dataProvider()
+        self.trmlayer.startEditing()
+        self.trmlayer_data.addAttributes(attr_list)
+        self.trmlayer.updateFields()
+        self.trmlayer_data.addFeatures(feat_list)
+        self.trmlayer.commitChanges()
         
         #add new field named 'DESC'
-        self.__trmlayer.dataProvider().addAttributes([QgsField("DESC",QVariant.String, 'String', 80)])
-        self.__trmlayer.updateFields()
+        self.trmlayer.dataProvider().addAttributes([QgsField("DESC",QVariant.String, 'String', 80)])
+        self.trmlayer.updateFields()
         
         #define if 'AIS_MMSI' column was not None, the 'DESC' column is filled by 'Transmitter', else 'Non Transmitter'
-        self.__trmfeat_list = list(self.__trmlayer.getFeatures())
-        self.__trmattr_list = self.__trmlayer.dataProvider().fields().toList()
-        self.__trmattr_len = len(self.__trmattr_list)
+        self.trmfeat_list = list(self.trmlayer.getFeatures())
+        self.trmattr_list = self.trmlayer.dataProvider().fields().toList()
+        self.trmattr_len = len(self.trmattr_list)
         
-        self.__trmlayer.startEditing()
-        for trmfeat in self.__trmfeat_list:
-            self.__aismmsi = trmfeat.attributes()[self.__trmattr_len-2]
-            self.__id=trmfeat.id()
-            if self.__aismmsi == None:
-                self.__desc = {(self.__trmattr_len-1):None}
+        self.trmlayer.startEditing()
+        for trmfeat in self.trmfeat_list:
+            aismmsi = trmfeat.attributes()[self.trmattr_len-2]
+            id=trmfeat.id()
+            if aismmsi == None:
+                desc = {(self.trmattr_len-1):None}
             else:
-                self.__desc = {(self.__trmattr_len-1):'AIS'}
+                desc = {(self.trmattr_len-1):'AIS'}
             
-            self.__trmfeat_geom = trmfeat.geometry()
+            trmfeat_geom = trmfeat.geometry()
             
             if len(vms_list) > 0:
-                for _, vms in self.__vmsstat.iterrows():
-                    self.__vms_geom = vms.geometry
-                    self.__vms_geom_qgs = QgsGeometry.fromPointXY(QgsPointXY(self.__vms_geom.x, self.__vms_geom.y))
-                    if self.__trmfeat_geom.intersects(self.__vms_geom_qgs):
-                        self.__desc = {(self.__trmattr_len-1):'VMS'}
+                for _, vms in self.vmsstat.iterrows():
+                    vms_geom = vms.geometry
+                    vms_geom_qgs = QgsGeometry.fromPointXY(QgsPointXY(vms_geom.x, vms_geom.y))
+                    if trmfeat_geom.intersects(vms_geom_qgs):
+                        desc = {(self.trmattr_len-1):'VMS'}
                         
-            self.__trmlayer.dataProvider().changeAttributeValues({self.__id:self.__desc})
-        self.__trmlayer.commitChanges()
+            self.trmlayer.dataProvider().changeAttributeValues({id:desc})
+        self.trmlayer.commitChanges()
     
     def getTrmFeatList(self):
-        return self.__trmfeat_list
+        return self.trmfeat_list
         
     def getTrmAttrList(self):
-        return self.__trmattr_list
+        return self.trmattr_list
         
     def getTrmLayer(self):
-        return self.__trmlayer
+        return self.trmlayer
         
 class DelimitedLayer:
     def __init__(self, data_path, layer_name):
-        self.__uri = (f"file:///{data_path}?"
+        self.uri = (f"file:///{data_path}?"
                       "&delimiter=,"
                       "&xField=Longitude"
                       "&yField=Latitude"
                       "&crs=EPSG:4326"
                       "&decimal")
-        self.__delimitedlayer = QgsVectorLayer(self.__uri, layer_name, "delimitedtext")
+        self.delimitedlayer = QgsVectorLayer(self.uri, layer_name, "delimitedtext")
     
     def getDelimitedLayer(self):
-        return self.__delimitedlayer
+        return self.delimitedlayer
 
 class LoadVectorLayer:
     def __init__(self, layer, group, template_path):
@@ -493,38 +493,38 @@ class DataElements:
     def __init__(self, project_type, datadf_path):
         if project_type == 'ship':
             if datadf_path != None:
-                self.__shipdf = pd.read_csv(datadf_path)
+                self.shipdf = pd.read_csv(datadf_path)
 
-                self.__ship_filter = self.__shipdf.copy()
-                self.__ship_filter = self.__ship_filter[['LON_CENTRE', 'LAT_CENTRE', 'TARGET_DIR', 'LENGTH', 'DESC', 'AIS_MMSI']]
-                self.__ship_filter = self.__ship_filter.rename(columns={'LON_CENTRE':'Longitude',
+                self.ship_filter = self.shipdf.copy()
+                self.ship_filter = self.ship_filter[['LON_CENTRE', 'LAT_CENTRE', 'TARGET_DIR', 'LENGTH', 'DESC', 'AIS_MMSI']]
+                self.ship_filter = self.ship_filter.rename(columns={'LON_CENTRE':'Longitude',
                                                                         'LAT_CENTRE':'Latitude',
                                                                         'TARGET_DIR':'Heading (deg)',
                                                                         'LENGTH':'Panjang (m)',
                                                                         'DESC':'Asosiasi (AIS/VMS)',
                                                                         'AIS_MMSI':'MMSI'})
 
-                self.__ship_filter = self.__ship_filter.round(6)
-                self.__ship_filter['Heading (deg)'] = self.__ship_filter['Heading (deg)'].astype(int)
-                self.__ship_filter['MMSI'] = self.__ship_filter['MMSI'].astype('Int64')
+                self.ship_filter = self.ship_filter.round(6)
+                self.ship_filter['Heading (deg)'] = self.ship_filter['Heading (deg)'].astype(int)
+                self.ship_filter['MMSI'] = self.ship_filter['MMSI'].astype('Int64')
 
-                self.__ship_filter.index+=1
-                self.__ship_filter.index.name = 'No.'
+                self.ship_filter.index+=1
+                self.ship_filter.index.name = 'No.'
 
-                self.__ship_filter.to_csv(datadf_path)
+                self.ship_filter.to_csv(datadf_path)
 
                 #get VMS count
-                self.vms = self.__shipdf[self.__shipdf['DESC'] == 'VMS']
+                self.vms = self.shipdf[self.shipdf['DESC'] == 'VMS']
                 self.fv = len(self.vms)
                 
                 #define ship size category
-                self.ais=self.__shipdf['AIS_MMSI'].isnull() == False
-                self.echo=self.__shipdf['AIS_MMSI'].isnull() == True
-                self.fe=self.__shipdf[self.echo]
-                self.fa=self.__shipdf[self.ais]
+                self.ais=self.shipdf['AIS_MMSI'].isnull() == False
+                self.echo=self.shipdf['AIS_MMSI'].isnull() == True
+                self.fe=self.shipdf[self.echo]
+                self.fa=self.shipdf[self.ais]
 
                 #ship data selection based on size
-                self.s=self.__shipdf['LENGTH']
+                self.s=self.shipdf['LENGTH']
                 self.se=self.fe['LENGTH']
                 self.sa=self.fa['LENGTH']
 
@@ -537,15 +537,15 @@ class DataElements:
                 self.u8=self.fa[(self.sa > 50)]#bukan kapal ikan
 
                 #calculate total number of ship
-                self.t10=len(self.__shipdf)#len(s) + len(ss)
+                self.t10=len(self.shipdf)#len(s) + len(ss)
 
                 #ship classification by 10 size scale
-                self.e0=self.__shipdf[(self.s <=10)]
-                self.e10=self.__shipdf[(self.s > 10)&(self.s <=20)]
-                self.e20=self.__shipdf[(self.s > 20)&(self.s <=30)]
-                self.e30=self.__shipdf[(self.s > 30)&(self.s <=40)]
-                self.e40=self.__shipdf[(self.s > 40)&(self.s <=50)]
-                self.e50=self.__shipdf[(self.s > 50)]
+                self.e0=self.shipdf[(self.s <=10)]
+                self.e10=self.shipdf[(self.s > 10)&(self.s <=20)]
+                self.e20=self.shipdf[(self.s > 20)&(self.s <=30)]
+                self.e30=self.shipdf[(self.s > 30)&(self.s <=40)]
+                self.e40=self.shipdf[(self.s > 40)&(self.s <=50)]
+                self.e50=self.shipdf[(self.s > 50)]
 
                 #define component of ship number
                 self.k0=str(len(self.e0))
@@ -590,32 +590,32 @@ class DataElements:
 		
         else:
             if datadf_path != None:
-                self.__oilgdf = gpd.read_file(datadf_path)
+                self.oilgdf = gpd.read_file(datadf_path)
 
-                self.__oil_filter = self.__oilgdf[['BARIC_LON', 'BARIC_LAT', 'LENGTH_KM', 'AREA_KM', 'WSPDMEAN', 'WDIRMEAN', 'ALARM_LEV']]
-                self.__oil_filter = self.__oil_filter.rename(columns={'BARIC_LON':'Longitude',
+                self.oil_filter = self.oilgdf[['BARIC_LON', 'BARIC_LAT', 'LENGTH_KM', 'AREA_KM', 'WSPDMEAN', 'WDIRMEAN', 'ALARM_LEV']]
+                self.oil_filter = self.oil_filter.rename(columns={'BARIC_LON':'Longitude',
                                                                       'BARIC_LAT':'Latitude',
                                                                       'LENGTH_KM':'Panjang (km)',
                                                                       'AREA_KM':'Luas (km2)',
                                                                       'WSPDMEAN':'Kecepatan Angin (m/s)',
                                                                       'WDIRMEAN':'Arah Angin (deg)',
                                                                       'ALARM_LEV':'Tingkat Kepercayaan'})
-                self.__oil_filter = self.__oil_filter.round(6)
+                self.oil_filter = self.oil_filter.round(6)
 
-                self.__oil_filter.index+=1
-                self.__oil_filter.index.name = 'No.'
-                self.__oil_filter.to_csv(f'{datadf_path[:-4]}.csv')
+                self.oil_filter.index+=1
+                self.oil_filter.index.name = 'No.'
+                self.oil_filter.to_csv(f'{datadf_path[:-4]}.csv')
                 
                 #oil size stat
-                self.lenmin = self.__oilgdf['LENGTH_KM'].min()
-                self.lenmax = self.__oilgdf['LENGTH_KM'].max()
+                self.lenmin = self.oilgdf['LENGTH_KM'].min()
+                self.lenmax = self.oilgdf['LENGTH_KM'].max()
                 
-                self.widmin = self.__oilgdf['AREA_KM'].min()
-                self.widmax = self.__oilgdf['AREA_KM'].max()
+                self.widmin = self.oilgdf['AREA_KM'].min()
+                self.widmax = self.oilgdf['AREA_KM'].max()
 
                 #oil confindent stat
-                self.high = self.__oilgdf[self.__oilgdf['ALARM_LEV'] == 'HIGH']
-                self.low = self.__oilgdf[self.__oilgdf['ALARM_LEV'] == 'LOW']
+                self.high = self.oilgdf[self.oilgdf['ALARM_LEV'] == 'HIGH']
+                self.low = self.oilgdf[self.oilgdf['ALARM_LEV'] == 'LOW']
                 
                 self.hi = len(self.high)
                 self.lo = len(self.low)
@@ -640,71 +640,71 @@ class DataElements:
         
 class WindOilLayer:
     def __init__(self, oilgdf, windgdf, oillayer):
-        self.__pts = windgdf.copy()
-        self.__polygon = oilgdf.copy()
+        self.pts = windgdf.copy()
+        self.polygon = oilgdf.copy()
         
         #create buffer of oil layer
-        self.__polygon.geometry = self.__polygon.geometry.buffer(0.027)
+        self.polygon.geometry = self.polygon.geometry.buffer(0.027)
         
-        self.__meanspd_in_polys = []
-        self.__meandir_in_polys = []
-        self.__maxspd_in_polys = []
-        self.__minspd_in_polys = []
-        for _, poly in self.__polygon.iterrows():
-            self.__spd_in_this_poly = []
-            self.__dir_in_this_poly = []
-            for _, pt in self.__pts.iterrows():
+        self.meanspd_in_polys = []
+        self.meandir_in_polys = []
+        self.maxspd_in_polys = []
+        self.minspd_in_polys = []
+        for _, poly in self.polygon.iterrows():
+            spd_in_this_poly = []
+            dir_in_this_poly = []
+            for _, pt in self.pts.iterrows():
                 if poly.geometry.intersects(pt.geometry):
-                    self.__speed = float(f"{pt['speed']:.2f}")
-                    self.__direction = float(f"{pt['direction']:.2f}")
-                    self.__spd_in_this_poly.append(self.__speed)
-                    self.__dir_in_this_poly.append(self.__direction)
-            if len(self.__spd_in_this_poly) > 0:
-                self.__meanspd_in_polys.append(np.mean(self.__spd_in_this_poly))
-                self.__maxspd_in_polys.append(max(self.__spd_in_this_poly))
-                self.__minspd_in_polys.append(min(self.__spd_in_this_poly))
+                    speed = float(f"{pt['speed']:.2f}")
+                    direction = float(f"{pt['direction']:.2f}")
+                    spd_in_this_poly.append(speed)
+                    dir_in_this_poly.append(direction)
+            if len(spd_in_this_poly) > 0:
+                self.meanspd_in_polys.append(np.mean(spd_in_this_poly))
+                self.maxspd_in_polys.append(max(spd_in_this_poly))
+                self.minspd_in_polys.append(min(spd_in_this_poly))
             else:
                 pass
 
-            if len(self.__dir_in_this_poly) > 0:
-                self.__meandir_in_polys.append(np.mean(self.__dir_in_this_poly))
+            if len(dir_in_this_poly) > 0:
+                self.meandir_in_polys.append(np.mean(dir_in_this_poly))
             else:
                 pass
         
-        self.__polygon['WSPDMIN'] = gpd.GeoSeries(self.__minspd_in_polys)
-        self.__polygon['WSPDMAX'] = gpd.GeoSeries(self.__maxspd_in_polys)
-        self.__polygon['WSPDMEAN'] = gpd.GeoSeries(self.__meanspd_in_polys)
-        self.__polygon['WDIRMEAN'] = gpd.GeoSeries(self.__meandir_in_polys)
+        self.polygon['WSPDMIN'] = self.minspd_in_polys
+        self.polygon['WSPDMAX'] = self.maxspd_in_polys
+        self.polygon['WSPDMEAN'] = self.meanspd_in_polys
+        self.polygon['WDIRMEAN'] = self.meandir_in_polys
         
         #compile wind stats to list
-        self.__spdmin = list(self.__polygon['WSPDMIN'])
-        self.__spdmax = list(self.__polygon['WSPDMAX'])
-        self.__spdmean = list(self.__polygon['WSPDMEAN'])
-        self.__dirmean = list(self.__polygon['WDIRMEAN'])
+        self.spdmin = list(self.polygon['WSPDMIN'])
+        self.spdmax = list(self.polygon['WSPDMAX'])
+        self.spdmean = list(self.polygon['WSPDMEAN'])
+        self.dirmean = list(self.polygon['WDIRMEAN'])
         
-        self.__wind_oillayer = oillayer
+        self.wind_oillayer = oillayer
         
-        self.__wind_oilattr_list = [wind_oilattr for wind_oilattr in oillayer.dataProvider().fields().toList()]
-        self.__wind_oilattr_len = len(self.__wind_oilattr_list)
+        self.wind_oilattr_list = [wind_oilattr for wind_oilattr in oillayer.dataProvider().fields().toList()]
+        self.wind_oilattr_len = len(self.wind_oilattr_list)
         
         #add wind stats attribute fields
-        self.__wind_oillayer.dataProvider().addAttributes([QgsField("WSPDMIN",QVariant.Double, "double", 10, 3),
+        self.wind_oillayer.dataProvider().addAttributes([QgsField("WSPDMIN",QVariant.Double, "double", 10, 3),
                                                            QgsField("WSPDMAX",QVariant.Double, "double", 10, 3),
                                                            QgsField("WSPDMEAN",QVariant.Double, "double", 10, 3),
                                                            QgsField("WDIRMEAN",QVariant.Double, "double", 10, 3)])
-        self.__wind_oillayer.updateFields()
+        self.wind_oillayer.updateFields()
         
         #input wind stats to layer
-        self.__wind_oilfeat = self.__wind_oillayer.getFeatures()
-        self.__wind_oillayer.startEditing()
-        for i,ii,iii,iv,f in zip(self.__spdmin,self.__spdmax,self.__spdmean,self.__dirmean,self.__wind_oilfeat):
+        self.wind_oilfeat = self.wind_oillayer.getFeatures()
+        self.wind_oillayer.startEditing()
+        for i,ii,iii,iv,f in zip(self.spdmin,self.spdmax,self.spdmean,self.dirmean,self.wind_oilfeat):
             id=f.id()
-            wind_oilattr={self.__wind_oilattr_len:i,self.__wind_oilattr_len+1:ii,self.__wind_oilattr_len+2:iii,self.__wind_oilattr_len+3:iv}
-            self.__wind_oillayer.dataProvider().changeAttributeValues({id:wind_oilattr})
-        self.__wind_oillayer.commitChanges()
+            wind_oilattr={self.wind_oilattr_len:i,self.wind_oilattr_len+1:ii,self.wind_oilattr_len+2:iii,self.wind_oilattr_len+3:iv}
+            self.wind_oillayer.dataProvider().changeAttributeValues({id:wind_oilattr})
+        self.wind_oillayer.commitChanges()
         
     def getWindOilLayer(self):
-        return self.__wind_oillayer
+        return self.wind_oillayer
     
 class WPPLayer:
     def __init__(self, wpp_path, extent):
@@ -716,22 +716,22 @@ class WPPLayer:
             self.ymin = extent.yMinimum()
             self.ymax = extent.yMaximum()
         
-        self.__wppgdf = gpd.read_file(wpp_path)
+        self.wppgdf = gpd.read_file(wpp_path)
         
-        self.__wpp_filter = self.__wppgdf.cx[self.xmin:self.xmax, self.ymin:self.ymax]
-        self.__wpp_list = [wpp[-3:] for wpp in self.__wpp_filter['WPP']]
+        self.wpp_filter = self.wppgdf.cx[self.xmin:self.xmax, self.ymin:self.ymax]
+        self.wpp_list = [wpp[-3:] for wpp in self.wpp_filter['WPP']]
 
-        if len(self.__wpp_list) == 1:
-            self.wpp_area = f'WPP NRI {self.__wpp_list[0]}'
-        elif len(self.__wpp_list) == 2:
-            self.wpp_area = f'WPP NRI {self.__wpp_list[0]} & {self.__wpp_list[1]}'
-        elif len(self.__wpp_list) > 2:
-            self.wpp_area = f'WPP NRI {self.__wpp_list[0]}, {self.__wpp_list[1]} & {self.__wpp_list[2]}'
+        if len(self.wpp_list) == 1:
+            self.wpp_area = f'WPP NRI {self.wpp_list[0]}'
+        elif len(self.wpp_list) == 2:
+            self.wpp_area = f'WPP NRI {self.wpp_list[0]} & {self.wpp_list[1]}'
+        elif len(self.wpp_list) > 2:
+            self.wpp_area = f'WPP NRI {self.wpp_list[0]}, {self.wpp_list[1]} & {self.wpp_list[2]}'
         else:
             self.wpp_area = 'LUAR INDONESIA'
         
     def getWPPGeoDataFrame(self):
-        return self.__wppgdf 
+        return self.wppgdf 
 
 class Layout:
     def __init__(self, project_type=None, method=None, feat_number=None, location=None, radar_info_list=None, wpp_layer=None, wind_data=None):
@@ -757,17 +757,17 @@ class Layout:
 
         if self.project_type == 'oils':
             if feat_number == 0:
-                self.__layout_id = [0]
+                self.layout_id = [0]
             elif feat_number == 1:
-                self.__layout_id = [1]
+                self.layout_id = [1]
             elif feat_number > 1:
-                self.__layout_id = [3,2]
+                self.layout_id = [3,2]
         else:
-            self.__layout_id = [0] 
-        self.__layout_list = [(i, QgsProject.instance().layoutManager().layouts()[i]) for i in self.__layout_id]
+            self.layout_id = [0] 
+        self.layout_list = [(i, QgsProject.instance().layoutManager().layouts()[i]) for i in self.layout_id]
 
     def getLayoutList(self):
-        return self.__layout_list
+        return self.layout_list
 
     def getTitleText(self):
         wpp = self.wpp_layer
@@ -781,20 +781,20 @@ class Layout:
                 title_txt = [f'PETA SEBARAN KAPAL DI PERAIRAN {wpp.wpp_area}\nPERIODE {radar.tgl_local} {bulan[radar.bln_local]} {radar.thn_local} PUKUL {radar.jam_local}:{radar.m} WIB']
         else:
             if self.feat_number == 0:
-                self.__layout_id = [0]
+                self.layout_id = [0]
             elif self.feat_number == 1:
-                self.__layout_id = [1]
+                self.layout_id = [1]
             elif self.feat_number > 1:
-                self.__layout_id = [3,2]
+                self.layout_id = [3,2]
                   
             if self.method == 'satu':
-                if self.__layout_id == [3,2]:
+                if self.layout_id == [3,2]:
                     title_txt = [f'PETA DETEKSI TUMPAHAN MINYAK DI PERAIRAN {wpp.wpp_area} (BAGIAN [%$id+1%])\nPERIODE {radar.tgl_local} {bulan[radar.bln_local]} {radar.thn_local} PUKUL {radar.jam_local}:{radar.m}:{radar.d} WIB',
                                       f'PETA DETEKSI TUMPAHAN MINYAK DI PERAIRAN {wpp.wpp_area}\nPERIODE {radar.tgl_local} {bulan[radar.bln_local]} {radar.thn_local} PUKUL {radar.jam_local}:{radar.m}:{radar.d} WIB']
                 else:
                     title_txt = [f'PETA DETEKSI TUMPAHAN MINYAK DI PERAIRAN {wpp.wpp_area}\nPERIODE {radar.tgl_local} {bulan[radar.bln_local]} {radar.thn_local} PUKUL {radar.jam_local}:{radar.m}:{radar.d} WIB']
             else:
-                if self.__layout_id == [3,2]:
+                if self.layout_id == [3,2]:
                     title_txt = [f'PETA DETEKSI TUMPAHAN MINYAK DI PERAIRAN {wpp.wpp_area} (BAGIAN [%$id+1%])\nPERIODE {radar.tgl_local} {bulan[radar.bln_local]} {radar.thn_local} PUKUL {radar.jam_local}:{radar.m} WIB',
                                       f'PETA DETEKSI TUMPAHAN MINYAK DI PERAIRAN {wpp.wpp_area}\nPERIODE {radar.tgl_local} {bulan[radar.bln_local]} {radar.thn_local} PUKUL {radar.jam_local}:{radar.m} WIB']
                 else:
@@ -821,96 +821,96 @@ class Layout:
             
     def insertTitleText(self):
         title_txt = self.getTitleText()
-        for layout, title in zip(self.__layout_list, title_txt):
+        for layout, title in zip(self.layout_list, title_txt):
             #add title map
-            self.__title_item = sip.cast(layout[1].itemById("judul"), QgsLayoutItemLabel)
-            self.__title_item.setText(title)
+            title_item = sip.cast(layout[1].itemById("judul"), QgsLayoutItemLabel)
+            title_item.setText(title)
     
     def insertSourceText(self):
         source_txt = self.getSourceText()
-        for layout in self.__layout_list:
+        for layout in self.layout_list:
             #add source text
-            self.__source_item = sip.cast(layout[1].itemById("sumber"), QgsLayoutItemLabel)
-            self.__source_item.setText(source_txt)
+            source_item = sip.cast(layout[1].itemById("sumber"), QgsLayoutItemLabel)
+            source_item.setText(source_txt)
     
     def insertWindText(self):
         wind_txt = self.getWindText()
-        for layout in self.__layout_list:
+        for layout in self.layout_list:
             #add wind information
-            self.__wind_item = sip.cast(layout[1].itemById("angin"), QgsLayoutItemLabel)
-            self.__wind_item.setText(wind_txt)
+            wind_item = sip.cast(layout[1].itemById("angin"), QgsLayoutItemLabel)
+            wind_item.setText(wind_txt)
 
     def setMap(self, extent):
-        for layout in self.__layout_list:
+        for layout in self.layout_list:
             #setup extent on main map    
-            self.__map_item = sip.cast(layout[1].itemById("map"), QgsLayoutItemMap)
-            self.__map_item.zoomToExtent(extent)
+            map_item = sip.cast(layout[1].itemById("map"), QgsLayoutItemMap)
+            map_item.zoomToExtent(extent)
     
             #set the overview map    
-            self.__overview_item = QgsLayoutItemMapOverview('overview', self.__map_item)
-            self.__overview_item.setLinkedMap(self.__map_item)
+            overview_item = QgsLayoutItemMapOverview('overview', map_item)
+            overview_item.setLinkedMap(map_item)
 
     def insertShipElements(self, ship_elements):
-        for layout in self.__layout_list:
+        for layout in self.layout_list:
             #add ship size classification
-            self.__ship_item0 = sip.cast(layout[1].itemById("unit0"), QgsLayoutItemLabel)
-            self.__ship_item0.setText(ship_elements[0])
-            self.__ship_item1 = sip.cast(layout[1].itemById("unit1"), QgsLayoutItemLabel)
-            self.__ship_item1.setText(ship_elements[1])
-            self.__ship_item2 = sip.cast(layout[1].itemById("unit2"), QgsLayoutItemLabel)
-            self.__ship_item2.setText(ship_elements[2])
-            self.__ship_item3 = sip.cast(layout[1].itemById("unit3"), QgsLayoutItemLabel)
-            self.__ship_item3.setText(ship_elements[3])
-            self.__ship_item4 = sip.cast(layout[1].itemById("unit4"), QgsLayoutItemLabel)
-            self.__ship_item4.setText(ship_elements[4])
-            self.__ship_item5 = sip.cast(layout[1].itemById("unit5"), QgsLayoutItemLabel)
-            self.__ship_item5.setText(ship_elements[5])
+            ship_item0 = sip.cast(layout[1].itemById("unit0"), QgsLayoutItemLabel)
+            ship_item0.setText(ship_elements[0])
+            ship_item1 = sip.cast(layout[1].itemById("unit1"), QgsLayoutItemLabel)
+            ship_item1.setText(ship_elements[1])
+            ship_item2 = sip.cast(layout[1].itemById("unit2"), QgsLayoutItemLabel)
+            ship_item2.setText(ship_elements[2])
+            ship_item3 = sip.cast(layout[1].itemById("unit3"), QgsLayoutItemLabel)
+            ship_item3.setText(ship_elements[3])
+            ship_item4 = sip.cast(layout[1].itemById("unit4"), QgsLayoutItemLabel)
+            ship_item4.setText(ship_elements[4])
+            ship_item5 = sip.cast(layout[1].itemById("unit5"), QgsLayoutItemLabel)
+            ship_item5.setText(ship_elements[5])
 
             #add number of VMS, AIS and untransmitted ship
-            self.__ship_item6 = sip.cast(layout[1].itemById("unit9"), QgsLayoutItemLabel)
-            self.__ship_item6.setText(ship_elements[11])
-            self.__ship_item6 = sip.cast(layout[1].itemById("unit6"), QgsLayoutItemLabel)
-            self.__ship_item6.setText(ship_elements[9])
-            self.__ship_item7 = sip.cast(layout[1].itemById("unit7"), QgsLayoutItemLabel)
-            self.__ship_item7.setText(ship_elements[6])
+            ship_item6 = sip.cast(layout[1].itemById("unit9"), QgsLayoutItemLabel)
+            ship_item6.setText(ship_elements[11])
+            ship_item6 = sip.cast(layout[1].itemById("unit6"), QgsLayoutItemLabel)
+            ship_item6.setText(ship_elements[9])
+            ship_item7 = sip.cast(layout[1].itemById("unit7"), QgsLayoutItemLabel)
+            ship_item7.setText(ship_elements[6])
 
             #add total number of ship
-            self.__ship_item8 = sip.cast(layout[1].itemById("unit8"), QgsLayoutItemLabel)
-            self.__ship_item8.setText(ship_elements[10])
+            ship_item8 = sip.cast(layout[1].itemById("unit8"), QgsLayoutItemLabel)
+            ship_item8.setText(ship_elements[10])
 
-            self.__data_item = sip.cast(layout[1].itemById("data"), QgsLayoutItemLabel)
+            data_item = sip.cast(layout[1].itemById("data"), QgsLayoutItemLabel)
             if (int(ship_elements[9])) > 0 or (int(ship_elements[11])) > 0:
-                self.__data_item.setText("<Ada data>")
+                data_item.setText("<Ada data>")
             else:
-                self.__data_item.setText("<Tidak ada data>")
+                data_item.setText("<Tidak ada data>")
                 
     def setOilAreaText(self, area_txt):
-        for layout in self.__layout_list:
+        for layout in self.layout_list:
             if layout[0] == 2:
                 #add area text
                 area_item = sip.cast(layout[1].itemById("luas"), QgsLayoutItemLabel)
                 area_item.setText(area_txt)
     
     def setLayoutName(self, layout_name):
-        for layout in self.__layout_list:
+        for layout in self.layout_list:
             #set layout name
             layout[1].setName(layout_name)
             if layout[0] == 3:
                 layout[1].setName(f'{layout_name}_')
     
     def setAtlas(self, layer):
-        for layout in self.__layout_list:
+        for layout in self.layout_list:
             if layout[0] == 1:
-                self.atlas_name = "@layout_name"
+                atlas_name = "@layout_name"
             elif layout[0] == 3:
-                self.atlas_name = "@layout_name||@atlas_featurenumber"
+                atlas_name = "@layout_name||@atlas_featurenumber"
             #set atlas
             layout[1].atlas().setCoverageLayer(layer)
             layout[1].atlas().setEnabled(True)
-            layout[1].atlas().setFilenameExpression(self.atlas_name)
+            layout[1].atlas().setFilenameExpression(atlas_name)
     
     def openLayout(self):
-        for layout in self.__layout_list:
+        for layout in self.layout_list:
             #open layout
             iface.openLayoutDesigner(layout[1])
             layout[1].refresh()
@@ -918,7 +918,7 @@ class Layout:
 class LayoutDTO(Layout):
     def __init__(self, project_type=None, dtoinfo_list=None, wpp_layer=None):
         super().__init__(project_type)
-        self.__layout_list = super().getLayoutList()
+        self.layout_list = super().getLayoutList()
         self.dtoinfo_list = dtoinfo_list
         self.wpp_layer = wpp_layer
     
@@ -938,15 +938,15 @@ class LayoutDTO(Layout):
         return atlas_exp
     
     def setMap(self, extent):
-        for layout in self.__layout_list:
+        for layout in self.layout_list:
             #setup extent on main map
-            self.map_item = sip.cast(layout[1].itemById("map"), QgsLayoutItemMap)
+            map_item = sip.cast(layout[1].itemById("map"), QgsLayoutItemMap)
             extent.scale(2)
-            self.map_item.zoomToExtent(extent)
+            map_item.zoomToExtent(extent)
     
     def setAtlas(self, layer):
         atlas_exp = self.getAtlasExp()
-        for layout in self.__layout_list:
+        for layout in self.layout_list:
             #set atlas
             layout[1].atlas().setCoverageLayer(layer)
             layout[1].atlas().setEnabled(True)
@@ -956,17 +956,17 @@ class LayoutDTO(Layout):
         title_exp = self.getTitleExp()
         sat = self.dtoinfo_list[-1].sat
         wpp = self.wpp_layer.wpp_area
-        for layout in self.__layout_list:
+        for layout in self.layout_list:
             #add title map
-            self.title_item = sip.cast(layout[1].itemById("judul"), QgsLayoutItemLabel)
-            self.title_item.setText(f'PETA AREA DETEKSI CITRA RADAR {sat.upper()} DI PERAIRAN {wpp}\r\nPERIODE {title_exp}') 
+            title_item = sip.cast(layout[1].itemById("judul"), QgsLayoutItemLabel)
+            title_item.setText(f'PETA AREA DETEKSI CITRA RADAR {sat.upper()} DI PERAIRAN {wpp}\r\nPERIODE {title_exp}') 
     
     def insertNoteText(self):
         note_exp = self.getNoteExp()
-        for layout in self.__layout_list:
+        for layout in self.layout_list:
             #add note
-            self.note_item = sip.cast(layout[1].itemById("note"), QgsLayoutItemLabel)
-            self.note_item.setText(f'CATATAN:\nNotifikasi citra dapat diakuisisi atau tidak:\n{note_exp}')
+            note_item = sip.cast(layout[1].itemById("note"), QgsLayoutItemLabel)
+            note_item.setText(f'CATATAN:\nNotifikasi citra dapat diakuisisi atau tidak:\n{note_exp}')
 
 		
 if __name__ == '__main__':

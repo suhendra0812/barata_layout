@@ -89,35 +89,35 @@ class AIS:
                 self.fileNames = theZip.namelist()
                 for fileName in self.fileNames:
                     if fileName.endswith('kml'):
-                        self.content = theZip.open(fileName).read()
-                        self.tree = ElementTree.fromstring(self.content)
-                        self.kmlns = self.tree.tag.split('}')[0][1:]
-                        self.data_elems = self.tree.findall(".//{%s}Data" % self.kmlns)
-                        self.point_elems = self.tree.findall(".//{%s}Point" % self.kmlns)
-                        for child in self.point_elems:
+                        content = theZip.open(fileName).read()
+                        tree = ElementTree.fromstring(content)
+                        kmlns = tree.tag.split('}')[0][1:]
+                        data_elems = tree.findall(".//{%s}Data" % kmlns)
+                        point_elems = tree.findall(".//{%s}Point" % kmlns)
+                        for child in point_elems:
                             for subchild in child:
-                                self.coords = (subchild.text).split(' ')
-                                self.x_coord = float(self.coords[0])
-                                self.y_coord = float(self.coords[1])
-                                self.geom = Point(self.x_coord, self.y_coord)
-                                self.longitude.append(self.x_coord)
-                                self.latitude.append(self.y_coord)
-                                self.geometry.append(self.geom)
-                        for data in self.data_elems:
-                            self.name = data.get('name')
-                            if self.name == 'AIS MMSI':
-                                self.mmsi = data.find(".//{%s}value" % self.kmlns).text
-                                if self.mmsi != 'N/A':
-                                    self.aismmsi = int(self.mmsi)
+                                coords = (subchild.text).split(' ')
+                                x_coord = float(coords[0])
+                                y_coord = float(coords[1])
+                                geom = Point(x_coord, y_coord)
+                                self.longitude.append(x_coord)
+                                self.latitude.append(y_coord)
+                                self.geometry.append(geom)
+                        for data in data_elems:
+                            name = data.get('name')
+                            if name == 'AIS MMSI':
+                                mmsi = data.find(".//{%s}value" % kmlns).text
+                                if mmsi != 'N/A':
+                                    aismmsi = int(mmsi)
                                 else:
-                                    self.aismmsi = None
-                                self.ais_mmsi.append(self.aismmsi)
-                            if self.name == 'Ship Number':
-                                self.number = data.find(".//{%s}value" % self.kmlns).text
-                                self.shipnumber.append(int(self.number))
-                            if self.name == 'Target Length':
-                                self.length =  data.find(".//{%s}value" % self.kmlns).text
-                                self.targetlength.append(float(self.length))
+                                    aismmsi = None
+                                self.ais_mmsi.append(aismmsi)
+                            if name == 'Ship Number':
+                                number = data.find(".//{%s}value" % kmlns).text
+                                self.shipnumber.append(int(number))
+                            if name == 'Target Length':
+                                length =  data.find(".//{%s}value" % kmlns).text
+                                self.targetlength.append(float(length))
                                 
             self.aisdf = pd.DataFrame({'LON_CENTRE':self.longitude, 'LAT_CENTRE':self.latitude, 'SHIP_ID':self.shipnumber, 'LENGTH':self.targetlength, 'AIS_MMSI':self.ais_mmsi})
             self.aisdf['AIS_MMSI'] = self.aisdf['AIS_MMSI'].where(pd.notnull(self.aisdf['AIS_MMSI']), None)

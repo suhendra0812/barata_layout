@@ -2,8 +2,8 @@ from datetime import datetime, timedelta
 
 class RadarInfo:
     def __init__(self, rasterBaseName):
-        self.__rdr = rasterBaseName[0:3]
-        if self.__rdr == 'CSK':
+        self.rdr = rasterBaseName[0:3]
+        if self.rdr == 'CSK':
             self.rdr_name = 'COSMO-SkyMed'
             self.mode={'WR':'ScanSAR Wide Region',
                        'HR':'ScanSAR Huge Region',
@@ -24,7 +24,7 @@ class RadarInfo:
             self.rdr_fn = f"{self.rdr_name} {self.con}"
             self.rdr_mode = f'{self.rdr_fn}, {self.mode[self.pola]}'
             
-        elif self.__rdr == 'Rad' or self.__rdr == 'RS2':
+        elif self.rdr == 'Rad' or self.rdr == 'RS2':
             self.rdr_name = 'RADARSAT-2'
             self.mode = {'':'',
                          'SN':'ScanSAR Narrow',
@@ -41,7 +41,7 @@ class RadarInfo:
 
             self.rdr_fn = self.rdr_name
 
-            if self.__rdr == 'RS2':
+            if self.rdr == 'RS2':
                 self.con=rasterBaseName[2:3]
                 self.pola=rasterBaseName[32:34]
                 
@@ -54,7 +54,7 @@ class RadarInfo:
 
                 self.rdr_mode = f'{self.rdr_fn}, {self.mode[self.pola]}'
 
-            elif self.__rdr == 'Rad':
+            elif self.rdr == 'Rad':
                 self.con=rasterBaseName[9:10]
                 self.pola=''
 
@@ -67,7 +67,7 @@ class RadarInfo:
 
                 self.rdr_mode = self.rdr_fn
             
-        elif self.__rdr[:2] == 'S1':
+        elif self.rdr[:2] == 'S1':
             self.rdr_name = 'Sentinel 1'
             self.mode={'SM':'Stripmap',
                        'IW':'Interferometric Wide Swath',
@@ -87,14 +87,14 @@ class RadarInfo:
             self.rdr_fn = f'{self.rdr_name}{self.con}'
             self.rdr_mode = f'{self.rdr_fn}, {self.mode[self.pola]}'
          
-        self.__utc_datetime = datetime.strptime(f"{self.thn}-{self.bln}-{self.tgl} {self.j}:{self.m}:{self.d}", "%Y-%m-%d %H:%M:%S")
+        self.utc_datetime = datetime.strptime(f"{self.thn}-{self.bln}-{self.tgl} {self.j}:{self.m}:{self.d}", "%Y-%m-%d %H:%M:%S")
 
-        self.__GMT_7 = 7
-        self.__result_local_datetime = self.__utc_datetime + timedelta(hours=self.__GMT_7)
-        self.__u=str(self.__result_local_datetime)
-        self.thn_local=self.__u[:4]
-        self.bln_local=self.__u[5:7]
-        self.tgl_local=self.__u[8:10]
-        self.jam_local=self.__u[11:13]
+        self.GMT_7 = 7
+        self.result_local_datetime = self.utc_datetime + timedelta(hours=self.GMT_7)
+        self.u=str(self.result_local_datetime)
+        self.thn_local=self.u[:4]
+        self.bln_local=self.u[5:7]
+        self.tgl_local=self.u[8:10]
+        self.jam_local=self.u[11:13]
         self.utc = f"{self.thn}{self.bln}{self.tgl}_{self.j}{self.m}{self.d}"
         self.local = f"{self.thn_local}{self.bln_local}{self.tgl_local}_{self.jam_local}{self.m}{self.d}"
