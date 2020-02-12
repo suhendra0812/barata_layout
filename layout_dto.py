@@ -29,7 +29,7 @@ data_group = project_layout.getDataGroup()
 
 dto_path = FileDialog(BASE_PATH).open(type=project_type)
 
-print ('Sumber data:')
+print ('\nSumber data:')
 print (dto_path)
 
 #get dto feature list
@@ -42,12 +42,19 @@ for f in range(len(dtofeat_list)):
     dtoinfo = DTOInfo(dto_path, idx)
     dtoinfo_list.append(dtoinfo)
 
-print(f'Radar\t\t: {dtoinfo_list[0].sat}')
+print(f'\nRadar\t\t: {dtoinfo_list[0].sat}')
 print(f'Jumlah DTO\t: {len(dtofeat_list)}')
 
 #get variable from dto info
-user = input('Masukkan nama instansi\t: ')
-location = input('Masukkan nama wilayah\t: ')
+filename = os.path.basename(dto_path)
+fn_split = filename.split('_')
+
+user = fn_split[0]
+location = fn_split[1]
+if user.isdigit() and location.isdigit():
+    user = input('\nMasukkan nama instansi\t: ')
+    location = input('Masukkan nama wilayah\t: ')
+
 local = dtoinfo_list[0].local
 layer_name = f'{user}_{location}_{local}_{project_type}'
 if dtoinfo_list[0].sat == 'RADARSAT-2':
