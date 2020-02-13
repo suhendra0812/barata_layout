@@ -1,6 +1,7 @@
 import read_kml
 from datetime import datetime, timedelta
 
+
 class DTOInfo:
     def __init__(self, dto_path, idx):
         self.dto_info = read_kml.DTO(dto_path, idx).to_dict()
@@ -14,10 +15,9 @@ class DTOInfo:
             self.sat_id = 'CS'
             self.time = self.dto_info.get('Sensing Start')
             self.sensing_utc = datetime.strptime(self.time[:19], '%Y-%m-%d %H:%M:%S')
-            
+
         self.sensing_local = self.sensing_utc + timedelta(hours=7)
         self.notif_local = self.sensing_local - timedelta(hours=12)
-
 
         self.tgl_sensing = "{:02d}".format(self.sensing_local.day)
         self.bln_sensing = "{:02d}".format(self.sensing_local.month)
