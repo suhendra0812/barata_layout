@@ -94,7 +94,7 @@ if len(wind_list) > 0:
     windgdf = wind_data.getWindGeoDataFrame()
 else:
     print('- Tidak ada data angin')
-    wind_range = wind_direction = 'n/a'
+    wind_data = None
 
 # load wpp data and get WPP area which is overlaid within raster
 wpp_path = f'{BASEMAP_PATH}\\WPP_Full_PermenKP182014.shp'

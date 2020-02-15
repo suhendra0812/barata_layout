@@ -851,7 +851,10 @@ class Layout:
 
     def getWindText(self):
         wind = self.wind_data
-        wind_txt = f'{wind.windrange}\n{wind.dire}'
+        if not wind == None:
+            wind_txt = f'{wind.windrange}\n{wind.dire}'
+        else:
+            wind_txt = 'n/a\nn/a'
         return wind_txt
 
     def insertTitleText(self):
