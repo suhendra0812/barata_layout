@@ -1,10 +1,10 @@
-from barata_layout import Project, Layout
 import sys
 import os
 import glob
 import pandas as pd
 
 sys.path.append('D:\\BARATA\\11.barata_layout')
+from barata_layout import Project, Layout
 
 # define project type and project path
 project_type = Project().getProjectType()
