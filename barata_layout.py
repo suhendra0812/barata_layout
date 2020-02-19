@@ -95,32 +95,36 @@ class Project:
 
 class DataList:
     # list layer
-    def __init__(self, SOURCE_PATH):
-        self.rasterList = glob.glob(f'{SOURCE_PATH}\\*.tif')
-        self.shipList = glob.glob(f'{SOURCE_PATH}\\*SHIP.shp')
-        self.oilList = glob.glob(f'{SOURCE_PATH}\\*OIL.shp')
-        self.windList = glob.glob(f'{SOURCE_PATH}\\*Wind.gml')
+    def __init__(self, base_path):
+        self.base_path = base_path
 
     def getRasterList(self):
+        self.rasterList = glob.glob(f'{self.base_path}\\*.tif')
         return self.rasterList
 
     def getShipList(self):
+        self.shipList = glob.glob(f'{self.base_path}\\*SHIP.shp')
         return self.shipList
 
     def getOilList(self):
+        self.oilList = glob.glob(f'{self.base_path}\\*OIL.shp')
         return self.oilList
 
     def getWindList(self):
+        self.windList = glob.glob(f'{self.base_path}\\*Wind.gml')
         return self.windList
 
 
 class LayerExtent:
     def __init__(self, layer_list):
+        self.layer_list = layer_list
+
+    def getExtent(self):
         # set up extent
         self.extent = QgsRectangle()
         self.extent.setMinimal()
 
-        for layer in layer_list:
+        for layer in self.layer_list:
             # zoom to raster layer
             self.extent.combineExtentWith(layer.extent())
 
@@ -128,7 +132,6 @@ class LayerExtent:
         QgsMapCanvas().setExtent(self.extent)
         QgsMapCanvas().refresh()
 
-    def getExtent(self):
         return self.extent
 
 
