@@ -1,4 +1,17 @@
-from qgis.core import QgsApplication, QgsProject, QgsRectangle, QgsRasterLayer, QgsLayerTreeLayer, QgsVectorLayer, QgsField, QgsGeometry, QgsPointXY, QgsVectorFileWriter, QgsLayoutItemMap, QgsLayoutItemMapOverview, QgsLayoutItemLabel, QgsRasterRange
+from qgis.core import (QgsApplication,
+                       QgsProject,
+                       QgsRectangle,
+                       QgsRasterLayer,
+                       QgsLayerTreeLayer,
+                       QgsVectorLayer,
+                       QgsField,
+                       QgsGeometry,
+                       QgsPointXY,
+                       QgsVectorFileWriter,
+                       QgsLayoutItemMap,
+                       QgsLayoutItemMapOverview,
+                       QgsLayoutItemLabel,
+                       QgsRasterRange
 from qgis.gui import QgsMapCanvas
 from qgis.utils import iface
 from PyQt5.QtCore import QFileInfo, QVariant
