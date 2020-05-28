@@ -11,7 +11,7 @@ from qgis.core import (QgsApplication,
                        QgsLayoutItemMap,
                        QgsLayoutItemMapOverview,
                        QgsLayoutItemLabel,
-                       QgsRasterRange
+                       QgsRasterRange)
 from qgis.gui import QgsMapCanvas
 from qgis.utils import iface
 from PyQt5.QtCore import QFileInfo, QVariant
