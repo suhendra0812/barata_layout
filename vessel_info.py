@@ -64,9 +64,16 @@ def get_ais_info(ship_path):
             aisdatadf = aisdatadf.loc[(aisdatadf['time'] >= startdate) & (aisdatadf['time'] <= stopdate)]
 
             # get vessel name, ship type and country from ais data
-            aisdf['Nama Kapal'] = [aisdatadf[aisdatadf['mmsi'] == int(mmsi)]['vessel_name'].array[0] for mmsi in aisdf['MMSI']]
-            aisdf['Tipe'] = [aisdatadf[aisdatadf['mmsi'] == int(mmsi)]['ship_type'].array[0] for mmsi in aisdf['MMSI']]
-            aisdf['Asal'] = [aisdatadf[aisdatadf['mmsi'] == int(mmsi)]['country'].array[0] for mmsi in aisdf['MMSI']]
+            def get_value(mmsi, column):
+                value = aisdatadf[aisdatadf['mmsi'] == int(mmsi)][column].values
+                if len(value) != 0:
+                    return value[0]
+                else:
+                    return None
+
+            aisdf['Nama Kapal'] = [get_value(mmsi, 'vessel_name') for mmsi in aisdf['MMSI']]
+            aisdf['Tipe'] = [get_value(mmsi, 'ship_type') for mmsi in aisdf['MMSI']]
+            aisdf['Asal'] = [get_value(mmsi, 'country') for mmsi in aisdf['MMSI']]
 
             # merge AIS dataframe to ship data
             aisshipdf = pd.merge(aisdf, shipdf, how='right')

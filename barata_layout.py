@@ -43,9 +43,11 @@ class FileDialog:
 
     def open(self, type='folder'):
         if type == 'dto':
-            self.path = QFileDialog.getOpenFileName(None, "Select DTO Directory", self.base_path, 'DTO Files (*.kml *.shp)')[0]
+            self.path = QFileDialog.getOpenFileName(
+                None, "Select DTO Directory", self.base_path, 'DTO Files (*.kml *.shp)')[0]
         else:
-            self.path = QFileDialog.getExistingDirectory(None, 'Select Data Directory', self.base_path)[:-4] + '*'
+            self.path = QFileDialog.getExistingDirectory(
+                None, 'Select Data Directory', self.base_path)[:-4] + '*'
         return self.path
 
 
@@ -62,7 +64,8 @@ class Project:
 
         # define group in project
         self.dataGroup = QgsProject.instance().layerTreeRoot().findGroups()[0]
-        self.basemapGroup = QgsProject.instance().layerTreeRoot().findGroups()[1]
+        self.basemapGroup = QgsProject.instance(
+        ).layerTreeRoot().findGroups()[1]
 
     def getProjectPath(self):
         return self.projectPath
@@ -190,11 +193,14 @@ class WindData:
             self.windrange = self.dire = 'n/a'
         else:
             self.windgdf['speed'] = self.windgdf['speed'].astype(float)
-            self.windgdf['meridionalSpeed'] = self.windgdf['meridionalSpeed'].astype(float)
-            self.windgdf['zonalSpeed'] = self.windgdf['zonalSpeed'].astype(float)
+            self.windgdf['meridionalSpeed'] = self.windgdf['meridionalSpeed'].astype(
+                float)
+            self.windgdf['zonalSpeed'] = self.windgdf['zonalSpeed'].astype(
+                float)
 
             # calculate wind direction using atan2 formula
-            self.windgdf['direction'] = (np.arctan2(self.windgdf['meridionalSpeed'], self.windgdf['zonalSpeed']))*(180/np.pi) + 180
+            self.windgdf['direction'] = (np.arctan2(
+                self.windgdf['meridionalSpeed'], self.windgdf['zonalSpeed']))*(180/np.pi) + 180
 
             # calculate wind speed (min, max, mean) and direction
             self.wind_sp = self.windgdf['speed']
@@ -238,7 +244,8 @@ class WindData:
 
 class DataLayer:
     def __init__(self, data_list):
-        self.datagdf = gpd.GeoDataFrame(pd.concat([gpd.read_file(data) for data in data_list], sort=False, ignore_index=True))
+        self.datagdf = gpd.GeoDataFrame(pd.concat(
+            [gpd.read_file(data) for data in data_list], sort=False, ignore_index=True))
 
         self.feat_list = []
         self.attr_list = []
@@ -342,7 +349,8 @@ class DTOLayer:
             QgsField("Beam", QVariant.String, 'String', 80),
         ]
 
-        self.dtolayer = QgsVectorLayer("Polygon?crs=epsg:4326", self.baseName, "memory")
+        self.dtolayer = QgsVectorLayer(
+            "Polygon?crs=epsg:4326", self.baseName, "memory")
         self.dtolayer_data = self.dtolayer.dataProvider()
         self.dtolayer.startEditing()
         self.dtolayer_data.addAttributes(self.dtoattr_list)
@@ -380,7 +388,8 @@ class DTOLayer:
                     6: angle,
                     7: beam,
                 }
-                self.dtolayer.dataProvider().changeAttributeValues({id: attrib})
+                self.dtolayer.dataProvider(
+                ).changeAttributeValues({id: attrib})
         self.dtolayer.commitChanges()
 
         self.dtofeat_list = [feat for feat in self.dtolayer.getFeatures()]
@@ -398,9 +407,11 @@ class DTOLayer:
 class AggregationLayer:
     def __init__(self, feat_list, attr_list, layer_name):
         if layer_name[-4:] == 'ship':
-            self.agglayer = QgsVectorLayer("Point?crs=epsg:4326", layer_name, "memory")
+            self.agglayer = QgsVectorLayer(
+                "Point?crs=epsg:4326", layer_name, "memory")
         else:
-            self.agglayer = QgsVectorLayer("Polygon?crs=epsg:4326", layer_name, "memory")
+            self.agglayer = QgsVectorLayer(
+                "Polygon?crs=epsg:4326", layer_name, "memory")
 
         self.agglayer_data = self.agglayer.dataProvider()
         self.agglayer.startEditing()
@@ -423,16 +434,32 @@ class AggregationLayer:
         return self.agglayer
 
 
+class AggregationLayerV2:
+    def __init__(self, data_list):
+        self.data_gdf = gpd.GeoDataFrame(
+            pd.concat(
+                [gpd.read_file(data) for data in data_list],
+                ignore_index=True,
+            )
+        )
+
+    def getAggLayer(self, layer_name):
+        agglayer = QgsVectorLayer(self.data_gdf.to_json(), layer_name, 'ogr')
+        return agglayer
+
+
 class TransmittedLayer:
     def __init__(self, feat_list, attr_list, vms_list, layer_name):
         if len(vms_list) > 0:
-            self.vmsgdf = gpd.GeoDataFrame(pd.concat([gpd.read_file(vms) for vms in vms_list], ignore_index=True))
+            self.vmsgdf = gpd.GeoDataFrame(
+                pd.concat([gpd.read_file(vms) for vms in vms_list], ignore_index=True))
             try:
                 self.vmsstat = self.vmsgdf[self.vmsgdf['status'] == 'vms']
             except:
                 self.vmsstat = self.vmsgdf[self.vmsgdf['STATUS'] == 'VMS']
 
-        self.trmlayer = QgsVectorLayer("Point?crs=epsg:4326", layer_name, "memory")
+        self.trmlayer = QgsVectorLayer(
+            "Point?crs=epsg:4326", layer_name, "memory")
         self.trmlayer_data = self.trmlayer.dataProvider()
         self.trmlayer.startEditing()
         self.trmlayer_data.addAttributes(attr_list)
@@ -441,7 +468,8 @@ class TransmittedLayer:
         self.trmlayer.commitChanges()
 
         # add new field named 'DESC'
-        self.trmlayer.dataProvider().addAttributes([QgsField("DESC", QVariant.String, 'String', 80)])
+        self.trmlayer.dataProvider().addAttributes(
+            [QgsField("DESC", QVariant.String, 'String', 80)])
         self.trmlayer.updateFields()
 
         # define if 'AIS_MMSI' column was not None, the 'DESC' column is filled by 'Transmitter', else 'Non Transmitter'
@@ -463,7 +491,8 @@ class TransmittedLayer:
             if len(vms_list) > 0:
                 for _, vms in self.vmsstat.iterrows():
                     vms_geom = vms.geometry
-                    vms_geom_qgs = QgsGeometry.fromPointXY(QgsPointXY(vms_geom.x, vms_geom.y))
+                    vms_geom_qgs = QgsGeometry.fromPointXY(
+                        QgsPointXY(vms_geom.x, vms_geom.y))
                     if trmfeat_geom.intersects(vms_geom_qgs):
                         desc = {(self.trmattr_len-1): 'VMS'}
 
@@ -490,7 +519,8 @@ class DelimitedLayer:
             "&crs=EPSG:4326"
             "&decimal"
         )
-        self.delimitedlayer = QgsVectorLayer(self.uri, layer_name, "delimitedtext")
+        self.delimitedlayer = QgsVectorLayer(
+            self.uri, layer_name, "delimitedtext")
 
     def getDelimitedLayer(self):
         return self.delimitedlayer
@@ -505,7 +535,8 @@ class LoadVectorLayer:
 
         # load style to the layer and show feature count
         layer.loadNamedStyle(template_path)
-        QgsProject.instance().layerTreeRoot().findLayer(layer).setCustomProperty("showFeatureCount", True)
+        QgsProject.instance().layerTreeRoot().findLayer(
+            layer).setCustomProperty("showFeatureCount", True)
 
 
 class ExportLayer:
@@ -533,7 +564,8 @@ class DataElements:
                 self.shipdf = pd.read_csv(datadf_path)
 
                 self.ship_filter = self.shipdf.copy()
-                self.ship_filter = self.ship_filter[['LON_CENTRE', 'LAT_CENTRE', 'TARGET_DIR', 'LENGTH', 'DESC', 'AIS_MMSI']]
+                self.ship_filter = self.ship_filter[[
+                    'LON_CENTRE', 'LAT_CENTRE', 'TARGET_DIR', 'LENGTH', 'DESC', 'AIS_MMSI']]
                 self.column_rename = {
                     'LON_CENTRE': 'Longitude',
                     'LAT_CENTRE': 'Latitude',
@@ -542,11 +574,14 @@ class DataElements:
                     'DESC': 'Asosiasi (AIS/VMS)',
                     'AIS_MMSI': 'MMSI',
                 }
-                self.ship_filter = self.ship_filter.rename(columns=self.column_rename)
+                self.ship_filter = self.ship_filter.rename(
+                    columns=self.column_rename)
 
                 self.ship_filter = self.ship_filter.round(6)
-                self.ship_filter['Heading (deg)'] = self.ship_filter['Heading (deg)'].astype(int)
-                self.ship_filter['MMSI'] = self.ship_filter['MMSI'].astype('Int64')
+                self.ship_filter['Heading (deg)'] = self.ship_filter['Heading (deg)'].astype(
+                    int)
+                self.ship_filter['MMSI'] = self.ship_filter['MMSI'].astype(
+                    'Int64')
 
                 self.ship_filter.index += 1
                 self.ship_filter.index.name = 'No.'
@@ -632,7 +667,8 @@ class DataElements:
             if datadf_path != None:
                 self.oilgdf = gpd.read_file(datadf_path)
 
-                self.oil_filter = self.oilgdf[['BARIC_LON', 'BARIC_LAT', 'LENGTH_KM', 'AREA_KM', 'WSPDMEAN', 'WDIRMEAN', 'ALARM_LEV']]
+                self.oil_filter = self.oilgdf[[
+                    'BARIC_LON', 'BARIC_LAT', 'LENGTH_KM', 'AREA_KM', 'WSPDMEAN', 'WDIRMEAN', 'ALARM_LEV']]
                 self.column_rename = {
                     'BARIC_LON': 'Longitude',
                     'BARIC_LAT': 'Latitude',
@@ -641,8 +677,9 @@ class DataElements:
                     'WSPDMEAN': 'Kecepatan Angin (m/s)',
                     'WDIRMEAN': 'Arah Angin (deg)',
                     'ALARM_LEV': 'Tingkat Kepercayaan',
-                    }
-                self.oil_filter = self.oil_filter.rename(columns=self.column_rename)
+                }
+                self.oil_filter = self.oil_filter.rename(
+                    columns=self.column_rename)
                 self.oil_filter = self.oil_filter.round(6)
 
                 self.oil_filter.index += 1
@@ -669,9 +706,12 @@ class DataElements:
             print("\nMenghitung statistik tumpahan minyak")
             print(f"\nPanjang tumpahan minyak terendah\t\t= {self.lenmin} km")
             print(f"Panjang tumpahan minyak tertinggi\t\t= {self.lenmax} km")
-            print(f"\nLuas tumpahan minyak terendah\t\t\t= {self.widmin} km\u00B2")
-            print(f"Luas tumpahan minyak tertinggi\t\t\t= {self.widmax} km\u00B2")
-            print(f"\nJumlah tumpahan minyak berkepercayaan tinggi\t= {self.hi}")
+            print(
+                f"\nLuas tumpahan minyak terendah\t\t\t= {self.widmin} km\u00B2")
+            print(
+                f"Luas tumpahan minyak tertinggi\t\t\t= {self.widmax} km\u00B2")
+            print(
+                f"\nJumlah tumpahan minyak berkepercayaan tinggi\t= {self.hi}")
             print(f"Jumlah tumpahan minyak berkepercayaan rendah\t= {self.lo}")
             print(f"\nTotal jumlah tumpahan minyak\t\t\t= {self.hi+self.lo}")
 
@@ -747,8 +787,10 @@ class WindOilLayer:
         self.wind_oillayer.startEditing()
         for i, ii, iii, iv, f in zip(self.spdmin, self.spdmax, self.spdmean, self.dirmean, self.wind_oilfeat):
             id = f.id()
-            wind_oilattr = {self.wind_oilattr_len: i, self.wind_oilattr_len+1: ii, self.wind_oilattr_len+2: iii, self.wind_oilattr_len+3: iv}
-            self.wind_oillayer.dataProvider().changeAttributeValues({id: wind_oilattr})
+            wind_oilattr = {self.wind_oilattr_len: i, self.wind_oilattr_len +
+                            1: ii, self.wind_oilattr_len+2: iii, self.wind_oilattr_len+3: iv}
+            self.wind_oillayer.dataProvider().changeAttributeValues({
+                id: wind_oilattr})
         self.wind_oillayer.commitChanges()
 
     def getWindOilLayer(self):
@@ -767,7 +809,8 @@ class WPPLayer:
 
         self.wppgdf = gpd.read_file(wpp_path)
 
-        self.wpp_filter = self.wppgdf.cx[self.xmin:self.xmax, self.ymin:self.ymax]
+        self.wpp_filter = self.wppgdf.cx[self.xmin:self.xmax,
+                                         self.ymin:self.ymax]
         self.wpp_list = [wpp[-3:] for wpp in self.wpp_filter['WPP']]
 
         if len(self.wpp_list) == 1:
@@ -798,7 +841,7 @@ class Layout:
             '10': 'OKTOBER',
             '11': 'NOVEMBER',
             '12': 'DESEMBER'
-            }
+        }
         self.project_type = project_type
         self.method = method
         self.feat_number = feat_number
@@ -815,7 +858,8 @@ class Layout:
                 self.layout_id = [3, 2]
         else:
             self.layout_id = [0]
-        self.layout_list = [(i, QgsProject.instance().layoutManager().layouts()[i]) for i in self.layout_id]
+        self.layout_list = [(i, QgsProject.instance().layoutManager().layouts()[
+                             i]) for i in self.layout_id]
 
     def getLayoutList(self):
         return self.layout_list
@@ -827,9 +871,11 @@ class Layout:
 
         if self.project_type == 'ship':
             if self.method == 'satu':
-                title_txt = [f'PETA SEBARAN KAPAL DI PERAIRAN {wpp.wpp_area}\nPERIODE {radar.tgl_local} {bulan[radar.bln_local]} {radar.thn_local} PUKUL {radar.jam_local}:{radar.m}:{radar.d} WIB']
+                title_txt = [
+                    f'PETA SEBARAN KAPAL DI PERAIRAN {wpp.wpp_area}\nPERIODE {radar.tgl_local} {bulan[radar.bln_local]} {radar.thn_local} PUKUL {radar.jam_local}:{radar.m}:{radar.d} WIB']
             else:
-                title_txt = [f'PETA SEBARAN KAPAL DI PERAIRAN {wpp.wpp_area}\nPERIODE {radar.tgl_local} {bulan[radar.bln_local]} {radar.thn_local} PUKUL {radar.jam_local}:{radar.m} WIB']
+                title_txt = [
+                    f'PETA SEBARAN KAPAL DI PERAIRAN {wpp.wpp_area}\nPERIODE {radar.tgl_local} {bulan[radar.bln_local]} {radar.thn_local} PUKUL {radar.jam_local}:{radar.m} WIB']
         else:
             if self.feat_number == 0:
                 self.layout_id = [0]
@@ -843,13 +889,15 @@ class Layout:
                     title_txt = [f'PETA DETEKSI TUMPAHAN MINYAK DI PERAIRAN {wpp.wpp_area} (BAGIAN [%$id+1%])\nPERIODE {radar.tgl_local} {bulan[radar.bln_local]} {radar.thn_local} PUKUL {radar.jam_local}:{radar.m}:{radar.d} WIB',
                                  f'PETA DETEKSI TUMPAHAN MINYAK DI PERAIRAN {wpp.wpp_area}\nPERIODE {radar.tgl_local} {bulan[radar.bln_local]} {radar.thn_local} PUKUL {radar.jam_local}:{radar.m}:{radar.d} WIB']
                 else:
-                    title_txt = [f'PETA DETEKSI TUMPAHAN MINYAK DI PERAIRAN {wpp.wpp_area}\nPERIODE {radar.tgl_local} {bulan[radar.bln_local]} {radar.thn_local} PUKUL {radar.jam_local}:{radar.m}:{radar.d} WIB']
+                    title_txt = [
+                        f'PETA DETEKSI TUMPAHAN MINYAK DI PERAIRAN {wpp.wpp_area}\nPERIODE {radar.tgl_local} {bulan[radar.bln_local]} {radar.thn_local} PUKUL {radar.jam_local}:{radar.m}:{radar.d} WIB']
             else:
                 if self.layout_id == [3, 2]:
                     title_txt = [f'PETA DETEKSI TUMPAHAN MINYAK DI PERAIRAN {wpp.wpp_area} (BAGIAN [%$id+1%])\nPERIODE {radar.tgl_local} {bulan[radar.bln_local]} {radar.thn_local} PUKUL {radar.jam_local}:{radar.m} WIB',
                                  f'PETA DETEKSI TUMPAHAN MINYAK DI PERAIRAN {wpp.wpp_area}\nPERIODE {radar.tgl_local} {bulan[radar.bln_local]} {radar.thn_local} PUKUL {radar.jam_local}:{radar.m} WIB']
                 else:
-                    title_txt = [ f'PETA DETEKSI TUMPAHAN MINYAK DI PERAIRAN {wpp.wpp_area}\nPERIODE {radar.tgl_local} {bulan[radar.bln_local]} {radar.thn_local} PUKUL {radar.jam_local}:{radar.m} WIB']
+                    title_txt = [
+                        f'PETA DETEKSI TUMPAHAN MINYAK DI PERAIRAN {wpp.wpp_area}\nPERIODE {radar.tgl_local} {bulan[radar.bln_local]} {radar.thn_local} PUKUL {radar.jam_local}:{radar.m} WIB']
 
         return title_txt
 
@@ -877,21 +925,24 @@ class Layout:
         title_txt = self.getTitleText()
         for layout, title in zip(self.layout_list, title_txt):
             # add title map
-            title_item = sip.cast(layout[1].itemById("judul"), QgsLayoutItemLabel)
+            title_item = sip.cast(layout[1].itemById(
+                "judul"), QgsLayoutItemLabel)
             title_item.setText(title)
 
     def insertSourceText(self):
         source_txt = self.getSourceText()
         for layout in self.layout_list:
             # add source text
-            source_item = sip.cast(layout[1].itemById("sumber"), QgsLayoutItemLabel)
+            source_item = sip.cast(layout[1].itemById(
+                "sumber"), QgsLayoutItemLabel)
             source_item.setText(source_txt)
 
     def insertWindText(self):
         wind_txt = self.getWindText()
         for layout in self.layout_list:
             # add wind information
-            wind_item = sip.cast(layout[1].itemById("angin"), QgsLayoutItemLabel)
+            wind_item = sip.cast(layout[1].itemById(
+                "angin"), QgsLayoutItemLabel)
             wind_item.setText(wind_txt)
 
     def setMap(self, extent):
@@ -907,32 +958,43 @@ class Layout:
     def insertShipElements(self, ship_elements):
         for layout in self.layout_list:
             # add ship size classification
-            ship_item0 = sip.cast(layout[1].itemById("unit0"), QgsLayoutItemLabel)
+            ship_item0 = sip.cast(layout[1].itemById(
+                "unit0"), QgsLayoutItemLabel)
             ship_item0.setText(ship_elements[0])
-            ship_item1 = sip.cast(layout[1].itemById("unit1"), QgsLayoutItemLabel)
+            ship_item1 = sip.cast(layout[1].itemById(
+                "unit1"), QgsLayoutItemLabel)
             ship_item1.setText(ship_elements[1])
-            ship_item2 = sip.cast(layout[1].itemById("unit2"), QgsLayoutItemLabel)
+            ship_item2 = sip.cast(layout[1].itemById(
+                "unit2"), QgsLayoutItemLabel)
             ship_item2.setText(ship_elements[2])
-            ship_item3 = sip.cast(layout[1].itemById( "unit3"), QgsLayoutItemLabel)
+            ship_item3 = sip.cast(layout[1].itemById(
+                "unit3"), QgsLayoutItemLabel)
             ship_item3.setText(ship_elements[3])
-            ship_item4 = sip.cast(layout[1].itemById("unit4"), QgsLayoutItemLabel)
+            ship_item4 = sip.cast(layout[1].itemById(
+                "unit4"), QgsLayoutItemLabel)
             ship_item4.setText(ship_elements[4])
-            ship_item5 = sip.cast(layout[1].itemById("unit5"), QgsLayoutItemLabel)
+            ship_item5 = sip.cast(layout[1].itemById(
+                "unit5"), QgsLayoutItemLabel)
             ship_item5.setText(ship_elements[5])
 
             # add number of VMS, AIS and untransmitted ship
-            ship_item6 = sip.cast(layout[1].itemById("unit9"), QgsLayoutItemLabel)
+            ship_item6 = sip.cast(layout[1].itemById(
+                "unit9"), QgsLayoutItemLabel)
             ship_item6.setText(ship_elements[11])
-            ship_item6 = sip.cast(layout[1].itemById("unit6"), QgsLayoutItemLabel)
+            ship_item6 = sip.cast(layout[1].itemById(
+                "unit6"), QgsLayoutItemLabel)
             ship_item6.setText(ship_elements[9])
-            ship_item7 = sip.cast(layout[1].itemById("unit7"), QgsLayoutItemLabel)
+            ship_item7 = sip.cast(layout[1].itemById(
+                "unit7"), QgsLayoutItemLabel)
             ship_item7.setText(ship_elements[6])
 
             # add total number of ship
-            ship_item8 = sip.cast(layout[1].itemById("unit8"), QgsLayoutItemLabel)
+            ship_item8 = sip.cast(layout[1].itemById(
+                "unit8"), QgsLayoutItemLabel)
             ship_item8.setText(ship_elements[10])
 
-            data_item = sip.cast(layout[1].itemById("data"), QgsLayoutItemLabel)
+            data_item = sip.cast(layout[1].itemById(
+                "data"), QgsLayoutItemLabel)
             if (int(ship_elements[9])) > 0 or (int(ship_elements[11])) > 0:
                 data_item.setText("<Ada data>")
             else:
@@ -942,7 +1004,8 @@ class Layout:
         for layout in self.layout_list:
             if layout[0] == 2:
                 # add area text
-                area_item = sip.cast(layout[1].itemById("luas"), QgsLayoutItemLabel)
+                area_item = sip.cast(layout[1].itemById(
+                    "luas"), QgsLayoutItemLabel)
                 area_item.setText(area_txt)
 
     def setLayoutName(self, layout_name):
@@ -1013,15 +1076,19 @@ class LayoutDTO(Layout):
         wpp = self.wpp_layer.wpp_area
         for layout in self.layout_list:
             # add title map
-            title_item = sip.cast(layout[1].itemById("judul"), QgsLayoutItemLabel)
-            title_item.setText(f'PETA AREA DETEKSI CITRA RADAR {sat.upper()} DI PERAIRAN {wpp}\r\nPERIODE {title_exp}')
+            title_item = sip.cast(layout[1].itemById(
+                "judul"), QgsLayoutItemLabel)
+            title_item.setText(
+                f'PETA AREA DETEKSI CITRA RADAR {sat.upper()} DI PERAIRAN {wpp}\r\nPERIODE {title_exp}')
 
     def insertNoteText(self):
         note_exp = self.getNoteExp()
         for layout in self.layout_list:
             # add note
-            note_item = sip.cast(layout[1].itemById("note"), QgsLayoutItemLabel)
-            note_item.setText(f'CATATAN:\nNotifikasi citra dapat diakuisisi atau tidak:\n{note_exp}')
+            note_item = sip.cast(layout[1].itemById(
+                "note"), QgsLayoutItemLabel)
+            note_item.setText(
+                f'CATATAN:\nNotifikasi citra dapat diakuisisi atau tidak:\n{note_exp}')
 
 
 if __name__ == '__main__':
