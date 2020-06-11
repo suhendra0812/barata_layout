@@ -11,7 +11,8 @@ from qgis.core import (QgsApplication,
                        QgsLayoutItemMap,
                        QgsLayoutItemMapOverview,
                        QgsLayoutItemLabel,
-                       QgsRasterRange)
+                       QgsRasterRange,
+                       QgsCoordinateTransformContext)
 from qgis.gui import QgsMapCanvas
 from qgis.utils import iface
 from PyQt5.QtCore import QFileInfo, QVariant
@@ -543,18 +544,22 @@ class ExportLayer:
     def __init__(self, layer, path):
         self.layer = layer
         self.path = path
+        self.options = QgsVectorFileWriter.SaveVectorOptions()
 
     def to_csv(self):
-        QgsVectorFileWriter.writeAsVectorFormat(
-            self.layer, self.path, "utf-8", self.layer.crs(), 'csv')
+        self.options.driverName = "CSV"
+        QgsVectorFileWriter.writeAsVectorFormatV2(
+            self.layer, self.path, QgsCoordinateTransformContext(), self.options)
 
     def to_shp(self):
-        QgsVectorFileWriter.writeAsVectorFormat(
-            self.layer, self.path, "utf-8", self.layer.crs(), "ESRI Shapefile")
+        self.options.driverName = "ESRI Shapefile"
+        QgsVectorFileWriter.writeAsVectorFormatV2(
+            self.layer, self.path, QgsCoordinateTransformContext(), self.options)
 
     def to_kml(self):
-        QgsVectorFileWriter.writeAsVectorFormat(
-            self.layer, self.path, "utf-8", self.layer.crs(), "KML")
+        self.options.driverName = "KML"
+        QgsVectorFileWriter.writeAsVectorFormatV2(
+            self.layer, self.path, QgsCoordinateTransformContext(), self.options)
 
 
 class DataElements:
