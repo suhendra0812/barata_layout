@@ -36,9 +36,9 @@ def get_ais_info(ship_path):
         aisdf = aisdf[aisdf['Asosiasi (AIS/VMS)'] == 'AIS']
 
         # define data datetime
-        shipdate = datetime.strptime(ship_basepath[-15:], '%Y%m%d_%H%M%S')
-        startdate = (shipdate - timedelta(hours=1)).strftime('%Y-%m-%dT%H:%M:%S')
-        stopdate = (shipdate + timedelta(hours=1)).strftime('%Y-%m-%dT%H:%M:%S')
+        # shipdate = datetime.strptime(ship_basepath[-15:], '%Y%m%d_%H%M%S')
+        # startdate = (shipdate - timedelta(hours=1)).strftime('%Y-%m-%dT%H:%M:%S')
+        # stopdate = (shipdate + timedelta(hours=1)).strftime('%Y-%m-%dT%H:%M:%S')
 
         #aisdata_list = glob.glob(f'{AISDATA_BASEPATH}\\{ship_basepath[-15:-11]}\\*{ship_basepath[-15:-7]}*_ais.csv')
         aisdata_list = glob.glob(f'{AISDATA_BASEPATH}\\{ship_basepath[-15:-11]}\\*{ship_basepath[-15:-7]}*.zip')
@@ -61,7 +61,7 @@ def get_ais_info(ship_path):
             aisdatadf = pd.read_csv(aisdatacsv_path)
 
             # filter ais data to data datetime
-            aisdatadf = aisdatadf.loc[(aisdatadf['time'] >= startdate) & (aisdatadf['time'] <= stopdate)]
+            # aisdatadf = aisdatadf.loc[(aisdatadf['time'] >= startdate) & (aisdatadf['time'] <= stopdate)]
 
             # get vessel name, ship type and country from ais data
             def get_value(mmsi, column):
