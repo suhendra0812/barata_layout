@@ -1,19 +1,19 @@
 <!DOCTYPE qgis PUBLIC 'http://mrcc.com/qgis.dtd' 'SYSTEM'>
-<qgis readOnly="0" version="3.10.2-A Coruña" simplifyMaxScale="1" styleCategories="AllStyleCategories" hasScaleBasedVisibilityFlag="0" maxScale="0" simplifyDrawingHints="0" simplifyAlgorithm="0" labelsEnabled="0" minScale="1e+08" simplifyDrawingTol="1" simplifyLocal="1">
+<qgis simplifyDrawingTol="1" simplifyLocal="1" maxScale="0" simplifyMaxScale="1" styleCategories="AllStyleCategories" hasScaleBasedVisibilityFlag="0" simplifyDrawingHints="0" simplifyAlgorithm="0" readOnly="0" version="3.12.3-București" minScale="100000000" labelsEnabled="0">
   <flags>
     <Identifiable>1</Identifiable>
     <Removable>1</Removable>
     <Searchable>1</Searchable>
   </flags>
-  <renderer-v2 forceraster="0" enableorderby="0" symbollevels="1" type="categorizedSymbol" attr="Asosiasi (AIS/VMS)">
+  <renderer-v2 type="categorizedSymbol" symbollevels="1" attr="DESC" forceraster="0" enableorderby="0">
     <categories>
-      <category value="AIS" symbol="0" render="true" label="Kapal Bertransmitter (AIS)"/>
-      <category value="VMS" symbol="1" render="true" label="Kapal Bertransmitter (VMS)"/>
-      <category value="" symbol="2" render="true" label="Kapal Tidak Bertransmitter"/>
+      <category render="true" value="AIS" label="Kapal Bertransmitter (AIS)" symbol="0"/>
+      <category render="true" value="VMS" label="Kapal Bertransmitter (VMS)" symbol="1"/>
+      <category render="true" value="" label="Kapal Tidak Bertransmitter" symbol="2"/>
     </categories>
     <symbols>
-      <symbol alpha="1" clip_to_extent="1" name="0" force_rhr="0" type="marker">
-        <layer class="SimpleMarker" enabled="1" pass="1" locked="0">
+      <symbol alpha="1" clip_to_extent="1" type="marker" force_rhr="0" name="0">
+        <layer class="SimpleMarker" pass="1" locked="0" enabled="1">
           <prop v="0" k="angle"/>
           <prop v="229,95,92,0" k="color"/>
           <prop v="1" k="horizontal_anchor_point"/>
@@ -34,15 +34,15 @@
           <prop v="1" k="vertical_anchor_point"/>
           <data_defined_properties>
             <Option type="Map">
-              <Option value="" name="name" type="QString"/>
+              <Option type="QString" value="" name="name"/>
               <Option name="properties"/>
-              <Option value="collection" name="type" type="QString"/>
+              <Option type="QString" value="collection" name="type"/>
             </Option>
           </data_defined_properties>
         </layer>
       </symbol>
-      <symbol alpha="1" clip_to_extent="1" name="1" force_rhr="0" type="marker">
-        <layer class="SimpleMarker" enabled="1" pass="2" locked="0">
+      <symbol alpha="1" clip_to_extent="1" type="marker" force_rhr="0" name="1">
+        <layer class="SimpleMarker" pass="2" locked="0" enabled="1">
           <prop v="0" k="angle"/>
           <prop v="51,160,44,0" k="color"/>
           <prop v="1" k="horizontal_anchor_point"/>
@@ -63,15 +63,15 @@
           <prop v="1" k="vertical_anchor_point"/>
           <data_defined_properties>
             <Option type="Map">
-              <Option value="" name="name" type="QString"/>
+              <Option type="QString" value="" name="name"/>
               <Option name="properties"/>
-              <Option value="collection" name="type" type="QString"/>
+              <Option type="QString" value="collection" name="type"/>
             </Option>
           </data_defined_properties>
         </layer>
       </symbol>
-      <symbol alpha="1" clip_to_extent="1" name="2" force_rhr="0" type="marker">
-        <layer class="SimpleMarker" enabled="1" pass="0" locked="0">
+      <symbol alpha="1" clip_to_extent="1" type="marker" force_rhr="0" name="2">
+        <layer class="SimpleMarker" pass="0" locked="0" enabled="1">
           <prop v="0" k="angle"/>
           <prop v="133,19,209,0" k="color"/>
           <prop v="1" k="horizontal_anchor_point"/>
@@ -92,17 +92,17 @@
           <prop v="1" k="vertical_anchor_point"/>
           <data_defined_properties>
             <Option type="Map">
-              <Option value="" name="name" type="QString"/>
+              <Option type="QString" value="" name="name"/>
               <Option name="properties"/>
-              <Option value="collection" name="type" type="QString"/>
+              <Option type="QString" value="collection" name="type"/>
             </Option>
           </data_defined_properties>
         </layer>
       </symbol>
     </symbols>
     <source-symbol>
-      <symbol alpha="1" clip_to_extent="1" name="0" force_rhr="0" type="marker">
-        <layer class="SimpleMarker" enabled="1" pass="0" locked="0">
+      <symbol alpha="1" clip_to_extent="1" type="marker" force_rhr="0" name="0">
+        <layer class="SimpleMarker" pass="0" locked="0" enabled="1">
           <prop v="0" k="angle"/>
           <prop v="133,182,111,255" k="color"/>
           <prop v="1" k="horizontal_anchor_point"/>
@@ -123,9 +123,9 @@
           <prop v="1" k="vertical_anchor_point"/>
           <data_defined_properties>
             <Option type="Map">
-              <Option value="" name="name" type="QString"/>
+              <Option type="QString" value="" name="name"/>
               <Option name="properties"/>
-              <Option value="collection" name="type" type="QString"/>
+              <Option type="QString" value="collection" name="type"/>
             </Option>
           </data_defined_properties>
         </layer>
@@ -135,9 +135,7 @@
     <sizescale/>
   </renderer-v2>
   <customproperties>
-    <property key="dualview/previewExpressions">
-      <value>status</value>
-    </property>
+    <property key="dualview/previewExpressions" value="status"/>
     <property key="embeddedWidgets/count" value="0"/>
     <property key="variableNames"/>
     <property key="variableValues"/>
@@ -145,18 +143,47 @@
   <blendMode>0</blendMode>
   <featureBlendMode>0</featureBlendMode>
   <layerOpacity>1</layerOpacity>
-  <SingleCategoryDiagramRenderer diagramType="Histogram" attributeLegend="1">
-    <DiagramCategory penAlpha="255" sizeScale="3x:0,0,0,0,0,0" scaleDependency="Area" backgroundAlpha="255" minimumSize="0" maxScaleDenominator="1e+08" opacity="1" penColor="#000000" lineSizeScale="3x:0,0,0,0,0,0" minScaleDenominator="0" scaleBasedVisibility="0" labelPlacementMethod="XHeight" sizeType="MM" barWidth="5" penWidth="0" lineSizeType="MM" backgroundColor="#ffffff" diagramOrientation="Up" enabled="0" height="15" rotationOffset="270" width="15">
+  <SingleCategoryDiagramRenderer attributeLegend="1" diagramType="Histogram">
+    <DiagramCategory enabled="0" penAlpha="255" diagramOrientation="Up" spacing="0" maxScaleDenominator="1e+08" labelPlacementMethod="XHeight" spacingUnit="MM" width="15" lineSizeType="MM" minimumSize="0" lineSizeScale="3x:0,0,0,0,0,0" backgroundAlpha="255" minScaleDenominator="0" opacity="1" sizeType="MM" scaleBasedVisibility="0" direction="1" barWidth="5" spacingUnitScale="3x:0,0,0,0,0,0" penWidth="0" penColor="#000000" height="15" showAxis="0" rotationOffset="270" backgroundColor="#ffffff" sizeScale="3x:0,0,0,0,0,0" scaleDependency="Area">
       <fontProperties description="MS Shell Dlg 2,8.25,-1,5,50,0,0,0,0,0" style=""/>
-      <attribute color="#000000" label="" field=""/>
+      <attribute color="#000000" field="" label=""/>
+      <axisSymbol>
+        <symbol alpha="1" clip_to_extent="1" type="line" force_rhr="0" name="">
+          <layer class="SimpleLine" pass="0" locked="0" enabled="1">
+            <prop v="square" k="capstyle"/>
+            <prop v="5;2" k="customdash"/>
+            <prop v="3x:0,0,0,0,0,0" k="customdash_map_unit_scale"/>
+            <prop v="MM" k="customdash_unit"/>
+            <prop v="0" k="draw_inside_polygon"/>
+            <prop v="bevel" k="joinstyle"/>
+            <prop v="35,35,35,255" k="line_color"/>
+            <prop v="solid" k="line_style"/>
+            <prop v="0.26" k="line_width"/>
+            <prop v="MM" k="line_width_unit"/>
+            <prop v="0" k="offset"/>
+            <prop v="3x:0,0,0,0,0,0" k="offset_map_unit_scale"/>
+            <prop v="MM" k="offset_unit"/>
+            <prop v="0" k="ring_filter"/>
+            <prop v="0" k="use_custom_dash"/>
+            <prop v="3x:0,0,0,0,0,0" k="width_map_unit_scale"/>
+            <data_defined_properties>
+              <Option type="Map">
+                <Option type="QString" value="" name="name"/>
+                <Option name="properties"/>
+                <Option type="QString" value="collection" name="type"/>
+              </Option>
+            </data_defined_properties>
+          </layer>
+        </symbol>
+      </axisSymbol>
     </DiagramCategory>
   </SingleCategoryDiagramRenderer>
-  <DiagramLayerSettings obstacle="0" dist="0" priority="0" showAll="1" linePlacementFlags="2" zIndex="0" placement="0">
+  <DiagramLayerSettings showAll="1" priority="0" zIndex="0" linePlacementFlags="2" placement="0" dist="0" obstacle="0">
     <properties>
       <Option type="Map">
-        <Option value="" name="name" type="QString"/>
+        <Option type="QString" value="" name="name"/>
         <Option name="properties"/>
-        <Option value="collection" name="type" type="QString"/>
+        <Option type="QString" value="collection" name="type"/>
       </Option>
     </properties>
   </DiagramLayerSettings>
@@ -164,50 +191,122 @@
     <activeChecks/>
     <checkConfiguration/>
   </geometryOptions>
+  <referencedLayers/>
+  <referencingLayers/>
   <fieldConfiguration>
-    <field name="No.">
+    <field name="id">
+      <editWidget type="TextEdit">
+        <config>
+          <Option/>
+        </config>
+      </editWidget>
+    </field>
+    <field name="AIS_MMSI">
+      <editWidget type="TextEdit">
+        <config>
+          <Option/>
+        </config>
+      </editWidget>
+    </field>
+    <field name="DESC">
+      <editWidget type="TextEdit">
+        <config>
+          <Option/>
+        </config>
+      </editWidget>
+    </field>
+    <field name="LAT_CENTRE">
+      <editWidget type="TextEdit">
+        <config>
+          <Option/>
+        </config>
+      </editWidget>
+    </field>
+    <field name="LENGTH">
+      <editWidget type="TextEdit">
+        <config>
+          <Option/>
+        </config>
+      </editWidget>
+    </field>
+    <field name="LENGTH_ERR">
+      <editWidget type="TextEdit">
+        <config>
+          <Option/>
+        </config>
+      </editWidget>
+    </field>
+    <field name="LON_CENTRE">
+      <editWidget type="TextEdit">
+        <config>
+          <Option/>
+        </config>
+      </editWidget>
+    </field>
+    <field name="POL_OSD_ID">
+      <editWidget type="TextEdit">
+        <config>
+          <Option/>
+        </config>
+      </editWidget>
+    </field>
+    <field name="SHIP_ID">
       <editWidget type="Range">
         <config>
           <Option/>
         </config>
       </editWidget>
     </field>
-    <field name="Longitude">
+    <field name="SIZE_CLASS">
       <editWidget type="TextEdit">
         <config>
           <Option/>
         </config>
       </editWidget>
     </field>
-    <field name="Latitude">
+    <field name="TARGET_DIR">
       <editWidget type="TextEdit">
         <config>
           <Option/>
         </config>
       </editWidget>
     </field>
-    <field name="Heading (deg)">
+    <field name="TARGET_QF">
       <editWidget type="TextEdit">
         <config>
           <Option/>
         </config>
       </editWidget>
     </field>
-    <field name="Panjang (m)">
+    <field name="TARGET_QF%">
       <editWidget type="TextEdit">
         <config>
           <Option/>
         </config>
       </editWidget>
     </field>
-    <field name="Asosiasi (AIS/VMS)">
+    <field name="TARGET_UTC">
+      <editWidget type="DateTime">
+        <config>
+          <Option/>
+        </config>
+      </editWidget>
+    </field>
+    <field name="TARGET_VEL">
       <editWidget type="TextEdit">
         <config>
           <Option/>
         </config>
       </editWidget>
     </field>
-    <field name="MMSI">
+    <field name="WIDTH">
+      <editWidget type="TextEdit">
+        <config>
+          <Option/>
+        </config>
+      </editWidget>
+    </field>
+    <field name="WIDTH_ERR">
       <editWidget type="TextEdit">
         <config>
           <Option/>
@@ -216,42 +315,82 @@
     </field>
   </fieldConfiguration>
   <aliases>
-    <alias index="0" name="" field="No."/>
-    <alias index="1" name="" field="Longitude"/>
-    <alias index="2" name="" field="Latitude"/>
-    <alias index="3" name="" field="Heading (deg)"/>
-    <alias index="4" name="" field="Panjang (m)"/>
-    <alias index="5" name="" field="Asosiasi (AIS/VMS)"/>
-    <alias index="6" name="" field="MMSI"/>
+    <alias field="id" index="0" name=""/>
+    <alias field="AIS_MMSI" index="1" name=""/>
+    <alias field="DESC" index="2" name=""/>
+    <alias field="LAT_CENTRE" index="3" name=""/>
+    <alias field="LENGTH" index="4" name=""/>
+    <alias field="LENGTH_ERR" index="5" name=""/>
+    <alias field="LON_CENTRE" index="6" name=""/>
+    <alias field="POL_OSD_ID" index="7" name=""/>
+    <alias field="SHIP_ID" index="8" name=""/>
+    <alias field="SIZE_CLASS" index="9" name=""/>
+    <alias field="TARGET_DIR" index="10" name=""/>
+    <alias field="TARGET_QF" index="11" name=""/>
+    <alias field="TARGET_QF%" index="12" name=""/>
+    <alias field="TARGET_UTC" index="13" name=""/>
+    <alias field="TARGET_VEL" index="14" name=""/>
+    <alias field="WIDTH" index="15" name=""/>
+    <alias field="WIDTH_ERR" index="16" name=""/>
   </aliases>
   <excludeAttributesWMS/>
   <excludeAttributesWFS/>
   <defaults>
-    <default expression="" field="No." applyOnUpdate="0"/>
-    <default expression="" field="Longitude" applyOnUpdate="0"/>
-    <default expression="" field="Latitude" applyOnUpdate="0"/>
-    <default expression="" field="Heading (deg)" applyOnUpdate="0"/>
-    <default expression="" field="Panjang (m)" applyOnUpdate="0"/>
-    <default expression="" field="Asosiasi (AIS/VMS)" applyOnUpdate="0"/>
-    <default expression="" field="MMSI" applyOnUpdate="0"/>
+    <default applyOnUpdate="0" field="id" expression=""/>
+    <default applyOnUpdate="0" field="AIS_MMSI" expression=""/>
+    <default applyOnUpdate="0" field="DESC" expression=""/>
+    <default applyOnUpdate="0" field="LAT_CENTRE" expression=""/>
+    <default applyOnUpdate="0" field="LENGTH" expression=""/>
+    <default applyOnUpdate="0" field="LENGTH_ERR" expression=""/>
+    <default applyOnUpdate="0" field="LON_CENTRE" expression=""/>
+    <default applyOnUpdate="0" field="POL_OSD_ID" expression=""/>
+    <default applyOnUpdate="0" field="SHIP_ID" expression=""/>
+    <default applyOnUpdate="0" field="SIZE_CLASS" expression=""/>
+    <default applyOnUpdate="0" field="TARGET_DIR" expression=""/>
+    <default applyOnUpdate="0" field="TARGET_QF" expression=""/>
+    <default applyOnUpdate="0" field="TARGET_QF%" expression=""/>
+    <default applyOnUpdate="0" field="TARGET_UTC" expression=""/>
+    <default applyOnUpdate="0" field="TARGET_VEL" expression=""/>
+    <default applyOnUpdate="0" field="WIDTH" expression=""/>
+    <default applyOnUpdate="0" field="WIDTH_ERR" expression=""/>
   </defaults>
   <constraints>
-    <constraint notnull_strength="0" constraints="0" exp_strength="0" unique_strength="0" field="No."/>
-    <constraint notnull_strength="0" constraints="0" exp_strength="0" unique_strength="0" field="Longitude"/>
-    <constraint notnull_strength="0" constraints="0" exp_strength="0" unique_strength="0" field="Latitude"/>
-    <constraint notnull_strength="0" constraints="0" exp_strength="0" unique_strength="0" field="Heading (deg)"/>
-    <constraint notnull_strength="0" constraints="0" exp_strength="0" unique_strength="0" field="Panjang (m)"/>
-    <constraint notnull_strength="0" constraints="0" exp_strength="0" unique_strength="0" field="Asosiasi (AIS/VMS)"/>
-    <constraint notnull_strength="0" constraints="0" exp_strength="0" unique_strength="0" field="MMSI"/>
+    <constraint unique_strength="0" field="id" constraints="0" exp_strength="0" notnull_strength="0"/>
+    <constraint unique_strength="0" field="AIS_MMSI" constraints="0" exp_strength="0" notnull_strength="0"/>
+    <constraint unique_strength="0" field="DESC" constraints="0" exp_strength="0" notnull_strength="0"/>
+    <constraint unique_strength="0" field="LAT_CENTRE" constraints="0" exp_strength="0" notnull_strength="0"/>
+    <constraint unique_strength="0" field="LENGTH" constraints="0" exp_strength="0" notnull_strength="0"/>
+    <constraint unique_strength="0" field="LENGTH_ERR" constraints="0" exp_strength="0" notnull_strength="0"/>
+    <constraint unique_strength="0" field="LON_CENTRE" constraints="0" exp_strength="0" notnull_strength="0"/>
+    <constraint unique_strength="0" field="POL_OSD_ID" constraints="0" exp_strength="0" notnull_strength="0"/>
+    <constraint unique_strength="0" field="SHIP_ID" constraints="0" exp_strength="0" notnull_strength="0"/>
+    <constraint unique_strength="0" field="SIZE_CLASS" constraints="0" exp_strength="0" notnull_strength="0"/>
+    <constraint unique_strength="0" field="TARGET_DIR" constraints="0" exp_strength="0" notnull_strength="0"/>
+    <constraint unique_strength="0" field="TARGET_QF" constraints="0" exp_strength="0" notnull_strength="0"/>
+    <constraint unique_strength="0" field="TARGET_QF%" constraints="0" exp_strength="0" notnull_strength="0"/>
+    <constraint unique_strength="0" field="TARGET_UTC" constraints="0" exp_strength="0" notnull_strength="0"/>
+    <constraint unique_strength="0" field="TARGET_VEL" constraints="0" exp_strength="0" notnull_strength="0"/>
+    <constraint unique_strength="0" field="WIDTH" constraints="0" exp_strength="0" notnull_strength="0"/>
+    <constraint unique_strength="0" field="WIDTH_ERR" constraints="0" exp_strength="0" notnull_strength="0"/>
   </constraints>
   <constraintExpressions>
-    <constraint exp="" desc="" field="No."/>
-    <constraint exp="" desc="" field="Longitude"/>
-    <constraint exp="" desc="" field="Latitude"/>
-    <constraint exp="" desc="" field="Heading (deg)"/>
-    <constraint exp="" desc="" field="Panjang (m)"/>
-    <constraint exp="" desc="" field="Asosiasi (AIS/VMS)"/>
-    <constraint exp="" desc="" field="MMSI"/>
+    <constraint exp="" field="id" desc=""/>
+    <constraint exp="" field="AIS_MMSI" desc=""/>
+    <constraint exp="" field="DESC" desc=""/>
+    <constraint exp="" field="LAT_CENTRE" desc=""/>
+    <constraint exp="" field="LENGTH" desc=""/>
+    <constraint exp="" field="LENGTH_ERR" desc=""/>
+    <constraint exp="" field="LON_CENTRE" desc=""/>
+    <constraint exp="" field="POL_OSD_ID" desc=""/>
+    <constraint exp="" field="SHIP_ID" desc=""/>
+    <constraint exp="" field="SIZE_CLASS" desc=""/>
+    <constraint exp="" field="TARGET_DIR" desc=""/>
+    <constraint exp="" field="TARGET_QF" desc=""/>
+    <constraint exp="" field="TARGET_QF%" desc=""/>
+    <constraint exp="" field="TARGET_UTC" desc=""/>
+    <constraint exp="" field="TARGET_VEL" desc=""/>
+    <constraint exp="" field="WIDTH" desc=""/>
+    <constraint exp="" field="WIDTH_ERR" desc=""/>
   </constraintExpressions>
   <expressionfields/>
   <attributeactions>
@@ -259,14 +398,24 @@
   </attributeactions>
   <attributetableconfig sortExpression="" sortOrder="0" actionWidgetStyle="dropDown">
     <columns>
-      <column hidden="1" width="-1" type="actions"/>
-      <column name="No." hidden="0" width="-1" type="field"/>
-      <column name="Longitude" hidden="0" width="-1" type="field"/>
-      <column name="Latitude" hidden="0" width="-1" type="field"/>
-      <column name="Heading (deg)" hidden="0" width="-1" type="field"/>
-      <column name="Panjang (m)" hidden="0" width="-1" type="field"/>
-      <column name="MMSI" hidden="0" width="-1" type="field"/>
-      <column name="Asosiasi (AIS/VMS)" hidden="0" width="-1" type="field"/>
+      <column hidden="1" type="actions" width="-1"/>
+      <column hidden="0" type="field" width="-1" name="id"/>
+      <column hidden="0" type="field" width="-1" name="AIS_MMSI"/>
+      <column hidden="0" type="field" width="-1" name="DESC"/>
+      <column hidden="0" type="field" width="-1" name="LAT_CENTRE"/>
+      <column hidden="0" type="field" width="-1" name="LENGTH"/>
+      <column hidden="0" type="field" width="-1" name="LENGTH_ERR"/>
+      <column hidden="0" type="field" width="-1" name="LON_CENTRE"/>
+      <column hidden="0" type="field" width="-1" name="POL_OSD_ID"/>
+      <column hidden="0" type="field" width="-1" name="SHIP_ID"/>
+      <column hidden="0" type="field" width="-1" name="SIZE_CLASS"/>
+      <column hidden="0" type="field" width="-1" name="TARGET_DIR"/>
+      <column hidden="0" type="field" width="-1" name="TARGET_QF"/>
+      <column hidden="0" type="field" width="-1" name="TARGET_QF%"/>
+      <column hidden="0" type="field" width="-1" name="TARGET_UTC"/>
+      <column hidden="0" type="field" width="-1" name="TARGET_VEL"/>
+      <column hidden="0" type="field" width="-1" name="WIDTH"/>
+      <column hidden="0" type="field" width="-1" name="WIDTH_ERR"/>
     </columns>
   </attributetableconfig>
   <conditionalstyles>
@@ -296,58 +445,60 @@ def my_form_open(dialog, layer, feature):
   <featformsuppress>0</featformsuppress>
   <editorlayout>generatedlayout</editorlayout>
   <editable>
-    <field editable="1" name="AIS_MMSI"/>
-    <field editable="1" name="Asosiasi (AIS/VMS)"/>
-    <field editable="1" name="Asosiasi (VMS/AIS)"/>
-    <field editable="1" name="DESC"/>
-    <field editable="1" name="Heading (deg)"/>
-    <field editable="1" name="LAT_CENTRE"/>
-    <field editable="1" name="LENGTH"/>
-    <field editable="1" name="LENGTH_ERR"/>
-    <field editable="1" name="LON_CENTRE"/>
-    <field editable="1" name="Latitude"/>
-    <field editable="1" name="Longitude"/>
-    <field editable="1" name="MMSI"/>
-    <field editable="1" name="No."/>
-    <field editable="1" name="POL_OSD_ID"/>
-    <field editable="1" name="Panjang (m)"/>
-    <field editable="1" name="SHIP_ID"/>
-    <field editable="1" name="SIZE_CLASS"/>
-    <field editable="1" name="TARGET_DIR"/>
-    <field editable="1" name="TARGET_QF"/>
-    <field editable="1" name="TARGET_QF%"/>
-    <field editable="1" name="TARGET_UTC"/>
-    <field editable="1" name="TARGET_VEL"/>
-    <field editable="1" name="WIDTH"/>
-    <field editable="1" name="WIDTH_ERR"/>
-    <field editable="1" name="status"/>
+    <field name="AIS_MMSI" editable="1"/>
+    <field name="Asosiasi (AIS/VMS)" editable="1"/>
+    <field name="Asosiasi (VMS/AIS)" editable="1"/>
+    <field name="DESC" editable="1"/>
+    <field name="Heading (deg)" editable="1"/>
+    <field name="LAT_CENTRE" editable="1"/>
+    <field name="LENGTH" editable="1"/>
+    <field name="LENGTH_ERR" editable="1"/>
+    <field name="LON_CENTRE" editable="1"/>
+    <field name="Latitude" editable="1"/>
+    <field name="Longitude" editable="1"/>
+    <field name="MMSI" editable="1"/>
+    <field name="No." editable="1"/>
+    <field name="POL_OSD_ID" editable="1"/>
+    <field name="Panjang (m)" editable="1"/>
+    <field name="SHIP_ID" editable="1"/>
+    <field name="SIZE_CLASS" editable="1"/>
+    <field name="TARGET_DIR" editable="1"/>
+    <field name="TARGET_QF" editable="1"/>
+    <field name="TARGET_QF%" editable="1"/>
+    <field name="TARGET_UTC" editable="1"/>
+    <field name="TARGET_VEL" editable="1"/>
+    <field name="WIDTH" editable="1"/>
+    <field name="WIDTH_ERR" editable="1"/>
+    <field name="id" editable="1"/>
+    <field name="status" editable="1"/>
   </editable>
   <labelOnTop>
-    <field name="AIS_MMSI" labelOnTop="0"/>
-    <field name="Asosiasi (AIS/VMS)" labelOnTop="0"/>
-    <field name="Asosiasi (VMS/AIS)" labelOnTop="0"/>
-    <field name="DESC" labelOnTop="0"/>
-    <field name="Heading (deg)" labelOnTop="0"/>
-    <field name="LAT_CENTRE" labelOnTop="0"/>
-    <field name="LENGTH" labelOnTop="0"/>
-    <field name="LENGTH_ERR" labelOnTop="0"/>
-    <field name="LON_CENTRE" labelOnTop="0"/>
-    <field name="Latitude" labelOnTop="0"/>
-    <field name="Longitude" labelOnTop="0"/>
-    <field name="MMSI" labelOnTop="0"/>
-    <field name="No." labelOnTop="0"/>
-    <field name="POL_OSD_ID" labelOnTop="0"/>
-    <field name="Panjang (m)" labelOnTop="0"/>
-    <field name="SHIP_ID" labelOnTop="0"/>
-    <field name="SIZE_CLASS" labelOnTop="0"/>
-    <field name="TARGET_DIR" labelOnTop="0"/>
-    <field name="TARGET_QF" labelOnTop="0"/>
-    <field name="TARGET_QF%" labelOnTop="0"/>
-    <field name="TARGET_UTC" labelOnTop="0"/>
-    <field name="TARGET_VEL" labelOnTop="0"/>
-    <field name="WIDTH" labelOnTop="0"/>
-    <field name="WIDTH_ERR" labelOnTop="0"/>
-    <field name="status" labelOnTop="0"/>
+    <field labelOnTop="0" name="AIS_MMSI"/>
+    <field labelOnTop="0" name="Asosiasi (AIS/VMS)"/>
+    <field labelOnTop="0" name="Asosiasi (VMS/AIS)"/>
+    <field labelOnTop="0" name="DESC"/>
+    <field labelOnTop="0" name="Heading (deg)"/>
+    <field labelOnTop="0" name="LAT_CENTRE"/>
+    <field labelOnTop="0" name="LENGTH"/>
+    <field labelOnTop="0" name="LENGTH_ERR"/>
+    <field labelOnTop="0" name="LON_CENTRE"/>
+    <field labelOnTop="0" name="Latitude"/>
+    <field labelOnTop="0" name="Longitude"/>
+    <field labelOnTop="0" name="MMSI"/>
+    <field labelOnTop="0" name="No."/>
+    <field labelOnTop="0" name="POL_OSD_ID"/>
+    <field labelOnTop="0" name="Panjang (m)"/>
+    <field labelOnTop="0" name="SHIP_ID"/>
+    <field labelOnTop="0" name="SIZE_CLASS"/>
+    <field labelOnTop="0" name="TARGET_DIR"/>
+    <field labelOnTop="0" name="TARGET_QF"/>
+    <field labelOnTop="0" name="TARGET_QF%"/>
+    <field labelOnTop="0" name="TARGET_UTC"/>
+    <field labelOnTop="0" name="TARGET_VEL"/>
+    <field labelOnTop="0" name="WIDTH"/>
+    <field labelOnTop="0" name="WIDTH_ERR"/>
+    <field labelOnTop="0" name="id"/>
+    <field labelOnTop="0" name="status"/>
   </labelOnTop>
   <widgets/>
   <previewExpression>status</previewExpression>
