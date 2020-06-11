@@ -144,9 +144,10 @@ if len(ship_list) > 0:
 
     # get aggregation and transmitted layer of ship data
     
-    agg_shiplayer = AggregationLayer(shipfeat_list, shipattr_list, layer_name).getAggLayer()
+    # agg_shiplayer = AggregationLayer(shipfeat_list, shipattr_list, layer_name).getAggLayer()
     # agg_shiplayer = AggregationLayerV2(ship_list).getAggLayer(layer_name)
-    trmlayer = TransmittedLayer(shipfeat_list, shipattr_list, vms_list, trmlayer_name).getTrmLayer()
+    # trmlayer = TransmittedLayer(shipfeat_list, shipattr_list, vms_list, trmlayer_name).getTrmLayer()
+    trmlayer = TransmittedLayerV2(ship_list, vms_list).getTrmLayer(trmlayer_name)
 
     # export layer to csv
     ExportLayer(trmlayer, shipdf_path).to_csv()
