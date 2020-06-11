@@ -188,24 +188,29 @@ class LoadRasterLayer:
 class WindData:
     def __init__(self, wind_list):
         # read wind data 'gml' in a list
-        self.windgdf = gpd.GeoDataFrame(
-            pd.concat([gpd.read_file(wind) for wind in wind_list], ignore_index=True))
-        if self.windgdf[['speed', 'meridionalSpeed', 'zonalSpeed']].isnull().all().all():
+        self.wind_gdf = gpd.GeoDataFrame(
+            pd.concat(
+                [gpd.read_file(wind) for wind in wind_list],
+                ignore_index=True,
+            )
+        )
+
+        if self.wind_gdf[['speed', 'meridionalSpeed', 'zonalSpeed']].isnull().all().all():
             self.windrange = self.dire = 'n/a'
         else:
-            self.windgdf['speed'] = self.windgdf['speed'].astype(float)
-            self.windgdf['meridionalSpeed'] = self.windgdf['meridionalSpeed'].astype(
-                float)
-            self.windgdf['zonalSpeed'] = self.windgdf['zonalSpeed'].astype(
-                float)
+            self.wind_gdf['speed'] = self.wind_gdf['speed'].astype(float)
+            self.wind_gdf['meridionalSpeed'] = self.wind_gdf['meridionalSpeed'].astype(float)
+            self.wind_gdf['zonalSpeed'] = self.wind_gdf['zonalSpeed'].astype(float)
 
             # calculate wind direction using atan2 formula
-            self.windgdf['direction'] = (np.arctan2(
-                self.windgdf['meridionalSpeed'], self.windgdf['zonalSpeed']))*(180/np.pi) + 180
+            self.wind_gdf['direction'] = np.arctan2(
+                self.wind_gdf['meridionalSpeed'],
+                self.wind_gdf['zonalSpeed'],
+            )*(180/np.pi) + 180
 
             # calculate wind speed (min, max, mean) and direction
-            self.wind_sp = self.windgdf['speed']
-            self.wind_dir = self.windgdf['direction']
+            self.wind_sp = self.wind_gdf['speed']
+            self.wind_dir = self.wind_gdf['direction']
             self.dir_mean = self.wind_dir.mean()
             self.wind_min = self.wind_sp.min()
             self.wind_max = self.wind_sp.max()
@@ -240,67 +245,133 @@ class WindData:
                 self.dire = "Utara"
 
     def getWindGeoDataFrame(self):
-        return self.windgdf
+        return self.wind_gdf
 
-
-class DataLayer:
+class AggregationData:
     def __init__(self, data_list):
-        self.datagdf = gpd.GeoDataFrame(pd.concat(
-            [gpd.read_file(data) for data in data_list], sort=False, ignore_index=True))
+        self.data_list = data_list
+        self.data_gdf = gpd.GeoDataFrame(
+            pd.concat(
+                [gpd.read_file(data) for data in self.data_list],
+                ignore_index=True,
+            )
+        )
 
-        self.feat_list = []
-        self.attr_list = []
-        self.layer_list = []
+    def getAggGeoDataFrame(self):
+        return self.data_gdf
+    
+    def getAggLayer(self, layer_name):
+        data_json = self.data_gdf.to_json()
+        agg_layer = QgsVectorLayer(data_json, layer_name, 'ogr')
+        return agg_layer
 
-        for data_path in data_list:
-            baseName = QFileInfo(data_path).baseName()
+class ShipData(AggregationData):
+    def __init__(self, data_list, vms_list):
+        super().__init__(data_list)
+        
+        self.ship_gdf = super().getAggGeoDataFrame()
+        self.vms_list = vms_list
 
-            layer = QgsVectorLayer(data_path, baseName, 'ogr')
-            self.layer_list.append(layer)
+        self.ship_gdf['DESC'] = ['AIS' if i is not None else None for i in self.ship_gdf['AIS_MMSI']]
 
-            # compile feature and attribute of layer(s) to a list
-            for feat in layer.getFeatures():
-                self.feat_list.append(feat)
-            for attr in layer.dataProvider().fields().toList():
-                self.attr_list.append(attr)
+        if len(self.vms_list) > 0:
+            vms_gdf = gpd.GeoDataFrame(
+                pd.concat(
+                    [gpd.read_file(vms) for vms in self.vms_list],
+                    ignore_index=True,
+                )
+            )
+            try:
+                vmsstat = vms_gdf[vms_gdf['status'] == 'vms']
+            except:
+                vmsstat = vms_gdf[vms_gdf['STATUS'] == 'VMS']
 
-    def getFeatList(self):
-        return self.feat_list
+            shipvms_gdf = gpd.sjoin(self.ship_gdf, vms_gdf, how='left')
+            status_list = []
+            for status in shipvms_gdf['status']:
+                if status == 'ais':
+                    status_list.append('AIS')
+                elif status == 'vms':
+                    status_list.append('VMS')
+                else:
+                    status_list.append(None)
 
-    def getAttrList(self):
-        return self.attr_list
+            self.ship_gdf['DESC'] = status_list
 
-    def getLayerList(self):
-        return self.layer_list
+    def getShipGeoDataFrame(self):
+        return self.ship_gdf
+    
+    def getShipDataFrame(self):
+        shipfilter_df = self.ship_gdf.copy()
+        shipfilter_df = shipfilter_df[['LON_CENTRE', 'LAT_CENTRE', 'TARGET_DIR', 'LENGTH', 'DESC', 'AIS_MMSI']]
+        shipfilter_df.rename(
+            columns={
+                'LON_CENTRE': 'Longitude',
+                'LAT_CENTRE': 'Latitude',
+                'TARGET_DIR': 'Heading (deg)',
+                'LENGTH': 'Panjang (m)',
+                'DESC': 'Asosiasi (AIS/VMS)',
+                'AIS_MMSI': 'MMSI',
+            },
+            inplace=True,
+        )
+        
+        shipfilter_df.index += 1
+        shipfilter_df.index.name = 'No.'
 
-    def getGeoDataFrame(self):
-        return self.datagdf
+        return shipfilter_df
 
-    def getFeatExtent(self):
-        if any(self.datagdf.geometry.geom_type == 'Point'):
-            if len(self.datagdf) == 1:
-                self.xmin = self.datagdf.geometry.x.min() - 0.001
-                self.xmax = self.datagdf.geometry.x.max() + 0.001
-                self.ymin = self.datagdf.geometry.y.min() - 0.001
-                self.ymax = self.datagdf.geometry.y.max() + 0.001
-            elif len(self.datagdf) > 1:
-                self.xmin = self.datagdf.geometry.x.min()
-                self.xmax = self.datagdf.geometry.x.max()
-                self.ymin = self.datagdf.geometry.y.min()
-                self.ymax = self.datagdf.geometry.y.max()
-        else:
-            if len(self.datagdf) == 1:
-                self.xmin = self.datagdf.geometry.centroid.x.min() - 0.001
-                self.xmax = self.datagdf.geometry.centroid.x.max() + 0.001
-                self.ymin = self.datagdf.geometry.centroid.y.min() - 0.001
-                self.ymax = self.datagdf.geometry.centroid.y.max() + 0.001
-            elif len(self.datagdf) > 1:
-                self.xmin = self.datagdf.geometry.centroid.x.min()
-                self.xmax = self.datagdf.geometry.centroid.x.max()
-                self.ymin = self.datagdf.geometry.centroid.y.min()
-                self.ymax = self.datagdf.geometry.centroid.y.max()
+    def getShipLayer(self, layer_name):
+        ship_json = self.ship_gdf.to_json()
+        ship_layer = QgsVectorLayer(ship_json, layer_name, 'ogr')
+        return ship_layer
 
-        return self.xmin, self.xmax, self.ymin, self.ymax
+
+class OilData(AggregationData, WindData):
+    def __init__(self, oil_list, wind_list):
+        AggregationData.__init__(self, oil_list)
+        self.oil_gdf = AggregationData.getAggGeoDataFrame(self)
+        WindData.__init__(self, wind_list)
+        self.wind_gdf = WindData.getWindGeoDataFrame(self)
+
+        windoil_gdf = gpd.sjoin(self.oil_gdf, self.wind_gdf, how='left')
+        wspd_min = windoil_gdf.groupby(id)['speed'].agg('min')
+        wspd_max = windoil_gdf.groupby(id)['speed'].agg('max')
+        wspd_mean = windoil_gdf.groupby(id)['speed'].agg('mean')
+        wdir_mean = windoil_gdf.groupby(id)['direction'].agg('mean')
+
+        self.oil_gdf['WSPDMIN'] = wspd_min
+        self.oil_gdf['WSPDMAX'] = wspd_max
+        self.oil_gdf['WSPDMEAN'] = wspd_mean
+        self.oil_gdf['WDIRMEAN'] = wdir_mean
+
+    def getOilGeoDataFrame(self):
+        return self.oil_gdf
+    
+    def getOilDataFrame(self):
+        oilfilter_gdf = self.oil_gdf.copy()
+        oilfilter_gdf = oilfilter_gdf[['BARIC_LON', 'BARIC_LAT', 'LENGTH_KM', 'AREA_KM', 'WSPDMEAN', 'WDIRMEAN', 'ALARM_LEV']]
+        oilfilter_gdf.rename(
+            columns={
+                'BARIC_LON': 'Longitude',
+                'BARIC_LAT': 'Latitude',
+                'LENGTH_KM': 'Panjang (km)',
+                'AREA_KM': 'Luas (km2)',
+                'WSPDMEAN': 'Kecepatan Angin (m/s)',
+                'WDIRMEAN': 'Arah Angin (deg)',
+                'ALARM_LEV': 'Tingkat Kepercayaan',
+            },
+            inplace=True,
+        )
+
+        oilfilter_gdf.index += 1
+        oilfilter_gdf.index.name = 'No.'
+        return oilfilter_gdf
+
+    def getOilLayer(self, layer_name):
+        oil_json = self.oil_gdf.to_json()
+        oil_layer = QgsVectorLayer(oil_json, layer_name, 'ogr')
+        return oil_layer
 
 
 class DTOLayer:
@@ -405,153 +476,42 @@ class DTOLayer:
         return self.dtolayer
 
 
-class AggregationLayer:
-    def __init__(self, feat_list, attr_list, layer_name):
-        if layer_name[-4:] == 'ship':
-            self.agglayer = QgsVectorLayer(
-                "Point?crs=epsg:4326", layer_name, "memory")
+class WPPData:
+    def __init__(self, wpp_path, extent):
+        if isinstance(extent, tuple):
+            self.xmin, self.xmax, self.ymin, self.ymax = extent
+        elif isinstance(extent, np.ndarray):
+            self.xmin, self.ymin, self.xmax, self.ymax = extent
         else:
-            self.agglayer = QgsVectorLayer(
-                "Polygon?crs=epsg:4326", layer_name, "memory")
+            self.xmin = extent.xMinimum()
+            self.xmax = extent.xMaximum()
+            self.ymin = extent.yMinimum()
+            self.ymax = extent.yMaximum()
 
-        self.agglayer_data = self.agglayer.dataProvider()
-        self.agglayer.startEditing()
-        self.agglayer_data.addAttributes(attr_list)
-        self.agglayer.updateFields()
-        self.agglayer_data.addFeatures(feat_list)
-        self.agglayer.commitChanges()
+        self.wpp_gdf = gpd.read_file(wpp_path)
 
-        # duplicate agg layer to create transmitter/non transmitter ship category
-        self.aggfeat_list = list(self.agglayer.getFeatures())
-        self.aggattr_list = self.agglayer.dataProvider().fields().toList()
+        self.wpp_filter = self.wpp_gdf.cx[self.xmin:self.xmax,
+                                         self.ymin:self.ymax]
+        self.wpp_list = [wpp[-3:] for wpp in self.wpp_filter['WPP']]
 
-    def getAggFeatList(self):
-        return self.aggfeat_list
+        if len(self.wpp_list) == 1:
+            self.wpp_area = f'WPP NRI {self.wpp_list[0]}'
+        elif len(self.wpp_list) == 2:
+            self.wpp_area = f'WPP NRI {self.wpp_list[0]} & {self.wpp_list[1]}'
+        elif len(self.wpp_list) > 2:
+            self.wpp_area = f'WPP NRI {self.wpp_list[0]}, {self.wpp_list[1]} & {self.wpp_list[2]}'
+        else:
+            self.wpp_area = 'LUAR INDONESIA'
 
-    def getAggAttrList(self):
-        return self.aggattr_list
-
-    def getAggLayer(self):
-        return self.agglayer
-
-
-class AggregationLayerV2:
-    def __init__(self, data_list):
-        self.data_list = data_list
-        self.data_gdf = gpd.GeoDataFrame(
-            pd.concat(
-                [gpd.read_file(data) for data in self.data_list],
-                ignore_index=True,
-            )
-        )
-
-    def getAggData(self):
-        return self.data_gdf
-    
-    def getAggLayer(self, layer_name):
-        agglayer = QgsVectorLayer(self.data_gdf.to_json(), layer_name, 'ogr')
-        return agglayer
-
-class TransmittedLayerV2(AggregationLayerV2):
-    def __init__(self, data_list, vms_list):
-        super().__init__(data_list)
-        self.data_gdf = super().getAggData()
-        self.vms_list = vms_list
-
-    def getTrmLayer(self, layer_name):
-        self.data_gdf['DESC'] = [
-            'AIS' if i is not None else None for i in self.data_gdf['AIS_MMSI']]
-
-        if len(self.vms_list) > 0:
-            vms_gdf = gpd.GeoDataFrame(
-                pd.concat(
-                    [gpd.read_file(vms) for vms in self.vms_list],
-                    ignore_index=True,
-                )
-            )
-            try:
-                vmsstat = vms_gdf[vms_gdf['status'] == 'vms']
-            except:
-                vmsstat = vms_gdf[vms_gdf['STATUS'] == 'VMS']
-
-            sjoin_gdf = gpd.sjoin(self.data_gdf, vms_gdf, how='left')
-            status_list = []
-            for status in sjoin_gdf['status']:
-                if status == 'ais':
-                    status_list.append('AIS')
-                elif status == 'vms':
-                    status_list.append('VMS')
-                else:
-                    status_list.append(None)
-            
-            self.data_gdf['DESC'] = status_list
-
-        trmlayer = QgsVectorLayer(self.data_gdf.to_json(), layer_name, 'ogr')
-        return trmlayer
-
-class TransmittedLayer:
-    def __init__(self, feat_list, attr_list, vms_list, layer_name):
-        if len(vms_list) > 0:
-            self.vmsgdf = gpd.GeoDataFrame(
-                pd.concat([gpd.read_file(vms) for vms in vms_list], ignore_index=True))
-            try:
-                self.vmsstat = self.vmsgdf[self.vmsgdf['status'] == 'vms']
-            except:
-                self.vmsstat = self.vmsgdf[self.vmsgdf['STATUS'] == 'VMS']
-
-        self.trmlayer = QgsVectorLayer(
-            "Point?crs=epsg:4326", layer_name, "memory")
-        self.trmlayer_data = self.trmlayer.dataProvider()
-        self.trmlayer.startEditing()
-        self.trmlayer_data.addAttributes(attr_list)
-        self.trmlayer.updateFields()
-        self.trmlayer_data.addFeatures(feat_list)
-        self.trmlayer.commitChanges()
-
-        # add new field named 'DESC'
-        self.trmlayer.dataProvider().addAttributes(
-            [QgsField("DESC", QVariant.String, 'String', 80)])
-        self.trmlayer.updateFields()
-
-        # define if 'AIS_MMSI' column was not None, the 'DESC' column is filled by 'Transmitter', else 'Non Transmitter'
-        self.trmfeat_list = list(self.trmlayer.getFeatures())
-        self.trmattr_list = self.trmlayer.dataProvider().fields().toList()
-        self.trmattr_len = len(self.trmattr_list)
-
-        self.trmlayer.startEditing()
-        for trmfeat in self.trmfeat_list:
-            aismmsi = trmfeat.attributes()[self.trmattr_len-2]
-            id = trmfeat.id()
-            if aismmsi == None:
-                desc = {(self.trmattr_len-1): None}
-            else:
-                desc = {(self.trmattr_len-1): 'AIS'}
-
-            trmfeat_geom = trmfeat.geometry()
-
-            if len(vms_list) > 0:
-                for _, vms in self.vmsstat.iterrows():
-                    vms_geom = vms.geometry
-                    vms_geom_qgs = QgsGeometry.fromPointXY(
-                        QgsPointXY(vms_geom.x, vms_geom.y))
-                    if trmfeat_geom.intersects(vms_geom_qgs):
-                        desc = {(self.trmattr_len-1): 'VMS'}
-
-            self.trmlayer.dataProvider().changeAttributeValues({id: desc})
-        self.trmlayer.commitChanges()
-
-    def getTrmFeatList(self):
-        return self.trmfeat_list
-
-    def getTrmAttrList(self):
-        return self.trmattr_list
-
-    def getTrmLayer(self):
-        return self.trmlayer
+    def getWPPGeoDataFrame(self):
+        return self.wpp_gdf
 
 
-class DelimitedLayer:
+class DelimitedData:
     def __init__(self, data_path, layer_name):
+        self.data_path = data_path
+
+    def getDelimitedLayer(self):
         self.uri = (
             f"file:///{data_path}?"
             "&delimiter=,"
@@ -560,11 +520,8 @@ class DelimitedLayer:
             "&crs=EPSG:4326"
             "&decimal"
         )
-        self.delimitedlayer = QgsVectorLayer(
-            self.uri, layer_name, "delimitedtext")
-
-    def getDelimitedLayer(self):
-        return self.delimitedlayer
+        self.delimited_layer = QgsVectorLayer(self.uri, layer_name, "delimitedtext")
+        return self.delimited_layer
 
 
 class LoadVectorLayer:
@@ -589,286 +546,146 @@ class ExportLayer:
     def to_csv(self):
         self.options.driverName = "CSV"
         QgsVectorFileWriter.writeAsVectorFormatV2(
-            self.layer, self.path, QgsCoordinateTransformContext(), self.options)
+            self.layer,
+            self.path,
+            QgsCoordinateTransformContext(),
+            self.options,
+        )
 
     def to_shp(self):
         self.options.driverName = "ESRI Shapefile"
         QgsVectorFileWriter.writeAsVectorFormatV2(
-            self.layer, self.path, QgsCoordinateTransformContext(), self.options)
+            self.layer,
+            self.path,
+            QgsCoordinateTransformContext(),
+            self.options,
+        )
 
     def to_kml(self):
         self.options.driverName = "KML"
         QgsVectorFileWriter.writeAsVectorFormatV2(
-            self.layer, self.path, QgsCoordinateTransformContext(), self.options)
+            self.layer,
+            self.path,
+            QgsCoordinateTransformContext(),
+            self.options,
+        )
 
 
 class DataElements:
-    def __init__(self, project_type, datadf_path):
-        if project_type == 'ship':
-            if datadf_path != None:
-                self.shipdf = pd.read_csv(datadf_path)
+    def __init__(self, data_gdf):
+        self.data_gdf = data_gdf
+    
+    def getShipElements(self):
+        if self.data_gdf is not None:
+            # get VMS count
+            self.vms = self.data_gdf[self.data_gdf['DESC'] == 'VMS']
+            self.fv = len(self.vms)
 
-                self.ship_filter = self.shipdf.copy()
-                self.ship_filter = self.ship_filter[[
-                    'LON_CENTRE', 'LAT_CENTRE', 'TARGET_DIR', 'LENGTH', 'DESC', 'AIS_MMSI']]
-                self.column_rename = {
-                    'LON_CENTRE': 'Longitude',
-                    'LAT_CENTRE': 'Latitude',
-                    'TARGET_DIR': 'Heading (deg)',
-                    'LENGTH': 'Panjang (m)',
-                    'DESC': 'Asosiasi (AIS/VMS)',
-                    'AIS_MMSI': 'MMSI',
-                }
-                self.ship_filter = self.ship_filter.rename(
-                    columns=self.column_rename)
+            # define ship size category
+            self.ais = self.data_gdf['AIS_MMSI'].isnull() == False
+            self.echo = self.data_gdf['AIS_MMSI'].isnull() == True
+            self.fe = self.data_gdf[self.echo]
+            self.fa = self.data_gdf[self.ais]
 
-                self.ship_filter = self.ship_filter.round(6)
-                self.ship_filter['Heading (deg)'] = self.ship_filter['Heading (deg)'].astype(
-                    int)
-                self.ship_filter['MMSI'] = self.ship_filter['MMSI'].astype(
-                    'Int64')
+            # ship data selection based on size
+            self.s = self.data_gdf['LENGTH']
+            self.se = self.fe['LENGTH']
+            self.sa = self.fa['LENGTH']
 
-                self.ship_filter.index += 1
-                self.ship_filter.index.name = 'No.'
+            # sum untransmitted ship
+            self.e6 = self.fe[(self.se <= 50)]  # kapal ikan
+            self.e7 = self.fe[(self.se > 50)]  # bukan kapal ikan
 
-                self.ship_filter.to_csv(datadf_path)
+            # transmitted ship selection by 50 size scale
+            self.u7 = self.fa[(self.sa <= 50)]  # kapal ikan
+            self.u8 = self.fa[(self.sa > 50)]  # bukan kapal ikan
 
-                # get VMS count
-                self.vms = self.shipdf[self.shipdf['DESC'] == 'VMS']
-                self.fv = len(self.vms)
+            # calculate total number of ship
+            self.t10 = len(self.data_gdf)  # len(s) + len(ss)
 
-                # define ship size category
-                self.ais = self.shipdf['AIS_MMSI'].isnull() == False
-                self.echo = self.shipdf['AIS_MMSI'].isnull() == True
-                self.fe = self.shipdf[self.echo]
-                self.fa = self.shipdf[self.ais]
+            # ship classification by 10 size scale
+            self.e0 = self.data_gdf[(self.s <= 10)]
+            self.e10 = self.data_gdf[(self.s > 10) & (self.s <= 20)]
+            self.e20 = self.data_gdf[(self.s > 20) & (self.s <= 30)]
+            self.e30 = self.data_gdf[(self.s > 30) & (self.s <= 40)]
+            self.e40 = self.data_gdf[(self.s > 40) & (self.s <= 50)]
+            self.e50 = self.data_gdf[(self.s > 50)]
 
-                # ship data selection based on size
-                self.s = self.shipdf['LENGTH']
-                self.se = self.fe['LENGTH']
-                self.sa = self.fa['LENGTH']
+            # define component of ship number
+            self.k0 = str(len(self.e0))
+            self.k1 = str(len(self.e10))
+            self.k2 = str(len(self.e20))
+            self.k3 = str(len(self.e30))
+            self.k4 = str(len(self.e40))
+            self.k5 = str(len(self.e50))
 
-                # sum untransmitted ship
-                self.e6 = self.fe[(self.se <= 50)]  # kapal ikan
-                self.e7 = self.fe[(self.se > 50)]  # bukan kapal ikan
+            # total of untransmitted ship
+            self.k6 = str(len(self.e6) + len(self.e7) - self.fv)
 
-                # transmitted ship selection by 50 size scale
-                self.u7 = self.fa[(self.sa <= 50)]  # kapal ikan
-                self.u8 = self.fa[(self.sa > 50)]  # bukan kapal ikan
+            # VMS transmitted ship
+            self.k11 = str(self.fv)
 
-                # calculate total number of ship
-                self.t10 = len(self.shipdf)  # len(s) + len(ss)
+            # AIS transmitted ship for <=50 and >50
+            self.k7 = str(len(self.u7))
+            self.k8 = str(len(self.u8))
 
-                # ship classification by 10 size scale
-                self.e0 = self.shipdf[(self.s <= 10)]
-                self.e10 = self.shipdf[(self.s > 10) & (self.s <= 20)]
-                self.e20 = self.shipdf[(self.s > 20) & (self.s <= 30)]
-                self.e30 = self.shipdf[(self.s > 30) & (self.s <= 40)]
-                self.e40 = self.shipdf[(self.s > 40) & (self.s <= 50)]
-                self.e50 = self.shipdf[(self.s > 50)]
+            # total of AIS transmitted ship
+            self.k9 = str(len(self.u7)+len(self.u8))
 
-                # define component of ship number
-                self.k0 = str(len(self.e0))
-                self.k1 = str(len(self.e10))
-                self.k2 = str(len(self.e20))
-                self.k3 = str(len(self.e30))
-                self.k4 = str(len(self.e40))
-                self.k5 = str(len(self.e50))
-
-                # total of untransmitted ship
-                self.k6 = str(len(self.e6) + len(self.e7) - self.fv)
-
-                # VMS transmitted ship
-                self.k11 = str(self.fv)
-
-                # AIS transmitted ship for <=50 and >50
-                self.k7 = str(len(self.u7))
-                self.k8 = str(len(self.u8))
-
-                # total of AIS transmitted ship
-                self.k9 = str(len(self.u7)+len(self.u8))
-
-                # total number of ship
-                self.k10 = str(self.t10)
-
-            else:
-                self.k0 = self.k1 = self.k2 = self.k3 = self.k4 = self.k5 = self.k6 = self.k7 = self.k8 = self.k9 = self.k10 = self.k11 = '0'
-
-            print("\nMenghitung jumlah kapal\n")
-            print(f"<10\tNon Transmitter\t\t\t= {self.k0}")
-            print(f"20-30\tNon Transmitter\t\t\t= {self.k2}")
-            print(f"30-40\tNon Transmitter\t\t\t= {self.k3}")
-            print(f"10-20\tNon Transmitter\t\t\t= {self.k1}")
-            print(f"40-50\tNon Transmitter\t\t\t= {self.k4}")
-            print(f">50\tNon Transmitter\t\t\t= {self.k5}")
-            print(f"\nKapal <=50 Bertransmitter AIS\t\t= {self.k7}")
-            print(f"Kapal >50 Bertransmitter AIS\t\t= {self.k8}")
-            print(f"\nJumlah Kapal Bertransmitter AIS\t\t= {self.k9}")
-            print(f"Jumlah Kapal Bertransmitter VMS\t\t= {self.k11}")
-            print(f"Jumlah Kapal Tidak Bertransmitter\t= {self.k6}")
-            print(f"\nTotal jumlah kapal\t\t\t= {self.k10}")
+            # total number of ship
+            self.k10 = str(self.t10)
 
         else:
-            if datadf_path != None:
-                self.oilgdf = gpd.read_file(datadf_path)
+            self.k0 = self.k1 = self.k2 = self.k3 = self.k4 = self.k5 = self.k6 = self.k7 = self.k8 = self.k9 = self.k10 = self.k11 = '0'
 
-                self.oil_filter = self.oilgdf[[
-                    'BARIC_LON', 'BARIC_LAT', 'LENGTH_KM', 'AREA_KM', 'WSPDMEAN', 'WDIRMEAN', 'ALARM_LEV']]
-                self.column_rename = {
-                    'BARIC_LON': 'Longitude',
-                    'BARIC_LAT': 'Latitude',
-                    'LENGTH_KM': 'Panjang (km)',
-                    'AREA_KM': 'Luas (km2)',
-                    'WSPDMEAN': 'Kecepatan Angin (m/s)',
-                    'WDIRMEAN': 'Arah Angin (deg)',
-                    'ALARM_LEV': 'Tingkat Kepercayaan',
-                }
-                self.oil_filter = self.oil_filter.rename(
-                    columns=self.column_rename)
-                self.oil_filter = self.oil_filter.round(6)
+        print("\nMenghitung jumlah kapal\n")
+        print(f"<10\tNon Transmitter\t\t\t= {self.k0}")
+        print(f"20-30\tNon Transmitter\t\t\t= {self.k2}")
+        print(f"30-40\tNon Transmitter\t\t\t= {self.k3}")
+        print(f"10-20\tNon Transmitter\t\t\t= {self.k1}")
+        print(f"40-50\tNon Transmitter\t\t\t= {self.k4}")
+        print(f">50\tNon Transmitter\t\t\t= {self.k5}")
+        print(f"\nKapal <=50 Bertransmitter AIS\t\t= {self.k7}")
+        print(f"Kapal >50 Bertransmitter AIS\t\t= {self.k8}")
+        print(f"\nJumlah Kapal Bertransmitter AIS\t\t= {self.k9}")
+        print(f"Jumlah Kapal Bertransmitter VMS\t\t= {self.k11}")
+        print(f"Jumlah Kapal Tidak Bertransmitter\t= {self.k6}")
+        print(f"\nTotal jumlah kapal\t\t\t= {self.k10}")
 
-                self.oil_filter.index += 1
-                self.oil_filter.index.name = 'No.'
-                self.oil_filter.to_csv(f'{datadf_path[:-4]}.csv')
-
-                # oil size stat
-                self.lenmin = self.oilgdf['LENGTH_KM'].min()
-                self.lenmax = self.oilgdf['LENGTH_KM'].max()
-
-                self.widmin = self.oilgdf['AREA_KM'].min()
-                self.widmax = self.oilgdf['AREA_KM'].max()
-
-                # oil confindent stat
-                self.high = self.oilgdf[self.oilgdf['ALARM_LEV'] == 'HIGH']
-                self.low = self.oilgdf[self.oilgdf['ALARM_LEV'] == 'LOW']
-
-                self.hi = len(self.high)
-                self.lo = len(self.low)
-
-            else:
-                self.lenmin = self.lenmax = self.widmin = self.widmax = self.hi = self.lo = 0
-
-            print("\nMenghitung statistik tumpahan minyak")
-            print(f"\nPanjang tumpahan minyak terendah\t\t= {self.lenmin} km")
-            print(f"Panjang tumpahan minyak tertinggi\t\t= {self.lenmax} km")
-            print(
-                f"\nLuas tumpahan minyak terendah\t\t\t= {self.widmin} km\u00B2")
-            print(
-                f"Luas tumpahan minyak tertinggi\t\t\t= {self.widmax} km\u00B2")
-            print(
-                f"\nJumlah tumpahan minyak berkepercayaan tinggi\t= {self.hi}")
-            print(f"Jumlah tumpahan minyak berkepercayaan rendah\t= {self.lo}")
-            print(f"\nTotal jumlah tumpahan minyak\t\t\t= {self.hi+self.lo}")
-
-    def getShipElements(self):
         return [self.k0, self.k1, self.k2, self.k3, self.k4, self.k5, self.k6, self.k7, self.k8, self.k9, self.k10, self.k11]
 
     def getOilElements(self):
+        if self.data_gdf is not None:
+            # oil size stat
+            self.lenmin = self.data_gdf['LENGTH_KM'].min()
+            self.lenmax = self.data_gdf['LENGTH_KM'].max()
+
+            self.widmin = self.data_gdf['AREA_KM'].min()
+            self.widmax = self.data_gdf['AREA_KM'].max()
+
+            # oil confindent stat
+            self.high = self.data_gdf[self.data_gdf['ALARM_LEV'] == 'HIGH']
+            self.low = self.data_gdf[self.data_gdf['ALARM_LEV'] == 'LOW']
+
+            self.hi = len(self.high)
+            self.lo = len(self.low)
+
+        else:
+            self.lenmin = self.lenmax = self.widmin = self.widmax = self.hi = self.lo = 0
+
+        print("\nMenghitung statistik tumpahan minyak")
+        print(f"\nPanjang tumpahan minyak terendah\t\t= {self.lenmin} km")
+        print(f"Panjang tumpahan minyak tertinggi\t\t= {self.lenmax} km")
+        print(
+            f"\nLuas tumpahan minyak terendah\t\t\t= {self.widmin} km\u00B2")
+        print(
+            f"Luas tumpahan minyak tertinggi\t\t\t= {self.widmax} km\u00B2")
+        print(
+            f"\nJumlah tumpahan minyak berkepercayaan tinggi\t= {self.hi}")
+        print(f"Jumlah tumpahan minyak berkepercayaan rendah\t= {self.lo}")
+        print(f"\nTotal jumlah tumpahan minyak\t\t\t= {self.hi+self.lo}")
+
         return [self.hi, self.lo, self.lenmin, self.lenmax, self.widmin, self.widmax]
-
-
-class WindOilLayer:
-    def __init__(self, oilgdf, windgdf, oillayer):
-        self.pts = windgdf.copy()
-        self.polygon = oilgdf.copy()
-
-        # create buffer of oil layer
-        self.polygon.geometry = self.polygon.geometry.buffer(0.027)
-
-        self.meanspd_in_polys = []
-        self.meandir_in_polys = []
-        self.maxspd_in_polys = []
-        self.minspd_in_polys = []
-        for _, poly in self.polygon.iterrows():
-            spd_in_this_poly = []
-            dir_in_this_poly = []
-            for _, pt in self.pts.iterrows():
-                if poly.geometry.intersects(pt.geometry):
-                    speed = float(f"{pt['speed']:.2f}")
-                    direction = float(f"{pt['direction']:.2f}")
-                    spd_in_this_poly.append(speed)
-                    dir_in_this_poly.append(direction)
-            if len(spd_in_this_poly) > 0:
-                self.meanspd_in_polys.append(np.mean(spd_in_this_poly))
-                self.maxspd_in_polys.append(max(spd_in_this_poly))
-                self.minspd_in_polys.append(min(spd_in_this_poly))
-            else:
-                pass
-
-            if len(dir_in_this_poly) > 0:
-                self.meandir_in_polys.append(np.mean(dir_in_this_poly))
-            else:
-                pass
-
-        self.polygon['WSPDMIN'] = self.minspd_in_polys
-        self.polygon['WSPDMAX'] = self.maxspd_in_polys
-        self.polygon['WSPDMEAN'] = self.meanspd_in_polys
-        self.polygon['WDIRMEAN'] = self.meandir_in_polys
-
-        # compile wind stats to list
-        self.spdmin = list(self.polygon['WSPDMIN'])
-        self.spdmax = list(self.polygon['WSPDMAX'])
-        self.spdmean = list(self.polygon['WSPDMEAN'])
-        self.dirmean = list(self.polygon['WDIRMEAN'])
-
-        self.wind_oillayer = oillayer
-
-        self.wind_oilattr_list = [
-            wind_oilattr for wind_oilattr in oillayer.dataProvider().fields().toList()]
-        self.wind_oilattr_len = len(self.wind_oilattr_list)
-
-        # add wind stats attribute fields
-        self.windattr_list = [
-            QgsField("WSPDMIN", QVariant.Double, "double", 10, 3),
-            QgsField("WSPDMAX", QVariant.Double, "double", 10, 3),
-            QgsField("WSPDMEAN", QVariant.Double, "double", 10, 3),
-            QgsField("WDIRMEAN", QVariant.Double, "double", 10, 3),
-        ]
-        self.wind_oillayer.dataProvider().addAttributes(self.windattr_list)
-        self.wind_oillayer.updateFields()
-
-        # input wind stats to layer
-        self.wind_oilfeat = self.wind_oillayer.getFeatures()
-        self.wind_oillayer.startEditing()
-        for i, ii, iii, iv, f in zip(self.spdmin, self.spdmax, self.spdmean, self.dirmean, self.wind_oilfeat):
-            id = f.id()
-            wind_oilattr = {self.wind_oilattr_len: i, self.wind_oilattr_len +
-                            1: ii, self.wind_oilattr_len+2: iii, self.wind_oilattr_len+3: iv}
-            self.wind_oillayer.dataProvider().changeAttributeValues({
-                id: wind_oilattr})
-        self.wind_oillayer.commitChanges()
-
-    def getWindOilLayer(self):
-        return self.wind_oillayer
-
-
-class WPPLayer:
-    def __init__(self, wpp_path, extent):
-        if isinstance(extent, tuple):
-            self.xmin, self.xmax, self.ymin, self.ymax = extent
-        else:
-            self.xmin = extent.xMinimum()
-            self.xmax = extent.xMaximum()
-            self.ymin = extent.yMinimum()
-            self.ymax = extent.yMaximum()
-
-        self.wppgdf = gpd.read_file(wpp_path)
-
-        self.wpp_filter = self.wppgdf.cx[self.xmin:self.xmax,
-                                         self.ymin:self.ymax]
-        self.wpp_list = [wpp[-3:] for wpp in self.wpp_filter['WPP']]
-
-        if len(self.wpp_list) == 1:
-            self.wpp_area = f'WPP NRI {self.wpp_list[0]}'
-        elif len(self.wpp_list) == 2:
-            self.wpp_area = f'WPP NRI {self.wpp_list[0]} & {self.wpp_list[1]}'
-        elif len(self.wpp_list) > 2:
-            self.wpp_area = f'WPP NRI {self.wpp_list[0]}, {self.wpp_list[1]} & {self.wpp_list[2]}'
-        else:
-            self.wpp_area = 'LUAR INDONESIA'
-
-    def getWPPGeoDataFrame(self):
-        return self.wppgdf
 
 
 class Layout:

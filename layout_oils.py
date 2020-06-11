@@ -88,15 +88,15 @@ if len(wind_list) > 0:
     wind_data = WindData(wind_list)
     wind_range = wind_data.windrange
     wind_direction = wind_data.dire
-    windgdf = wind_data.getWindGeoDataFrame()
+    wind_gdf = wind_data.getWindGeoDataFrame()
 else:
     print('- Tidak ada data angin')
     wind_data = None
 
 # load wpp data and get WPP area which is overlaid within raster
 wpp_path = f'{BASEMAP_PATH}\\WPP_Full_PermenKP182014.shp'
-wpp_layer = WPPLayer(wpp_path, raster_extent)
-wpp_area = wpp_layer.wpp_area
+wpp_data = WPPData(wpp_path, raster_extent)
+wpp_area = wpp_data.wpp_area
 
 # define layer name
 if method == 'satu':
@@ -109,51 +109,41 @@ oil_list = data_list.getOilList()
 if len(oil_list) > 0:
     print('- Ada data tumpahan minyak')
 
-    # define name and path
-    oilgdf_path = f'{OUTPUT_FOLDER}\\{layer_name}.shp'
-
-    # define path of oil template
+    # define path of oil template and oil csv path
     oil_template = f'{TEMPLATE_PATH}\\layer\\oils_level_layer_template.qml'
-
-    # get list of features and attributes, geodataframe and feature extent
-    oilfeat_list = DataLayer(oil_list).getFeatList()
-    oilattr_list = DataLayer(oil_list).getAttrList()
-    oilgdf = DataLayer(oil_list).getGeoDataFrame()
-    oil_extent = DataLayer(oil_list).getFeatExtent()
+    oildf_path = f'{OUTPUT_FOLDER}\\{layer_name}.csv'
 
     # get aggregation and transmitted layer of oil data
-    agg_oillayer = AggregationLayer(oilfeat_list, oilattr_list, layer_name).getAggLayer()
-    wind_oillayer = WindOilLayer(oilgdf, windgdf, agg_oillayer).getWindOilLayer()
-
-    # export layer to shapefile
-    ExportLayer(wind_oillayer, oilgdf_path).to_shp()
+    oil_data = OilData(oil_list, wind_list)
+    oil_layer = oil_data.getOilLayer(layer_name)
+    oil_gdf = oil_data.getOilGeoDataFrame()
+    oil_df = oil_data.getOilDataFrame()
+    oil_df.to_csv(oildf_path)
 
     # get oil elements and feature number
-    oil_elements = DataElements(project_type, oilgdf_path).getOilElements()
-    feat_number = len(oilfeat_list)
-
-    # get oil layer of oil data
-    oil_layer = DataLayer([oilgdf_path]).getLayerList()[0]
+    oil_elements = DataElements(oil_gdf).getOilElements()
+    feat_number = len(oil_gdf)
 
     # load oil layer to project
     LoadVectorLayer(oil_layer, data_group, oil_template)
 
     # overlay wpp layer and oil extent
-    wpp_layer = WPPLayer(wpp_path, oil_extent)
+    oil_extent = oil_gdf.total_bounds
+    wpp_data = WPPData(wpp_path, oil_extent)
 
     # get value of oil area
-    area = sum([i for i in oilgdf['AREA_KM']])
+    area = sum([i for i in oil_gdf['AREA_KM']])
     area_txt = f'{str(round(area, 2))} km\u00B2'
 
 else:
     print('- Tidak ada data tumpahan minyak')
     feat_number = 0
 
-    oildf_path = None
-    oil_elements = DataElements(project_type, oildf_path).getOilElements()
+    oil_gdf = None
+    oil_elements = DataElements(oil_gdf).getOilElements()
 
 # define layout manager
-layout_manager = Layout(project_type, method, feat_number, wil, radar_info_list, wpp_layer, wind_data)
+layout_manager = Layout(project_type, method, feat_number, wil, radar_info_list, wpp_data, wind_data)
 
 # get layout list
 layout_list = layout_manager.getLayoutList()

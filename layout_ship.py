@@ -98,8 +98,8 @@ else:
 
 # load wpp data and get WPP area which is overlaid within raster
 wpp_path = f'{BASEMAP_PATH}\\WPP_Full_PermenKP182014.shp'
-wpp_layer = WPPLayer(wpp_path, raster_extent)
-wpp_area = wpp_layer.wpp_area
+wpp_data = WPPData(wpp_path, raster_extent)
+wpp_area = wpp_data.wpp_area
 
 # define layer name
 if method == 'satu':
@@ -131,51 +131,36 @@ if len(ship_list) > 0:
         vms_path = glob.glob(f'{BARATA_SHIP_PATH}\\{vms_ff}*\\*.shp')
         if len(vms_path) > 0:
             vms_list.append(vms_path[0])
-        # else:
-        #     corshipPath = os.path.dirname(raster_path).replace('2.seonse_outputs','12.correlated_ship')
-        #     vms_path = glob.glob(f'{corshipPath}\\*CORRELATED.shp')
-        #     if len(vms_path) > 0:
-        #         vms_list.append(vms_path[0])
 
-    # get list of features and attributes and feature extent
-    shipfeat_list = DataLayer(ship_list).getFeatList()
-    shipattr_list = DataLayer(ship_list).getAttrList()
-    ship_extent = DataLayer(ship_list).getFeatExtent()
-
-    # get aggregation and transmitted layer of ship data
-    
-    # agg_shiplayer = AggregationLayer(shipfeat_list, shipattr_list, layer_name).getAggLayer()
-    # agg_shiplayer = AggregationLayerV2(ship_list).getAggLayer(layer_name)
-    # trmlayer = TransmittedLayer(shipfeat_list, shipattr_list, vms_list, trmlayer_name).getTrmLayer()
-    trmlayer = TransmittedLayerV2(ship_list, vms_list).getTrmLayer(trmlayer_name)
-
-    # export layer to csv
-    ExportLayer(trmlayer, shipdf_path).to_csv()
+    # get transmitted layer of ship data
+    ship_data = ShipData(ship_list, vms_list)
+    ship_layer = ship_data.getShipLayer(layer_name)
+    ship2_layer = ship_data.getShipLayer(trmlayer_name)
+    ship_gdf = ship_data.getShipGeoDataFrame()
+    ship_df = ship_data.getShipDataFrame()
+    ship_df.to_csv(shipdf_path)
 
     # get ship elements and feature number
-    ship_elements = DataElements(project_type, shipdf_path).getShipElements()
-    feat_number = len(shipfeat_list)
-
-    # get delimited layer of ship data
-    ship_layer = DelimitedLayer(shipdf_path, layer_name).getDelimitedLayer()
-    ship2_layer = DelimitedLayer(shipdf_path, trmlayer_name).getDelimitedLayer()
+    ship_elements = DataElements(ship_gdf).getShipElements()
+    feat_number = len(ship_gdf)
 
     # load two ship layers to project
     LoadVectorLayer(ship_layer, data_group, ship_template)
     LoadVectorLayer(ship2_layer, data_group, trm_template)
 
     # overlay wpp layer and ship extent
-    wpp_layer = WPPLayer(wpp_path, ship_extent)
+    ship_extent = ship_gdf.total_bounds
+    wpp_data = WPPData(wpp_path, ship_extent)
 
 else:
     print('- Tidak ada data kapal')
 
     feat_number = 0
-    shipdf_path = None
-    ship_elements = DataElements(project_type, shipdf_path).getShipElements()
+    ship_gdf = None
+    ship_elements = DataElements(ship_gdf).getShipElements()
 
 # define layout manager
-layout_manager = Layout(project_type, method, feat_number, wil, radar_info_list, wpp_layer, wind_data)
+layout_manager = Layout(project_type, method, feat_number, wil, radar_info_list, wpp_data, wind_data)
 
 # insert ship elements to layout
 layout_manager.insertShipElements(ship_elements)
