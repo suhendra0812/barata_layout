@@ -437,17 +437,57 @@ class AggregationLayer:
 
 class AggregationLayerV2:
     def __init__(self, data_list):
+        self.data_list = data_list
         self.data_gdf = gpd.GeoDataFrame(
             pd.concat(
-                [gpd.read_file(data) for data in data_list],
+                [gpd.read_file(data) for data in self.data_list],
                 ignore_index=True,
             )
         )
 
+    def getAggData(self):
+        return self.data_gdf
+    
     def getAggLayer(self, layer_name):
         agglayer = QgsVectorLayer(self.data_gdf.to_json(), layer_name, 'ogr')
         return agglayer
 
+class TransmittedLayerV2(AggregationLayerV2):
+    def __init__(self, data_list, vms_list):
+        super().__init__(data_list)
+        self.data_gdf = super().getAggData()
+        self.vms_list = vms_list
+
+    def getTrmLayer(self, layer_name):
+        self.data_gdf['DESC'] = [
+            'AIS' if i is not None else None for i in self.data_gdf['AIS_MMSI']]
+
+        if len(self.vms_list) > 0:
+            vms_gdf = gpd.GeoDataFrame(
+                pd.concat(
+                    [gpd.read_file(vms) for vms in self.vms_list],
+                    ignore_index=True,
+                )
+            )
+            try:
+                vmsstat = vms_gdf[vms_gdf['status'] == 'vms']
+            except:
+                vmsstat = vms_gdf[vms_gdf['STATUS'] == 'VMS']
+
+            sjoin_gdf = gpd.sjoin(self.data_gdf, vms_gdf, how='left')
+            status_list = []
+            for status in sjoin_gdf['status']:
+                if status == 'ais':
+                    status_list.append('AIS')
+                elif status == 'vms':
+                    status_list.append('VMS')
+                else:
+                    status_list.append(None)
+            
+            self.data_gdf['DESC'] = status_list
+
+        trmlayer = QgsVectorLayer(self.data_gdf.to_json(), layer_name, 'ogr')
+        return trmlayer
 
 class TransmittedLayer:
     def __init__(self, feat_list, attr_list, vms_list, layer_name):
