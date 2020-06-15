@@ -281,22 +281,13 @@ class ShipData(AggregationData):
                     ignore_index=True,
                 )
             )
-            try:
-                vmsstat = vms_gdf[vms_gdf['status'] == 'vms']
-            except:
-                vmsstat = vms_gdf[vms_gdf['STATUS'] == 'VMS']
+            vmsstat = vms_gdf[vms_gdf['status'] == 'vms']
 
             shipvms_gdf = gpd.sjoin(self.ship_gdf, vms_gdf, how='left')
-            status_list = []
-            for status in shipvms_gdf['status']:
-                if status == 'ais':
-                    status_list.append('AIS')
-                elif status == 'vms':
-                    status_list.append('VMS')
-                else:
-                    status_list.append(None)
 
-            self.ship_gdf['DESC'] = status_list
+            for i in range(len(shipvms_gdf)):
+                if shipvms_gdf.loc[i,'status'] == 'vms':
+                    self.ship_gdf.loc[i,'DESC'] = 'VMS'
 
     def getShipGeoDataFrame(self):
         return self.ship_gdf
