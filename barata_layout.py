@@ -385,8 +385,7 @@ class DTOData:
             side_list = []
             angle_list = []
 
-            self.dto_gdf = self.dto_gdf.copy()
-            for i in range(len(self.dto_gdf)):
+            for i in range(len(info_list)):
                 sat = info_list[i].dto_info['Satellite']
                 mode = info_list[i].dto_info['Sensor Mode']
                 beam = info_list[i].dto_info['Beam']
