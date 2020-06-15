@@ -364,107 +364,70 @@ class OilData(AggregationData, WindData):
         oil_layer = QgsVectorLayer(oil_json, layer_name, 'ogr')
         return oil_layer
 
-
-class DTOLayer:
+class DTOData:
     def __init__(self, dto_path, info_list=None):
-        self.baseName = QFileInfo(dto_path).baseName()
-        self.layer = QgsVectorLayer(dto_path, self.baseName, 'ogr')
-        self.subLayers = self.layer.dataProvider().subLayers()
+        self.dto_path = dto_path
 
-        self.sublayer_list = []
-        self.subfeat_list = []
-        self.subattr_list = []
-
-        for subLayer in self.subLayers:
-            name = subLayer.split('!!::!!')[1]
-            if name[:4] == 'PROG':
-                uri = "%s|layername=%s" % (dto_path, name)
-
-                sub_layer = QgsVectorLayer(uri, name, 'ogr')
-                for feat in sub_layer.getFeatures():
-                    if feat.attributes()[:2][1] != None:
-                        self.subfeat_list.append(feat)
-
-                sub_attr = sub_layer.dataProvider().fields().toList()
-
-                self.sublayer_list.append(sub_layer)
-                self.subattr_list.append(sub_attr)
-
-            elif name[:5] == 'swath':
-                uri = "%s|layername=%s" % (dto_path, name)
-
-                sub_layer = QgsVectorLayer(uri, name, 'ogr')
-                sub_feat = [feat for feat in sub_layer.getFeatures()]
-                sub_attr = sub_layer.dataProvider().fields().toList()
-
-                self.sublayer_list.append(sub_layer)
-                self.subfeat_list.extend(sub_feat)
-                self.subattr_list.append(sub_attr)
-
-        self.dtoattr_list = [
-            QgsField("Satellite", QVariant.String, 'String', 80),
-            QgsField("Mode", QVariant.String, 'String', 80),
-            QgsField("Start Time", QVariant.String, 'String', 80),
-            QgsField("Stop Time", QVariant.String, 'String', 80),
-            QgsField("Direction", QVariant.String, 'String', 80),
-            QgsField("Look Side", QVariant.String, 'String', 80),
-            QgsField("Look Angle", QVariant.Double, "double", 10, 3),
-            QgsField("Beam", QVariant.String, 'String', 80),
-        ]
-
-        self.dtolayer = QgsVectorLayer(
-            "Polygon?crs=epsg:4326", self.baseName, "memory")
-        self.dtolayer_data = self.dtolayer.dataProvider()
-        self.dtolayer.startEditing()
-        self.dtolayer_data.addAttributes(self.dtoattr_list)
-        self.dtolayer.updateFields()
-        self.dtolayer_data.addFeatures(self.subfeat_list)
-
-        self.dtoattr_list = self.dtolayer.dataProvider().fields().toList()
-
+        gpd.io.file.fiona.drvsupport.supported_drivers['KML'] = 'rw'
+        self.dto_gdf = gpd.read_file(dto_path, driver='KML')
+        
+        if not self.dto_gdf['Name'].str.contains('swath').any():
+            self.dto_gdf = self.dto_gdf.loc[1:]
+        
         if info_list != None:
-            for i, f in zip(info_list, self.dtolayer.getFeatures()):
-                sat = i.dto_info['Satellite']
-                mode = i.dto_info['Sensor Mode']
-                beam = i.dto_info['Beam']
+            self.dto_gdf = gpd.GeoDataFrame(geometry=self.dto_gdf.geometry)
+            sat_list = []
+            mode_list = []
+            beam_list = []
+            start_list = []
+            stop_list = []
+            dire_list = []
+            side_list = []
+            angle_list = []
+
+            self.dto_gdf = self.dto_gdf.copy()
+            for i in range(len(self.dto_gdf)):
+                sat = info_list[i].dto_info['Satellite']
+                mode = info_list[i].dto_info['Sensor Mode']
+                beam = info_list[i].dto_info['Beam']
                 if sat == 'RADARSAT-2':
-                    start = i.dto_info['Start UTC Time']
-                    stop = i.dto_info['Stop UTC Time']
-                    dire = i.dto_info['Pass Direction']
-                    side = i.dto_info['Satellite Orientation']
-                    angle = i.dto_info['Incidence Angle']
+                    start = info_list[i].dto_info['Start UTC Time']
+                    stop = info_list[i].dto_info['Stop UTC Time']
+                    dire = info_list[i].dto_info['Pass Direction']
+                    side = info_list[i].dto_info['Satellite Orientation']
+                    angle = info_list[i].dto_info['Incidence Angle']
                 else:
-                    start = i.dto_info['Sensing Start']
-                    stop = i.dto_info['Sensing Stop']
-                    dire = i.dto_info['Orbit Direction']
-                    side = i.dto_info['Look Side']
-                    angle = i.dto_info['Look Angle']
+                    start = info_list[i].dto_info['Sensing Start']
+                    stop = info_list[i].dto_info['Sensing Stop']
+                    dire = info_list[i].dto_info['Orbit Direction']
+                    side = info_list[i].dto_info['Look Side']
+                    angle = info_list[i].dto_info['Look Angle']
+                
+                sat_list.append(sat)
+                mode_list.append(mode)
+                beam_list.append(beam)
+                start_list.append(start)
+                stop_list.append(stop)
+                dire_list.append(dire)
+                side_list.append(side)
+                angle_list.append(angle)
+                
+            self.dto_gdf["Satellite"] = sat_list
+            self.dto_gdf["Mode"] = mode_list
+            self.dto_gdf["Start Time"] = start_list
+            self.dto_gdf["Stop Time"] = stop_list
+            self.dto_gdf["Direction"] = dire_list
+            self.dto_gdf["Look Side"] = side_list
+            self.dto_gdf["Look Angle"] = angle_list
+            self.dto_gdf["Beam"] = beam_list
+    
+    def getDTOGeoDataFrame(self):
+        return self.dto_gdf
 
-                id = f.id()
-                attrib = {
-                    0: sat,
-                    1: mode,
-                    2: start,
-                    3: stop,
-                    4: dire,
-                    5: side,
-                    6: angle,
-                    7: beam,
-                }
-                self.dtolayer.dataProvider(
-                ).changeAttributeValues({id: attrib})
-        self.dtolayer.commitChanges()
-
-        self.dtofeat_list = [feat for feat in self.dtolayer.getFeatures()]
-
-    def getFeatList(self):
-        return self.dtofeat_list
-
-    def getAttrList(self):
-        return self.dtoattr_list
-
-    def getLayer(self):
-        return self.dtolayer
+    def getDTOLayer(self, layer_name):
+        dto_json = self.dto_gdf.to_json()
+        dto_layer = QgsVectorLayer(dto_json, layer_name, 'ogr')
+        return dto_layer
 
 
 class WPPData:
@@ -894,17 +857,17 @@ class LayoutDTO(Layout):
         self.wpp_layer = wpp_layer
 
     def getTitleExp(self):
-        title_exp = """[%upper(to_date_indonesian("Start Time", 7) + ' PUKUL ' + format_date((to_datetime(left("Start Time", 19))) + to_interval('7 hours'), 'hh:mm:ss') + ' WIB')%]"""
+        title_exp = """[%upper(format_date("Start Time"+ to_interval('7 hours'), 'dd MMMM yyyy pukul hh:mm:ss WIB', 'id'))%]"""
 
         return title_exp
 
     def getNoteExp(self):
-        note_exp = """[%title(to_date_indonesian("Start Time", (7-12)))%] sekitar pukul [%CASE WHEN to_time(substr("Start Time", 12, 8)) >  to_time('06:21:00') AND to_time(substr("Start Time", 12, 8)) <  to_time('18:21:00') THEN '06:00 WIB' ELSE '20:00 WIB' END%]"""
+        note_exp = """[%title(format_date("Start Time", 'dd MMMM yyyy', 'id'))%] sekitar pukul [%CASE WHEN to_time("Start Time") >=  to_time('06:21:00') AND to_time("Start Time") <=  to_time('18:21:00') THEN '06:00 WIB' ELSE '20:00 WIB' END%]"""
 
         return note_exp
 
     def getAtlasExp(self):
-        atlas_exp = """substr(@project_basename, 0, -19)||(format_date(to_datetime(left("Start Time", 19))+to_interval('7 hours'), 'yyyyMMdd_hhmmss'))||'_dto'"""
+        atlas_exp = """substr(@project_basename, 0, -19)||(format_date("Start Time"+to_interval('7 hours'), 'yyyyMMdd_hhmmss'))||'_dto'"""
 
         return atlas_exp
 

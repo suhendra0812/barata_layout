@@ -34,28 +34,26 @@ dto_path = FileDialog(BASE_PATH).open(type=project_type)
 print('\nSumber data:')
 print(dto_path)
 
-# get dto feature list
-dtofeat_list = DTOLayer(dto_path).getFeatList()
-
 # get dto info list
 dtoinfo_list = []
-for f in range(len(dtofeat_list)):
+dto_gdf = DTOData(dto_path).getDTOGeoDataFrame()
+for f in range(len(dto_gdf)):
     idx = f + 1
     dtoinfo = DTOInfo(dto_path, idx)
     dtoinfo_list.append(dtoinfo)
 
 print(f'\nRadar\t\t: {dtoinfo_list[0].sat}')
-print(f'Jumlah DTO\t: {len(dtofeat_list)}')
+print(f'Jumlah DTO\t: {len(dto_gdf)}')
 
 # get variable from dto info
 filename = os.path.basename(dto_path)
 fn_split = filename.split('_')
 
-user = fn_split[0]
-location = fn_split[1]
-if user.isdigit() and location.isdigit():
-    user = input('\nMasukkan nama instansi\t: ')
-    location = input('Masukkan nama wilayah\t: ')
+# user = fn_split[0]
+# location = fn_split[1]
+# if user.isdigit() and location.isdigit():
+user = input('\nMasukkan nama instansi\t: ')
+location = input('Masukkan nama wilayah\t: ')
 
 local = dtoinfo_list[0].local
 layer_name = f'{user}_{location}_{local}_{project_type}'
@@ -75,37 +73,32 @@ if not os.path.exists(OUTPUT_FOLDER):
 dtogdf_path = f'{OUTPUT_FOLDER}\\{layer_name}.shp'
 newdto_path = f'{OUTPUT_FOLDER}\\{layer_name}.kml'
 
-if not os.path.samefile(dto_path, newdto_path):
-    shutil.copyfile(dto_path, newdto_path)
+shutil.copyfile(dto_path, newdto_path)
 
 # create and get dto temporary layer
-templayer = DTOLayer(newdto_path, dtoinfo_list).getLayer()
-
-# export the temporary layer to shapefile
-ExportLayer(templayer, dtogdf_path).to_shp()
-
-# get dto layer list from exported shapefile
-dtolayer_list = DataLayer([dtogdf_path]).getLayerList()
+dto_data = DTOData(dto_path, dtoinfo_list)
+dto_layer = dto_data.getDTOLayer(dtoinfo_list[0].sat_id)
+feat_list = [i for i in dto_layer.getFeatures()]
+dto_gdf = dto_data.getDTOGeoDataFrame()
+dto_gdf.to_file(dtogdf_path)
 
 # load dto layer to project
 dto_template = f'{TEMPLATE_PATH}\\layer\\dto_layer_template.qml'
-for dtolayer in dtolayer_list:
-    dtolayer.setName(dtoinfo_list[0].sat_id)
-    LoadVectorLayer(dtolayer, data_group, dto_template)
+LoadVectorLayer(dto_layer, data_group, dto_template)
 
 # zoom to layer
-extent = LayerExtent([dtolayer]).getExtent()
+extent = LayerExtent([dto_layer]).getExtent()
 
 # load wpp data and get WPP area which is overlaid within raster
 wpp_path = f'{BASEMAP_PATH}\\WPP_Full_PermenKP182014.shp'
-wpp_layer = WPPLayer(wpp_path, extent)
+wpp_layer = WPPData(wpp_path, extent)
 
 # define layout manager
 layout_manager = LayoutDTO(project_type, dtoinfo_list, wpp_layer)
 
 # set and insert attributes to layout
 layout_manager.setMap(extent)
-layout_manager.setAtlas(dtolayer)
+layout_manager.setAtlas(dto_layer)
 layout_manager.insertTitleText()
 layout_manager.insertNoteText()
 
