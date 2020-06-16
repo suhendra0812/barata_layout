@@ -2,9 +2,9 @@ import os
 
 option = input("\nPilih tipe project (ship/oils/dto): ")
 
-layoutship_path = "layout_ship.py"
-layoutoils_path = "layout_oils.py"
-layoutdto_path = "layout_dto.py"
+layoutship_path = "layouts/layout_ship.py"
+layoutoils_path = "layouts/layout_oils.py"
+layoutdto_path = "layouts/layout_dto.py"
 
 if option == 'ship':
     os.system(f'python-qgis {layoutship_path}')
