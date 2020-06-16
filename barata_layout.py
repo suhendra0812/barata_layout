@@ -373,6 +373,8 @@ class DTOData:
         
         if not self.dto_gdf['Name'].str.contains('swath').any():
             self.dto_gdf = self.dto_gdf.loc[1:]
+        else:
+            self.dto_gdf = self.dto_gdf[~self.dto_gdf['Name'].str.contains('frame')]
         
         if info_list != None:
             self.dto_gdf = gpd.GeoDataFrame(geometry=self.dto_gdf.geometry)
