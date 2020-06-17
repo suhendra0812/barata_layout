@@ -1,20 +1,19 @@
-from radar_info import RadarInfo
-import sys
-from docxtpl import DocxTemplate, InlineImage
-from docx.shared import Mm
-import os
-import glob
+import sys, os, glob
 import pandas as pd
 from datetime import datetime
 from tkinter import Tk, filedialog
+from docxtpl import DocxTemplate, InlineImage
+from docx.shared import Mm
 
 # source paths
 BASE_PATH = "D:\\BARATA"
-TEMPLATE_PATH = 'templates\\tb'
+SCRIPT_PATH = f'{BASE_PATH}\\11.barata_layout'
+TEMPLATE_BASEPATH = 'templates\\tb'
 TBOUTPUT_BASEPATH = f'{BASE_PATH}\\8.technical_brief'
 
-sys.path.append(BASE_PATH)
+sys.path.append(SCRIPT_PATH)
 
+from info.radar_info import RadarInfo
 
 project_type = input('Pilih jenis project (ship/oils): ')
 
@@ -158,14 +157,14 @@ if project_type == 'ship':
             vms_text = "0"
 
         if ais_len > 0 and vms_len > 0:
-            TEMPLATE_PATH = f'{TEMPLATE_PATH}\\TB IUU TEMPLATE (AIS and VMS).docx'
+            TEMPLATE_PATH = f'{TEMPLATE_BASEPATH}\\TB IUU TEMPLATE (AIS and VMS).docx'
         elif ais_len > 0 or vms_len > 0:
             if ais_len > 0 and vms_len == 0:
-                TEMPLATE_PATH = f'{TEMPLATE_PATH}\\TB IUU TEMPLATE (AIS).docx'
+                TEMPLATE_PATH = f'{TEMPLATE_BASEPATH}\\TB IUU TEMPLATE (AIS).docx'
             elif ais_len == 0 and vms_len > 0:
-                TEMPLATE_PATH = f'{TEMPLATE_PATH}\\TB IUU TEMPLATE (VMS).docx'
+                TEMPLATE_PATH = f'{TEMPLATE_BASEPATH}\\TB IUU TEMPLATE (VMS).docx'
         else:
-            TEMPLATE_PATH = f'{TEMPLATE_PATH}\\TB IUU TEMPLATE (No AIS and VMS).docx'
+            TEMPLATE_PATH = f'{TEMPLATE_BASEPATH}\\TB IUU TEMPLATE (No AIS and VMS).docx'
 
     else:
         print('- Tidak ada data kapal')
@@ -179,13 +178,13 @@ if project_type == 'ship':
         vms_columns = []
         vms_rows = []
 
-        TEMPLATE_PATH = f'{TEMPLATE_PATH}\\TB IUU TEMPLATE (No Ship).docx'
+        TEMPLATE_PATH = f'{TEMPLATE_BASEPATH}\\TB IUU TEMPLATE (No Ship).docx'
 
     tpl = DocxTemplate(TEMPLATE_PATH)
 
     if len(layout_list) > 0:
         print('- Ada layout')
-        image = InlineImage( tpl, layout_list[0], width=Mm(163.5), height=Mm(115.6))
+        image = InlineImage(tpl, layout_list[0], width=Mm(163.5), height=Mm(115.6))
     else:
         print('- Tidak ada layout')
         image = 'Tidak ada layout peta'
@@ -230,11 +229,11 @@ else:
         latitude = oil_df[oil_df['Luas (km2)'] == max_area]['Latitude'].array[0]
 
         if oil_count > 1:
-            TEMPLATE_PATH = f'{TEMPLATE_PATH}\\TB OILSPILL TEMPLATE (More Oils).docx'
+            TEMPLATE_PATH = f'{TEMPLATE_BASEPATH}\\TB OILSPILL TEMPLATE (More Oils).docx'
         elif oil_count == 1:
-            TEMPLATE_PATH = f'{TEMPLATE_PATH}\\TB OILSPILL TEMPLATE (One Oil).docx'
+            TEMPLATE_PATH = f'{TEMPLATE_BASEPATH}\\TB OILSPILL TEMPLATE (One Oil).docx'
         else:
-            TEMPLATE_PATH = f'{TEMPLATE_PATH}\\TB OILSPILL TEMPLATE (No Oil).docx'
+            TEMPLATE_PATH = f'{TEMPLATE_BASEPATH}\\TB OILSPILL TEMPLATE (No Oil).docx'
 
     else:
         print('- Tidak ada data tumpahan minyak')
