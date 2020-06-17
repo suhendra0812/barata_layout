@@ -258,6 +258,7 @@ class AggregationData:
                 ignore_index=True,
             )
         )
+        self.data_gdf.drop_duplicates(inplace=True, ignore_index=True)
 
     def getAggGeoDataFrame(self):
         return self.data_gdf
@@ -283,6 +284,7 @@ class ShipData(AggregationData):
                     ignore_index=True,
                 )
             )
+            vms_gdf.drop_duplicates(inplace=True, ignore_index=True)
             vmsstat = vms_gdf[vms_gdf['status'] == 'vms']
 
             shipvms_gdf = gpd.sjoin(self.ship_gdf, vms_gdf, how='left')
