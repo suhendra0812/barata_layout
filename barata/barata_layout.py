@@ -74,7 +74,7 @@ class Project:
         return self.projectPath
 
     def getProjectBasename(self):
-        self.projectBasename
+        return self.projectBasename
 
     def getProjectType(self):
         return self.projectType
@@ -135,8 +135,11 @@ class DataList:
 
 
 class LayerExtent:
-    def __init__(self, layer_list):
-        self.layer_list = layer_list
+    def __init__(self, layer):
+        if isinstance(layer, list):
+            self.layer_list = layer
+        elif isinstance(layer, QgsVectorLayer):
+            self.layer_list = [layer]
 
     def getExtent(self):
         # set up extent
@@ -185,6 +188,73 @@ class LoadRasterLayer:
 
         # add raster layer to 'Basemap' group in 2nd order
         group.insertChildNode(2, QgsLayerTreeLayer(layer))
+
+
+class AggregationData:
+    def __init__(self, data_list):
+        self.data_list = data_list
+        self.data_gdf = gpd.GeoDataFrame(
+            pd.concat(
+                [gpd.read_file(data) for data in self.data_list],
+                ignore_index=True,
+            )
+        )
+        self.data_gdf.drop_duplicates(inplace=True, ignore_index=True)
+
+    def getAggGeoDataFrame(self):
+        return self.data_gdf
+    
+    def getAggLayer(self, layer_name):
+        data_json = self.data_gdf.to_json()
+        agg_layer = QgsVectorLayer(data_json, layer_name, 'ogr')
+        return agg_layer
+
+
+class LoadVectorLayer:
+    def __init__(self, layer, group, template_path):
+        QgsProject.instance().addMapLayer(layer, False)
+
+        # add layer to group
+        group.addLayer(layer)
+
+        # load style to the layer and show feature count
+        layer.loadNamedStyle(template_path)
+        QgsProject.instance().layerTreeRoot().findLayer(
+            layer).setCustomProperty("showFeatureCount", True)
+
+
+class ExportLayer:
+    def __init__(self, layer, path):
+        self.layer = layer
+        self.path = path
+        self.options = QgsVectorFileWriter.SaveVectorOptions()
+
+    def to_csv(self):
+        self.options.driverName = "CSV"
+        QgsVectorFileWriter.writeAsVectorFormatV2(
+            self.layer,
+            self.path,
+            QgsCoordinateTransformContext(),
+            self.options,
+        )
+
+    def to_shp(self):
+        self.options.driverName = "ESRI Shapefile"
+        QgsVectorFileWriter.writeAsVectorFormatV2(
+            self.layer,
+            self.path,
+            QgsCoordinateTransformContext(),
+            self.options,
+        )
+
+    def to_kml(self):
+        self.options.driverName = "KML"
+        QgsVectorFileWriter.writeAsVectorFormatV2(
+            self.layer,
+            self.path,
+            QgsCoordinateTransformContext(),
+            self.options,
+        )
 
 
 class WindData:
@@ -249,24 +319,6 @@ class WindData:
     def getWindGeoDataFrame(self):
         return self.wind_gdf
 
-class AggregationData:
-    def __init__(self, data_list):
-        self.data_list = data_list
-        self.data_gdf = gpd.GeoDataFrame(
-            pd.concat(
-                [gpd.read_file(data) for data in self.data_list],
-                ignore_index=True,
-            )
-        )
-        self.data_gdf.drop_duplicates(inplace=True, ignore_index=True)
-
-    def getAggGeoDataFrame(self):
-        return self.data_gdf
-    
-    def getAggLayer(self, layer_name):
-        data_json = self.data_gdf.to_json()
-        agg_layer = QgsVectorLayer(data_json, layer_name, 'ogr')
-        return agg_layer
 
 class ShipData(AggregationData):
     def __init__(self, data_list, vms_list):
@@ -481,53 +533,6 @@ class DelimitedData:
         )
         self.delimited_layer = QgsVectorLayer(self.uri, layer_name, "delimitedtext")
         return self.delimited_layer
-
-
-class LoadVectorLayer:
-    def __init__(self, layer, group, template_path):
-        QgsProject.instance().addMapLayer(layer, False)
-
-        # add layer to group
-        group.addLayer(layer)
-
-        # load style to the layer and show feature count
-        layer.loadNamedStyle(template_path)
-        QgsProject.instance().layerTreeRoot().findLayer(
-            layer).setCustomProperty("showFeatureCount", True)
-
-
-class ExportLayer:
-    def __init__(self, layer, path):
-        self.layer = layer
-        self.path = path
-        self.options = QgsVectorFileWriter.SaveVectorOptions()
-
-    def to_csv(self):
-        self.options.driverName = "CSV"
-        QgsVectorFileWriter.writeAsVectorFormatV2(
-            self.layer,
-            self.path,
-            QgsCoordinateTransformContext(),
-            self.options,
-        )
-
-    def to_shp(self):
-        self.options.driverName = "ESRI Shapefile"
-        QgsVectorFileWriter.writeAsVectorFormatV2(
-            self.layer,
-            self.path,
-            QgsCoordinateTransformContext(),
-            self.options,
-        )
-
-    def to_kml(self):
-        self.options.driverName = "KML"
-        QgsVectorFileWriter.writeAsVectorFormatV2(
-            self.layer,
-            self.path,
-            QgsCoordinateTransformContext(),
-            self.options,
-        )
 
 
 class DataElements:

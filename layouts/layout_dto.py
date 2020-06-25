@@ -99,7 +99,7 @@ dto_template = f'{TEMPLATE_PATH}\\layer\\dto_layer_template.qml'
 LoadVectorLayer(dto_layer, data_group, dto_template)
 
 # zoom to layer
-extent = LayerExtent([dto_layer]).getExtent()
+extent = LayerExtent(dto_layer).getExtent()
 
 # load wpp data and get WPP area which is overlaid within raster
 wpp_layer = WPPData(WPP_PATH, extent)
