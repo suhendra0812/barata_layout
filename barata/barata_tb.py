@@ -19,8 +19,10 @@ while True:
     option = input('Pilih jenis project (ship/oils): ')
     if option.lower() == 'ship':
         project_type = 'ship'
+        break
     elif option.lower() == 'oils':
         project_type = 'oils'
+        break
     else:
         print('Tipe project yang Anda masukkan tidak sesuai')
 
@@ -106,8 +108,8 @@ layout_basepath = f'{os.path.dirname(data_folder).replace("2.seonse_outputs","3.
 if project_type == 'ship':
     TBOUTPUT_NAME = f'TB IUU_{local_datetime} {wil.upper()}.docx'
 
-    ship_list = glob.glob(f'{data_folder}\\*ship.csv')
-    layout_list = glob.glob(f'{layout_basepath}\\*{local_datetime}*ship.png')
+    ship_list = glob.glob(f'{data_folder}\\*{local_datetime}_ship.csv')
+    layout_list = glob.glob(f'{layout_basepath}\\*{local_datetime}_ship.png')
 
     if len(ship_list) > 0:
         print('- Ada data kapal')
@@ -218,8 +220,8 @@ if project_type == 'ship':
 else:
     TBOUTPUT_NAME = f"TB OILSPILL_{local_datetime} {wil.upper()}.docx"
 
-    oil_list = glob.glob(f'{data_folder}\\*oils.csv')
-    layout_list = glob.glob(f'{layout_basepath}\\*{local_datetime}*oils**.png')
+    oil_list = glob.glob(f'{data_folder}\\*{local_datetime}_oils.csv')
+    layout_list = glob.glob(f'{layout_basepath}\\*{local_datetime}_oils**.png')
 
     if len(oil_list) > 0:
         print('- Ada data tumpahan minyak')
