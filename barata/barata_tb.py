@@ -15,7 +15,15 @@ sys.path.append(SCRIPT_PATH)
 
 from info.radar_info import RadarInfo
 
-project_type = input('Pilih jenis project (ship/oils): ')
+while True:
+    option = input('Pilih jenis project (ship/oils): ')
+    if option.lower() == 'ship':
+        project_type = 'ship'
+    elif option.lower() == 'oils':
+        project_type = 'oils'
+    else:
+        print('Tipe project yang Anda masukkan tidak sesuai')
+
 
 # input directory path
 Tk().withdraw()

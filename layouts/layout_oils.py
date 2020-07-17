@@ -46,7 +46,20 @@ basemap_group = project_layout.getBasemapGroup()
 data_group = project_layout.getDataGroup()
 
 # input directory path
-data_folder = FileDialog(BASE_PATH).open()
+while True:
+    option = input('Pilih metode layout (satu[1] atau gabungan[2]): ')
+    if option == '1' or option.lower() == 'satu':
+        method = 'satu'
+        break
+    elif option == '2' or option.lower() == 'gabungan':
+        method = 'gabungan'
+        break
+    else:
+        print('Metode layout yang Anda masukkan tidak sesuai')
+
+print(f'Metode layout: {method}')
+
+data_folder = FileDialog(BASE_PATH, method=method).open()
 
 print('\nSumber data:')
 print(data_folder)

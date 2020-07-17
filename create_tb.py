@@ -4,4 +4,4 @@ baratatb_path = "barata/barata_tb.py"
 
 os.system(f'python {baratatb_path}')
 
-input()
+input('\nKetik ENTER untuk keluar!')

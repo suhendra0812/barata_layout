@@ -49,7 +49,20 @@ basemap_group = project_layout.getBasemapGroup()
 data_group = project_layout.getDataGroup()
 
 # input directory path
-data_folder = FileDialog(BASE_PATH).open()
+while True:
+    option = input('Pilih metode layout (satu[1] atau gabungan[2]): ')
+    if option == '1' or option.lower() == 'satu':
+        method = 'satu'
+        break
+    elif option == '2' or option.lower() == 'gabungan':
+        method = 'gabungan'
+        break
+    else:
+        print('Metode layout yang Anda masukkan tidak sesuai')
+
+print(f'Metode layout: {method}')
+
+data_folder = FileDialog(BASE_PATH, method=method).open()
 
 print('\nSumber data:')
 print(data_folder)
@@ -148,6 +161,12 @@ if len(ship_list) > 0:
         vms_path = glob.glob(f'{BARATA_SHIP_PATH}\\{vms_ff}*\\*.shp')
         if len(vms_path) > 0:
             vms_list.append(vms_path[0])
+    
+    if len(vms_list) > 0:
+        print('- Ada data VMS')
+    else:
+        print('- Tidak ada data VMS')
+
 
     # get transmitted layer of ship data
     ship_data = ShipData(ship_list, vms_list)
@@ -174,6 +193,7 @@ else:
 
     feat_number = 0
     ship_gdf = None
+    shipdf_path = None
     ship_elements = DataElements(ship_gdf).getShipElements()
 
 # define layout manager
@@ -195,12 +215,13 @@ project_layout.saveProject(outputproj_path)
 
 print('\nLayout telah dibuat\n')
 
-# get vessel info
-print('======================================')
-print('\nMendapatkan informasi vessel...\n')
-ais_info = vessel_info.get_ais_info(shipdf_path)
-vms_info = vessel_info.get_vms_info(shipdf_path)
-print('======================================')
+if shipdf_path is not None:
+    # get vessel info
+    print('======================================')
+    print('\nMendapatkan informasi vessel...\n')
+    ais_info = vessel_info.get_ais_info(shipdf_path)
+    vms_info = vessel_info.get_vms_info(shipdf_path)
+    print('======================================')
 
 print('\nSelesai')
 

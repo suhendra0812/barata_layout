@@ -41,16 +41,22 @@ class QgsApp:
 
 
 class FileDialog:
-    def __init__(self, base_path):
+    def __init__(self, base_path, method='gabungan'):
         self.base_path = base_path
+        self.method = method
 
     def open(self, type='folder'):
         if type == 'dto':
             self.path = QFileDialog.getOpenFileName(
                 None, "Select DTO Directory", self.base_path, 'DTO Files (*.kml *.shp)')[0]
         else:
-            self.path = QFileDialog.getExistingDirectory(
-                None, 'Select Data Directory', self.base_path)[:-4] + '*'
+            if self.method == 'satu':
+                self.path = QFileDialog.getExistingDirectory(None, 'Select Data Directory', self.base_path)
+            elif self.method == 'gabungan':
+                self.path = QFileDialog.getExistingDirectory(None, 'Select Data Directory', self.base_path)[:-4] + '*'
+            else:
+                pass
+        
         return self.path
 
 
@@ -94,7 +100,7 @@ class Project:
             pass
 
         if len(self.basemapGroup.findLayers()) > 3:
-            self.rasterlayerRemove = self.basemapGroup.findLayers()[2:-1]
+            self.rasterlayerRemove = self.basemapGroup.findLayers()[3:-1]
             for layer in self.rasterlayerRemove:
                 self.basemapGroup.removeChildNode(layer)
         else:
