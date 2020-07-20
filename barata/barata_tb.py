@@ -28,7 +28,7 @@ while True:
 
 
 # input directory path
-Tk().withdraw()
+root = Tk()
 data_folder = filedialog.askdirectory(initialdir=f'{BASE_PATH}\\2.seonse_outputs', title='Select Data Directory')[:-4] + '*'
 #data_folder = QFileDialog.getExistingDirectory(None, 'Select Data Directory', f'{BASE_PATH}\\2.seonse_outputs')[:-4] + '*'
 
@@ -242,11 +242,18 @@ else:
             TEMPLATE_PATH = f'{TEMPLATE_BASEPATH}\\TB OILSPILL TEMPLATE (More Oils).docx'
         elif oil_count == 1:
             TEMPLATE_PATH = f'{TEMPLATE_BASEPATH}\\TB OILSPILL TEMPLATE (One Oil).docx'
-        else:
-            TEMPLATE_PATH = f'{TEMPLATE_BASEPATH}\\TB OILSPILL TEMPLATE (No Oil).docx'
 
     else:
         print('- Tidak ada data tumpahan minyak')
+
+        oil_count = 0
+        total_area = 0
+        max_area = 0
+        number = '-'
+        longitude = '-'
+        latitude = '-'
+
+        TEMPLATE_PATH = f'{TEMPLATE_BASEPATH}\\TB OILSPILL TEMPLATE (No Oil).docx'
 
     tpl = DocxTemplate(TEMPLATE_PATH)
 
