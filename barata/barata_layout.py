@@ -193,7 +193,7 @@ class LoadRasterLayer:
         layer.dataProvider().setUserNoDataValue(1, [QgsRasterRange(0, 0)])
 
         # add raster layer to 'Basemap' group in 2nd order
-        group.insertChildNode(2, QgsLayerTreeLayer(layer))
+        group.insertChildNode(3, QgsLayerTreeLayer(layer))
 
 
 class AggregationData:
