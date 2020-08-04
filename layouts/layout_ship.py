@@ -10,6 +10,7 @@ QGIS_PATH = 'C:\\OSGeo4W64\\apps\\qgis'
 PROJECT_PATH = f'{TEMPLATE_PATH}\\project\\layout_ship.qgz'
 WPP_PATH = f'{BASEMAP_PATH}\\WPP_Full_PermenKP182014.shp'
 OPENLAYOUT_PATH = 'utils\\open_layout.py'
+QGIS_BAT = 'C:\\OSGeo4W64\\bin\\qgis.bat'
 
 sys.path.append(SCRIPT_PATH)
 
@@ -235,6 +236,6 @@ ymin = raster_extent.yMinimum()
 ymax = raster_extent.yMaximum()
 
 # open current project using command line
-os.system(f'qgis --projectfile {outputproj_path} --extent {xmin},{ymin},{xmax},{ymax} --code {OPENLAYOUT_PATH}')
+os.system(f'{QGIS_BAT} --projectfile {outputproj_path} --extent {xmin},{ymin},{xmax},{ymax} --code {OPENLAYOUT_PATH}')
 
 print('\nMembuka project layout...')
