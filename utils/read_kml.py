@@ -12,61 +12,80 @@ from itertools import groupby
 class DTO:
     def __init__(self, dto_path, i):
         with open(dto_path) as dto:
-            self.dto_content = dto.read()
-            self.tree = ElementTree.fromstring(self.dto_content)
-            self.kmlns = self.tree.tag.split('}')[0][1:]
-            self.name_elems = self.tree.findall(".//{%s}name" % self.kmlns)
+            dto_content = dto.read()
+            tree = ElementTree.fromstring(dto_content)
+            kmlns = tree.tag.split('}')[0][1:]
+            name_elems = tree.findall(".//{%s}name" % kmlns)
 
-            if self.name_elems[0].text[:10] == 'RADARSAT-2':
-                self.desc_elems = self.tree.findall(".//{%s}description" % self.kmlns)
+            if name_elems[0].text[:10] == 'RADARSAT-2':
+                desc_elems = tree.findall(".//{%s}description" % kmlns)
 
-                self.info_list = []
-                for desc_elem in self.desc_elems:
+                info_list = []
+                for desc_elem in desc_elems:
                     desc = desc_elem.text.split('\n')[1:-1]
 
                     desc_dict = {}
                     for d in desc:
                         x = d.split(': ')
                         desc_dict[x[0]] = x[1]
-                    self.info_list.append(desc_dict)
+                    info_list.append(desc_dict)
 
-                self.dto_dict = self.info_list[1:][i-1]
+                self.dto_dict = info_list[1:][i-1]
+
+            elif name_elems[1].text[:-2] == 'Cosmo-SkyMed':
+                edata_elems = tree.findall('.//{%s}ExtendedData' % kmlns)
+                self.dto_dict = {}
+                for i, data in enumerate(edata_elems[i], start=1):
+                        name = data.get('name')
+                        for value in data:
+                                self.dto_dict.update({name: value.text})
+                
+                self.dto_dict['Sensor'] = self.dto_dict['Sensor'].split('-')[0].strip()
+                self.dto_dict['Sensor Mode'] = self.dto_dict.pop('Sensor')
+                self.dto_dict['Beam'] = self.dto_dict.pop('SensorMode')
+                self.dto_dict['Start'] = self.dto_dict['Start'].replace('T', ' ')
+                self.dto_dict['End'] = self.dto_dict['End'].replace('T', ' ')
+                self.dto_dict['Sensing Start'] = self.dto_dict.pop('Start')
+                self.dto_dict['Sensing Stop'] = self.dto_dict.pop('End')
+                self.dto_dict['Orbit Direction'] = self.dto_dict.pop('Pass')
+                self.dto_dict['Look Side'] = self.dto_dict.pop('Slew')
+                self.dto_dict['Look Angle'] = self.dto_dict.pop('LookAngle')
 
             else:
-                self.b_elems = self.tree.findall(".//{%s}b" % self.kmlns)
-                self.desc = [b.text for b in self.b_elems]
-                self.info_list = self.desc[2:]
+                b_elems = tree.findall(".//{%s}b" % kmlns)
+                desc = [b.text for b in b_elems]
+                info_list = desc[2:]
 
                 def split_condition(x):
                     return x in {' '}
 
-                self.grouper = groupby(self.info_list, key=split_condition)
-                self.info_grouped = dict(enumerate((list(j) for i, j in self.grouper if not i), 1))
+                grouper = groupby(info_list, key=split_condition)
+                info_grouped = dict(enumerate((list(j) for i, j in grouper if not i), 1))
 
-                self.info = self.info_grouped[i]
+                info = info_grouped[i]
 
-                self.pr_id = self.info[0]
-                self.ar_counter = self.info[1]
-                self.sensing_start = self.info[2]
-                self.sensing_stop = self.info[3]
-                self.sensor_mode = self.info[4]
-                self.satellite = self.info[5]
-                self.orbit_direction = self.info[6]
-                self.look_side = self.info[7]
-                self.look_angle = self.info[8]
-                self.beam = self.info[9]
+                pr_id = info[0]
+                ar_counter = info[1]
+                sensing_start = info[2]
+                sensing_stop = info[3]
+                sensor_mode = info[4]
+                satellite = info[5]
+                orbit_direction = info[6]
+                look_side = info[7]
+                look_angle = info[8]
+                beam = info[9]
 
                 self.dto_dict = {
-                    'PR ID': self.pr_id,
-                    'AR Counter': self.ar_counter,
-                    'Sensing Start': self.sensing_start,
-                    'Sensing Stop': self.sensing_stop,
-                    'Sensor Mode': self.sensor_mode,
-                    'Satellite': self.satellite,
-                    'Orbit Direction': self.orbit_direction,
-                    'Look Side': self.look_side,
-                    'Look Angle': self.look_angle,
-                    'Beam': self.beam,
+                    'PR ID': pr_id,
+                    'AR Counter': ar_counter,
+                    'Sensing Start': sensing_start,
+                    'Sensing Stop': sensing_stop,
+                    'Sensor Mode': sensor_mode,
+                    'Satellite': satellite,
+                    'Orbit Direction': orbit_direction,
+                    'Look Side': look_side,
+                    'Look Angle': look_angle,
+                    'Beam': beam,
                 }
 
     def to_dict(self):
@@ -77,21 +96,21 @@ class DTO:
 
 class AIS:
     def __init__(self, data_path):
-        self.longitude = []
-        self.latitude = []
-        self.shipnumber = []
-        self.targetlength = []
-        self.ais_mmsi = []
-        self.geometry = []
+        longitude = []
+        latitude = []
+        shipnumber = []
+        targetlength = []
+        ais_mmsi = []
+        geometry = []
 
-        self.zipfilelist = glob.glob(f'{data_path}\\*SHIPKML.zip')
-        if len(self.zipfilelist) > 0:
-            self.zipfilepath = self.zipfilelist[0]
-            self.shipfilepath = glob.glob(f'{data_path}\\*SHIP.shp')[0]
+        zipfilelist = glob.glob(f'{data_path}\\*SHIPKML.zip')
+        if len(zipfilelist) > 0:
+            zipfilepath = zipfilelist[0]
+            shipfilepath = glob.glob(f'{data_path}\\*SHIP.shp')[0]
 
-            with ZipFile(self.zipfilepath) as theZip:
-                self.fileNames = theZip.namelist()
-                for fileName in self.fileNames:
+            with ZipFile(zipfilepath) as theZip:
+                fileNames = theZip.namelist()
+                for fileName in fileNames:
                     if fileName.endswith('kml'):
                         content = theZip.open(fileName).read()
                         tree = ElementTree.fromstring(content)
@@ -104,9 +123,9 @@ class AIS:
                                 x_coord = float(coords[0])
                                 y_coord = float(coords[1])
                                 geom = Point(x_coord, y_coord)
-                                self.longitude.append(x_coord)
-                                self.latitude.append(y_coord)
-                                self.geometry.append(geom)
+                                longitude.append(x_coord)
+                                latitude.append(y_coord)
+                                geometry.append(geom)
                         for data in data_elems:
                             name = data.get('name')
                             if name == 'AIS MMSI':
@@ -115,26 +134,26 @@ class AIS:
                                     aismmsi = int(mmsi)
                                 else:
                                     aismmsi = None
-                                self.ais_mmsi.append(aismmsi)
+                                ais_mmsi.append(aismmsi)
                             if name == 'Ship Number':
                                 number = data.find(".//{%s}value" % kmlns).text
-                                self.shipnumber.append(int(number))
+                                shipnumber.append(int(number))
                             if name == 'Target Length':
                                 length = data.find(".//{%s}value" % kmlns).text
-                                self.targetlength.append(float(length))
+                                targetlength.append(float(length))
 
-            self.ais_dict = {
-                'LON_CENTRE': self.longitude,
-                'LAT_CENTRE': self.latitude,
-                'SHIP_ID': self.shipnumber,
-                'LENGTH': self.targetlength,
-                'AIS_MMSI': self.ais_mmsi,
+            ais_dict = {
+                'LON_CENTRE': longitude,
+                'LAT_CENTRE': latitude,
+                'SHIP_ID': shipnumber,
+                'LENGTH': targetlength,
+                'AIS_MMSI': ais_mmsi,
             }
-            self.aisdf = pd.DataFrame(self.ais_dict)
-            self.aisdf['AIS_MMSI'] = self.aisdf['AIS_MMSI'].where(pd.notnull(self.aisdf['AIS_MMSI']), None)
-            self.shipgdf = gpd.read_file(self.shipfilepath)
-            self.shipgdf['AIS_MMSI'] = self.aisdf['AIS_MMSI']
-            self.shipgdf.to_file(self.shipfilepath)
+            aisdf = pd.DataFrame(ais_dict)
+            aisdf['AIS_MMSI'] = aisdf['AIS_MMSI'].where(pd.notnull(aisdf['AIS_MMSI']), None)
+            self.shipgdf = gpd.read_file(shipfilepath)
+            self.shipgdf['AIS_MMSI'] = aisdf['AIS_MMSI']
+            self.shipgdf.to_file(shipfilepath)
 
     def to_gdf(self):
         return self.shipgdf
