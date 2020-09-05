@@ -12,9 +12,6 @@ BASE_PATH = 'D:\\BARATA'
 BARATA_SHIP_PATH = f'{BASE_PATH}\\7.barata_ship\\output\\'
 
 AISDATA_BASEPATH = f'{BASE_PATH}\\10.ais'
-AIS_INFO_PATH = f'{AISDATA_BASEPATH}\\ais_info.csv'
-ais_infodf = pd.read_csv(AIS_INFO_PATH)
-
 
 def get_ais_info(ship_path):
     # read ship data
