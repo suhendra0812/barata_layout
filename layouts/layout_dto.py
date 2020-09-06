@@ -83,17 +83,16 @@ if not os.path.exists(OUTPUT_FOLDER):
     except:
         os.mkdir(OUTPUT_FOLDER)
 
-dtogdf_path = f'{OUTPUT_FOLDER}/{layer_name}.shp'
+dtogdf_path = f'{OUTPUT_FOLDER}/{layer_name}.geojson'
 newdto_path = f'{OUTPUT_FOLDER}/{layer_name}.kml'
 
 shutil.copyfile(dto_path, newdto_path)
 
 # create and get dto temporary layer
 dto_data = DTOData(dto_path, dtoinfo_list)
-dto_layer = dto_data.getDTOLayer(dtoinfo_list[0].sat_id)
-feat_list = [i for i in dto_layer.getFeatures()]
 dto_gdf = dto_data.getDTOGeoDataFrame()
-dto_gdf.to_file(dtogdf_path)
+dto_gdf.to_file(dtogdf_path, driver='GeoJSON')
+dto_layer = dto_data.getLayer(dtogdf_path, dtoinfo_list[0].sat_id)
 
 # load dto layer to project
 dto_template = f'{TEMPLATE_PATH}/layer/dto_layer_template.qml'

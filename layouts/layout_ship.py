@@ -123,7 +123,7 @@ if len(wind_list) > 0:
     wind_data = WindData(wind_list)
     wind_range = wind_data.windrange
     wind_direction = wind_data.dire
-    windgdf = wind_data.getWindGeoDataFrame()
+    windgdf = wind_data.getGeoDataFrame()
 else:
     print('- Tidak ada data angin')
     wind_data = None
@@ -145,6 +145,7 @@ if len(ship_list) > 0:
 
     # define transmitted layer name and ship csv path
     trmlayer_name = f'{layer_name[:-4]}AIS/VMS'
+    shipgdf_path = f'{OUTPUT_FOLDER}/{layer_name}.geojson'
     shipdf_path = f'{OUTPUT_FOLDER}/{layer_name}.csv'
 
     # define path of ship template
@@ -171,11 +172,12 @@ if len(ship_list) > 0:
 
     # get transmitted layer of ship data
     ship_data = ShipData(ship_list, vms_list)
-    ship_layer = ship_data.getShipLayer(layer_name)
-    ship2_layer = ship_data.getShipLayer(trmlayer_name)
     ship_gdf = ship_data.getShipGeoDataFrame()
+    ship_gdf.to_file(shipgdf_path, driver='GeoJSON')
     ship_df = ship_data.getShipDataFrame()
     ship_df.to_csv(shipdf_path)
+    ship_layer = ship_data.getLayer(shipgdf_path, layer_name)
+    ship2_layer = ship_data.getLayer(shipgdf_path, trmlayer_name)
 
     # get ship elements and feature number
     ship_elements = DataElements(ship_gdf).getShipElements()

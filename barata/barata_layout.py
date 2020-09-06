@@ -207,13 +207,12 @@ class AggregationData:
         )
         self.data_gdf.drop_duplicates(inplace=True, ignore_index=True)
 
-    def getAggGeoDataFrame(self):
+    def getGeoDataFrame(self):
         return self.data_gdf
     
-    def getAggLayer(self, layer_name):
-        data_json = self.data_gdf.to_json()
-        agg_layer = QgsVectorLayer(data_json, layer_name, 'ogr')
-        return agg_layer
+    def getLayer(self, layer_path, layer_name):
+        layer = QgsVectorLayer(layer_path, layer_name, 'ogr')
+        return layer
 
 
 class LoadVectorLayer:
@@ -229,49 +228,12 @@ class LoadVectorLayer:
             layer).setCustomProperty("showFeatureCount", True)
 
 
-class ExportLayer:
-    def __init__(self, layer, path):
-        self.layer = layer
-        self.path = path
-        self.options = QgsVectorFileWriter.SaveVectorOptions()
-
-    def to_csv(self):
-        self.options.driverName = "CSV"
-        QgsVectorFileWriter.writeAsVectorFormatV2(
-            self.layer,
-            self.path,
-            QgsCoordinateTransformContext(),
-            self.options,
-        )
-
-    def to_shp(self):
-        self.options.driverName = "ESRI Shapefile"
-        QgsVectorFileWriter.writeAsVectorFormatV2(
-            self.layer,
-            self.path,
-            QgsCoordinateTransformContext(),
-            self.options,
-        )
-
-    def to_kml(self):
-        self.options.driverName = "KML"
-        QgsVectorFileWriter.writeAsVectorFormatV2(
-            self.layer,
-            self.path,
-            QgsCoordinateTransformContext(),
-            self.options,
-        )
-
-
-class WindData:
+class WindData(AggregationData):
     def __init__(self, wind_list):
+        super().__init__(wind_list)
+        
         # read wind data 'gml' in a list
-        self.wind_gdf = gpd.GeoDataFrame(
-            pd.concat(
-                [gpd.read_file(wind) for wind in wind_list],
-                ignore_index=True,
-            )
-        )
+        self.wind_gdf = super().getGeoDataFrame()
 
         if self.wind_gdf[['speed', 'meridionalSpeed', 'zonalSpeed']].isnull().all().all():
             self.windrange = self.dire = 'n/a'
@@ -322,15 +284,12 @@ class WindData:
             else:
                 self.dire = "Utara"
 
-    def getWindGeoDataFrame(self):
-        return self.wind_gdf
-
 
 class ShipData(AggregationData):
     def __init__(self, data_list, vms_list):
         super().__init__(data_list)
         
-        self.ship_gdf = super().getAggGeoDataFrame()
+        self.ship_gdf = super().getGeoDataFrame()
         self.vms_list = vms_list
 
         self.ship_gdf['DESC'] = ['AIS' if i is not None else None for i in self.ship_gdf['AIS_MMSI']]
@@ -343,14 +302,13 @@ class ShipData(AggregationData):
                 )
             )
             vms_gdf.drop_duplicates(inplace=True, ignore_index=True)
-            vmsstat = vms_gdf[vms_gdf['status'] == 'vms']
 
             shipvms_gdf = gpd.sjoin(self.ship_gdf, vms_gdf, how='left')
 
             for i in range(len(shipvms_gdf)):
                 if shipvms_gdf.loc[i,'status'] == 'vms':
                     self.ship_gdf.loc[i,'DESC'] = 'VMS'
-
+    
     def getShipGeoDataFrame(self):
         return self.ship_gdf
     
@@ -374,20 +332,15 @@ class ShipData(AggregationData):
 
         return shipfilter_df
 
-    def getShipLayer(self, layer_name):
-        ship_json = self.ship_gdf.to_json()
-        ship_layer = QgsVectorLayer(ship_json, layer_name, 'ogr')
-        return ship_layer
 
-
-class OilData(AggregationData, WindData):
+class OilData(WindData):
     def __init__(self, oil_list, wind_list):
         AggregationData.__init__(self, oil_list)
-        self.oil_gdf = AggregationData.getAggGeoDataFrame(self)
+        self.oil_gdf = AggregationData.getGeoDataFrame(self)
         
         if len(wind_list) > 0:
             WindData.__init__(self, wind_list)
-            self.wind_gdf = WindData.getWindGeoDataFrame(self)
+            self.wind_gdf = WindData.getGeoDataFrame(self)
 
             windoil_gdf = gpd.sjoin(self.oil_gdf, self.wind_gdf, how='left')
             wspd_min = windoil_gdf.groupby(id)['speed'].agg('min')
@@ -429,12 +382,7 @@ class OilData(AggregationData, WindData):
         oilfilter_gdf.index.name = 'No.'
         return oilfilter_gdf
 
-    def getOilLayer(self, layer_name):
-        oil_json = self.oil_gdf.to_json()
-        oil_layer = QgsVectorLayer(oil_json, layer_name, 'ogr')
-        return oil_layer
-
-class DTOData:
+class DTOData(AggregationData):
     def __init__(self, dto_path, info_list=None):
         self.dto_path = dto_path
 
@@ -494,11 +442,6 @@ class DTOData:
     
     def getDTOGeoDataFrame(self):
         return self.dto_gdf
-
-    def getDTOLayer(self, layer_name):
-        dto_json = self.dto_gdf.to_json()
-        dto_layer = QgsVectorLayer(dto_json, layer_name, 'ogr')
-        return dto_layer
 
 
 class WPPData:

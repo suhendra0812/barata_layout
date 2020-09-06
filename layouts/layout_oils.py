@@ -120,7 +120,7 @@ if len(wind_list) > 0:
     wind_data = WindData(wind_list)
     wind_range = wind_data.windrange
     wind_direction = wind_data.dire
-    wind_gdf = wind_data.getWindGeoDataFrame()
+    wind_gdf = wind_data.getGeoDataFrame()
 else:
     print('- Tidak ada data angin')
     wind_data = None
@@ -142,14 +142,16 @@ if len(oil_list) > 0:
 
     # define path of oil template and oil csv path
     oil_template = f'{TEMPLATE_PATH}/layer/oils_level_layer_template.qml'
+    oilgdf_path = f'{OUTPUT_FOLDER}/{layer_name}.geojson'
     oildf_path = f'{OUTPUT_FOLDER}/{layer_name}.csv'
 
     # get aggregation and transmitted layer of oil data
     oil_data = OilData(oil_list, wind_list)
-    oil_layer = oil_data.getOilLayer(layer_name)
     oil_gdf = oil_data.getOilGeoDataFrame()
+    oil_gdf.to_file(oilgdf_path, driver='GeoJSON')
     oil_df = oil_data.getOilDataFrame()
     oil_df.to_csv(oildf_path)
+    oil_layer = oil_data.getLayer(oilgdf_path, layer_name)
 
     # get oil elements and feature number
     oil_elements = DataElements(oil_gdf).getOilElements()
