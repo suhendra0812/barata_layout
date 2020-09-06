@@ -51,12 +51,14 @@ class FileDialog:
                 None, "Select DTO Directory", self.base_path, 'DTO Files (*.kml *.shp)')[0]
         else:
             if self.method == 'satu':
-                self.path = QFileDialog.getExistingDirectory(None, 'Select Data Directory', self.base_path)
+                self.path = QFileDialog.getExistingDirectory(
+                    None, 'Select Data Directory', self.base_path)
             elif self.method == 'gabungan':
-                self.path = QFileDialog.getExistingDirectory(None, 'Select Data Directory', self.base_path)[:-4] + '*'
+                self.path = QFileDialog.getExistingDirectory(
+                    None, 'Select Data Directory', self.base_path)[:-4] + '*'
             else:
                 pass
-        
+
         return self.path
 
 
@@ -209,7 +211,7 @@ class AggregationData:
 
     def getGeoDataFrame(self):
         return self.data_gdf
-    
+
     def getLayer(self, layer_path, layer_name):
         layer = QgsVectorLayer(layer_path, layer_name, 'ogr')
         return layer
@@ -231,7 +233,7 @@ class LoadVectorLayer:
 class WindData(AggregationData):
     def __init__(self, wind_list):
         super().__init__(wind_list)
-        
+
         # read wind data 'gml' in a list
         self.wind_gdf = super().getGeoDataFrame()
 
@@ -239,8 +241,10 @@ class WindData(AggregationData):
             self.windrange = self.dire = 'n/a'
         else:
             self.wind_gdf['speed'] = self.wind_gdf['speed'].astype(float)
-            self.wind_gdf['meridionalSpeed'] = self.wind_gdf['meridionalSpeed'].astype(float)
-            self.wind_gdf['zonalSpeed'] = self.wind_gdf['zonalSpeed'].astype(float)
+            self.wind_gdf['meridionalSpeed'] = self.wind_gdf['meridionalSpeed'].astype(
+                float)
+            self.wind_gdf['zonalSpeed'] = self.wind_gdf['zonalSpeed'].astype(
+                float)
 
             # calculate wind direction using atan2 formula
             self.wind_gdf['direction'] = np.arctan2(
@@ -288,11 +292,12 @@ class WindData(AggregationData):
 class ShipData(AggregationData):
     def __init__(self, data_list, vms_list):
         super().__init__(data_list)
-        
+
         self.ship_gdf = super().getGeoDataFrame()
         self.vms_list = vms_list
 
-        self.ship_gdf['DESC'] = ['AIS' if i is not None else None for i in self.ship_gdf['AIS_MMSI']]
+        self.ship_gdf['DESC'] = [
+            'AIS' if i is not None else None for i in self.ship_gdf['AIS_MMSI']]
 
         if len(self.vms_list) > 0:
             vms_gdf = gpd.GeoDataFrame(
@@ -306,15 +311,16 @@ class ShipData(AggregationData):
             shipvms_gdf = gpd.sjoin(self.ship_gdf, vms_gdf, how='left')
 
             for i in range(len(shipvms_gdf)):
-                if shipvms_gdf.loc[i,'status'] == 'vms':
-                    self.ship_gdf.loc[i,'DESC'] = 'VMS'
-    
+                if shipvms_gdf.loc[i, 'status'] == 'vms':
+                    self.ship_gdf.loc[i, 'DESC'] = 'VMS'
+
     def getShipGeoDataFrame(self):
         return self.ship_gdf
-    
+
     def getShipDataFrame(self):
         shipfilter_df = self.ship_gdf.copy()
-        shipfilter_df = shipfilter_df[['LON_CENTRE', 'LAT_CENTRE', 'TARGET_DIR', 'LENGTH', 'DESC', 'AIS_MMSI']]
+        shipfilter_df = shipfilter_df[[
+            'LON_CENTRE', 'LAT_CENTRE', 'TARGET_DIR', 'LENGTH', 'DESC', 'AIS_MMSI']]
         shipfilter_df.rename(
             columns={
                 'LON_CENTRE': 'Longitude',
@@ -326,7 +332,7 @@ class ShipData(AggregationData):
             },
             inplace=True,
         )
-        
+
         shipfilter_df.index += 1
         shipfilter_df.index.name = 'No.'
 
@@ -337,7 +343,7 @@ class OilData(WindData):
     def __init__(self, oil_list, wind_list):
         AggregationData.__init__(self, oil_list)
         self.oil_gdf = AggregationData.getGeoDataFrame(self)
-        
+
         if len(wind_list) > 0:
             WindData.__init__(self, wind_list)
             self.wind_gdf = WindData.getGeoDataFrame(self)
@@ -353,18 +359,22 @@ class OilData(WindData):
             self.oil_gdf['WSPDMEAN'] = wspd_mean
             self.oil_gdf['WDIRMEAN'] = wdir_mean
         else:
-            self.oil_gdf['WSPDMIN'] = [np.nan for i in range(len(self.oil_gdf))]
-            self.oil_gdf['WSPDMAX'] = [np.nan for i in range(len(self.oil_gdf))]
-            self.oil_gdf['WSPDMEAN'] = [np.nan for i in range(len(self.oil_gdf))]
-            self.oil_gdf['WDIRMEAN'] = [np.nan for i in range(len(self.oil_gdf))]
-
+            self.oil_gdf['WSPDMIN'] = [
+                np.nan for i in range(len(self.oil_gdf))]
+            self.oil_gdf['WSPDMAX'] = [
+                np.nan for i in range(len(self.oil_gdf))]
+            self.oil_gdf['WSPDMEAN'] = [
+                np.nan for i in range(len(self.oil_gdf))]
+            self.oil_gdf['WDIRMEAN'] = [
+                np.nan for i in range(len(self.oil_gdf))]
 
     def getOilGeoDataFrame(self):
         return self.oil_gdf
-    
+
     def getOilDataFrame(self):
         oilfilter_gdf = self.oil_gdf.copy()
-        oilfilter_gdf = oilfilter_gdf[['BARIC_LON', 'BARIC_LAT', 'LENGTH_KM', 'AREA_KM', 'WSPDMEAN', 'WDIRMEAN', 'ALARM_LEV']]
+        oilfilter_gdf = oilfilter_gdf[[
+            'BARIC_LON', 'BARIC_LAT', 'LENGTH_KM', 'AREA_KM', 'WSPDMEAN', 'WDIRMEAN', 'ALARM_LEV']]
         oilfilter_gdf.rename(
             columns={
                 'BARIC_LON': 'Longitude',
@@ -382,18 +392,20 @@ class OilData(WindData):
         oilfilter_gdf.index.name = 'No.'
         return oilfilter_gdf
 
+
 class DTOData(AggregationData):
     def __init__(self, dto_path, info_list=None):
         self.dto_path = dto_path
 
         gpd.io.file.fiona.drvsupport.supported_drivers['KML'] = 'rw'
         self.dto_gdf = gpd.read_file(dto_path, driver='KML')
-        
+
         if not self.dto_gdf['Name'].str.contains('swath').any():
             self.dto_gdf = self.dto_gdf.loc[1:]
         else:
-            self.dto_gdf = self.dto_gdf[~self.dto_gdf['Name'].str.contains('frame')]
-        
+            self.dto_gdf = self.dto_gdf[~self.dto_gdf['Name'].str.contains(
+                'frame')]
+
         if info_list != None:
             self.dto_gdf = gpd.GeoDataFrame(geometry=self.dto_gdf.geometry)
             sat_list = []
@@ -421,7 +433,7 @@ class DTOData(AggregationData):
                     dire = info_list[i].dto_info['Orbit Direction']
                     side = info_list[i].dto_info['Look Side']
                     angle = info_list[i].dto_info['Look Angle']
-                
+
                 sat_list.append(sat)
                 mode_list.append(mode)
                 beam_list.append(beam)
@@ -430,7 +442,7 @@ class DTOData(AggregationData):
                 dire_list.append(dire)
                 side_list.append(side)
                 angle_list.append(angle)
-                
+
             self.dto_gdf["Satellite"] = sat_list
             self.dto_gdf["Mode"] = mode_list
             self.dto_gdf["Start Time"] = start_list
@@ -439,7 +451,7 @@ class DTOData(AggregationData):
             self.dto_gdf["Look Side"] = side_list
             self.dto_gdf["Look Angle"] = angle_list
             self.dto_gdf["Beam"] = beam_list
-    
+
     def getDTOGeoDataFrame(self):
         return self.dto_gdf
 
@@ -459,7 +471,7 @@ class WPPData:
         self.wpp_gdf = gpd.read_file(wpp_path)
 
         self.wpp_filter = self.wpp_gdf.cx[self.xmin:self.xmax,
-                                         self.ymin:self.ymax]
+                                          self.ymin:self.ymax]
         self.wpp_list = [wpp[-3:] for wpp in self.wpp_filter['WPP']]
 
         if len(self.wpp_list) == 1:
@@ -475,27 +487,10 @@ class WPPData:
         return self.wpp_gdf
 
 
-class DelimitedData:
-    def __init__(self, data_path, layer_name):
-        self.data_path = data_path
-
-    def getDelimitedLayer(self):
-        self.uri = (
-            f"file:///{data_path}?"
-            "&delimiter=,"
-            "&xField=Longitude"
-            "&yField=Latitude"
-            "&crs=EPSG:4326"
-            "&decimal"
-        )
-        self.delimited_layer = QgsVectorLayer(self.uri, layer_name, "delimitedtext")
-        return self.delimited_layer
-
-
 class DataElements:
     def __init__(self, data_gdf):
         self.data_gdf = data_gdf
-    
+
     def getShipElements(self):
         if self.data_gdf is not None:
             # get VMS count
