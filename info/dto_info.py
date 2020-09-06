@@ -1,9 +1,9 @@
-import sys
+import os, sys
 from datetime import datetime, timedelta
 
 # source paths
-BASE_PATH = "D:\\BARATA"
-SCRIPT_PATH = f'{BASE_PATH}\\11.barata_layout'
+SCRIPT_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+BASE_PATH = os.path.dirname(SCRIPT_PATH)
 
 sys.path.append(SCRIPT_PATH)
 

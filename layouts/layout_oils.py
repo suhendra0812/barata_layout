@@ -1,15 +1,15 @@
 import sys, os
 
 # source paths
-BASE_PATH = "D:\\BARATA"
-SCRIPT_PATH = f'{BASE_PATH}\\11.barata_layout'
-BASEMAP_PATH = f'{BASE_PATH}\\1.basemaps'
-TEMPLATE_PATH = 'templates'
-QGIS_PATH = 'C:\\OSGeo4W64\\apps\\qgis'
-PROJECT_PATH = f'{TEMPLATE_PATH}\\project\\layout_oils.qgz'
-WPP_PATH = f'{BASEMAP_PATH}\\WPP_Full_PermenKP182014.shp'
-OPENLAYOUT_PATH = 'utils\\open_layout.py'
-QGIS_BAT = 'C:\\OSGeo4W64\\bin\\qgis.bat'
+SCRIPT_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+BASE_PATH = os.path.dirname(SCRIPT_PATH)
+BASEMAP_PATH = f'{BASE_PATH}/1.basemaps'
+TEMPLATE_PATH = f'{SCRIPT_PATH}/templates'
+QGIS_PATH = 'C:/OSGeo4W64/apps/qgis'
+PROJECT_PATH = f'{TEMPLATE_PATH}/project/layout_oils.qgz'
+WPP_PATH = f'{BASEMAP_PATH}/WPP_Full_PermenKP182014.shp'
+OPENLAYOUT_PATH = f'{SCRIPT_PATH}/utils/open_layout.py'
+QGIS_BAT = 'C:/OSGeo4W64/bin/qgis.bat'
 
 sys.path.append(SCRIPT_PATH)
 
@@ -141,8 +141,8 @@ if len(oil_list) > 0:
     print('- Ada data tumpahan minyak')
 
     # define path of oil template and oil csv path
-    oil_template = f'{TEMPLATE_PATH}\\layer\\oils_level_layer_template.qml'
-    oildf_path = f'{OUTPUT_FOLDER}\\{layer_name}.csv'
+    oil_template = f'{TEMPLATE_PATH}/layer/oils_level_layer_template.qml'
+    oildf_path = f'{OUTPUT_FOLDER}/{layer_name}.csv'
 
     # get aggregation and transmitted layer of oil data
     oil_data = OilData(oil_list, wind_list)
@@ -196,7 +196,7 @@ layout_manager.insertSourceText()
 layout_manager.setLayoutName(layer_name)
 
 # save project
-outputproj_path = f'{OUTPUT_FOLDER}\\{layer_name}.qgz'
+outputproj_path = f'{OUTPUT_FOLDER}/{layer_name}.qgz'
 project_layout.saveProject(outputproj_path)
 
 print('\nLayout telah dibuat\n')
@@ -213,6 +213,6 @@ ymin = raster_extent.yMinimum()
 ymax = raster_extent.yMaximum()
 
 # open current project using command line
-os.system(f'{QGIS_BAT} --projectfile {outputproj_path} --extent {xmin},{ymin},{xmax},{ymax} --code {OPENLAYOUT_PATH}')
+os.system(f'{QGIS_BAT} --project {outputproj_path} --extent {xmin},{ymin},{xmax},{ymax} --code {OPENLAYOUT_PATH}')
 
 print('\nMembuka project layout...')

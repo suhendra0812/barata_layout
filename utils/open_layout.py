@@ -2,8 +2,8 @@ import sys, os, glob
 import pandas as pd
 
 # source paths
-BASE_PATH = "D:\\BARATA"
-SCRIPT_PATH = f'{BASE_PATH}\\11.barata_layout'
+SCRIPT_PATH = os.getcwd()
+BASE_PATH = os.path.dirname(SCRIPT_PATH)
 
 sys.path.append(SCRIPT_PATH)
 from barata.barata_layout import Project, Layout
@@ -17,7 +17,7 @@ data_folder = os.path.dirname(project_path)
 
 # get data list from directory based on project type
 if project_type == 'oils':
-    data_list = glob.glob(f'{data_folder}\\*oils.csv')
+    data_list = glob.glob(f'{data_folder}/*oils.csv')
     if len(data_list) > 0:
         datadf = pd.read_csv(data_list[-1])
         feat_number = len(datadf)

@@ -1,16 +1,16 @@
 import sys, os, glob
 
 # source paths
-BASE_PATH = "D:\\BARATA"
-SCRIPT_PATH = f'{BASE_PATH}\\11.barata_layout'
-BASEMAP_PATH = f'{BASE_PATH}\\1.basemaps'
-BARATA_SHIP_PATH = f'{BASE_PATH}\\7.barata_ship\\output'
-TEMPLATE_PATH = 'templates'
-QGIS_PATH = 'C:\\OSGeo4W64\\apps\\qgis'
-PROJECT_PATH = f'{TEMPLATE_PATH}\\project\\layout_ship.qgz'
-WPP_PATH = f'{BASEMAP_PATH}\\WPP_Full_PermenKP182014.shp'
-OPENLAYOUT_PATH = 'utils\\open_layout.py'
-QGIS_BAT = 'C:\\OSGeo4W64\\bin\\qgis.bat'
+SCRIPT_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+BASE_PATH = os.path.dirname(SCRIPT_PATH)
+BASEMAP_PATH = f'{BASE_PATH}/1.basemaps'
+BARATA_SHIP_PATH = f'{BASE_PATH}/7.barata_ship/output'
+TEMPLATE_PATH = f'{SCRIPT_PATH}/templates'
+QGIS_PATH = 'C:/OSGeo4W64/apps/qgis'
+PROJECT_PATH = f'{TEMPLATE_PATH}/project/layout_ship.qgz'
+WPP_PATH = f'{BASEMAP_PATH}/WPP_Full_PermenKP182014.shp'
+OPENLAYOUT_PATH = f'{SCRIPT_PATH}/utils/open_layout.py'
+QGIS_BAT = 'C:/OSGeo4W64/bin/qgis.bat'
 
 sys.path.append(SCRIPT_PATH)
 
@@ -145,11 +145,11 @@ if len(ship_list) > 0:
 
     # define transmitted layer name and ship csv path
     trmlayer_name = f'{layer_name[:-4]}AIS/VMS'
-    shipdf_path = f'{OUTPUT_FOLDER}\\{layer_name}.csv'
+    shipdf_path = f'{OUTPUT_FOLDER}/{layer_name}.csv'
 
     # define path of ship template
-    ship_template = f'{TEMPLATE_PATH}\\layer\\ship_size_color_layer_template.qml'
-    trm_template = f'{TEMPLATE_PATH}\\layer\\ais_vms_layer_template.qml'
+    ship_template = f'{TEMPLATE_PATH}/layer/ship_size_color_layer_template.qml'
+    trm_template = f'{TEMPLATE_PATH}/layer/ais_vms_layer_template.qml'
 
     for ship_path in ship_list:
         # get AIS_MMSI information on KML file
@@ -159,7 +159,7 @@ if len(ship_list) > 0:
     vms_list = []
     for raster_path in raster_list:
         vms_ff = os.path.dirname(raster_path)[-15:].replace('_', '')
-        vms_path = glob.glob(f'{BARATA_SHIP_PATH}\\{vms_ff}*\\*.shp')
+        vms_path = glob.glob(f'{BARATA_SHIP_PATH}/{vms_ff}*/*.shp')
         if len(vms_path) > 0:
             vms_list.append(vms_path[0])
     
@@ -211,7 +211,7 @@ layout_manager.insertSourceText()
 layout_manager.setLayoutName(layer_name)
 
 # save project
-outputproj_path = f'{OUTPUT_FOLDER}\\{layer_name}.qgz'
+outputproj_path = f'{OUTPUT_FOLDER}/{layer_name}.qgz'
 project_layout.saveProject(outputproj_path)
 
 print('\nLayout telah dibuat\n')
@@ -236,6 +236,6 @@ ymin = raster_extent.yMinimum()
 ymax = raster_extent.yMaximum()
 
 # open current project using command line
-os.system(f'{QGIS_BAT} --projectfile {outputproj_path} --extent {xmin},{ymin},{xmax},{ymax} --code {OPENLAYOUT_PATH}')
+os.system(f'{QGIS_BAT} --project {outputproj_path} --extent {xmin},{ymin},{xmax},{ymax} --code {OPENLAYOUT_PATH}')
 
 print('\nMembuka project layout...')

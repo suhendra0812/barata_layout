@@ -17,41 +17,7 @@ class DTO:
             kmlns = tree.tag.split('}')[0][1:]
             name_elems = tree.findall(".//{%s}name" % kmlns)
 
-            if name_elems[0].text[:10] == 'RADARSAT-2':
-                desc_elems = tree.findall(".//{%s}description" % kmlns)
-
-                info_list = []
-                for desc_elem in desc_elems:
-                    desc = desc_elem.text.split('\n')[1:-1]
-
-                    desc_dict = {}
-                    for d in desc:
-                        x = d.split(': ')
-                        desc_dict[x[0]] = x[1]
-                    info_list.append(desc_dict)
-
-                self.dto_dict = info_list[1:][i-1]
-
-            elif name_elems[1].text[:-2] == 'Cosmo-SkyMed':
-                edata_elems = tree.findall('.//{%s}ExtendedData' % kmlns)
-                self.dto_dict = {}
-                for i, data in enumerate(edata_elems[i], start=1):
-                        name = data.get('name')
-                        for value in data:
-                                self.dto_dict.update({name: value.text})
-                
-                self.dto_dict['Sensor'] = self.dto_dict['Sensor'].split('-')[0].strip()
-                self.dto_dict['Sensor Mode'] = self.dto_dict.pop('Sensor')
-                self.dto_dict['Beam'] = self.dto_dict.pop('SensorMode')
-                self.dto_dict['Start'] = self.dto_dict['Start'].replace('T', ' ')
-                self.dto_dict['End'] = self.dto_dict['End'].replace('T', ' ')
-                self.dto_dict['Sensing Start'] = self.dto_dict.pop('Start')
-                self.dto_dict['Sensing Stop'] = self.dto_dict.pop('End')
-                self.dto_dict['Orbit Direction'] = self.dto_dict.pop('Pass')
-                self.dto_dict['Look Side'] = self.dto_dict.pop('Slew')
-                self.dto_dict['Look Angle'] = self.dto_dict.pop('LookAngle')
-
-            else:
+            if name_elems[3].text[:4] == 'PROG':
                 b_elems = tree.findall(".//{%s}b" % kmlns)
                 desc = [b.text for b in b_elems]
                 info_list = desc[2:]
@@ -88,6 +54,40 @@ class DTO:
                     'Beam': beam,
                 }
 
+            elif name_elems[0].text[:10] == 'RADARSAT-2':
+                desc_elems = tree.findall(".//{%s}description" % kmlns)
+
+                info_list = []
+                for desc_elem in desc_elems:
+                    desc = desc_elem.text.split('\n')[1:-1]
+
+                    desc_dict = {}
+                    for d in desc:
+                        x = d.split(': ')
+                        desc_dict[x[0]] = x[1]
+                    info_list.append(desc_dict)
+
+                self.dto_dict = info_list[1:][i-1]
+
+            elif name_elems[1].text[:-2] == 'Cosmo-SkyMed':
+                edata_elems = tree.findall('.//{%s}ExtendedData' % kmlns)
+                self.dto_dict = {}
+                for i, data in enumerate(edata_elems[i], start=1):
+                        name = data.get('name')
+                        for value in data:
+                                self.dto_dict.update({name: value.text})
+                
+                self.dto_dict['Sensor'] = self.dto_dict['Sensor'].split('-')[0].strip()
+                self.dto_dict['Sensor Mode'] = self.dto_dict.pop('Sensor')
+                self.dto_dict['Beam'] = self.dto_dict.pop('SensorMode')
+                self.dto_dict['Start'] = self.dto_dict['Start'].replace('T', ' ')
+                self.dto_dict['End'] = self.dto_dict['End'].replace('T', ' ')
+                self.dto_dict['Sensing Start'] = self.dto_dict.pop('Start')
+                self.dto_dict['Sensing Stop'] = self.dto_dict.pop('End')
+                self.dto_dict['Orbit Direction'] = self.dto_dict.pop('Pass')
+                self.dto_dict['Look Side'] = self.dto_dict.pop('Slew')
+                self.dto_dict['Look Angle'] = self.dto_dict.pop('LookAngle')
+
     def to_dict(self):
         return self.dto_dict
 
@@ -103,10 +103,10 @@ class AIS:
         ais_mmsi = []
         geometry = []
 
-        zipfilelist = glob.glob(f'{data_path}\\*SHIPKML.zip')
+        zipfilelist = glob.glob(f'{data_path}/*SHIPKML.zip')
         if len(zipfilelist) > 0:
             zipfilepath = zipfilelist[0]
-            shipfilepath = glob.glob(f'{data_path}\\*SHIP.shp')[0]
+            shipfilepath = glob.glob(f'{data_path}/*SHIP.shp')[0]
 
             with ZipFile(zipfilepath) as theZip:
                 fileNames = theZip.namelist()

@@ -1,16 +1,16 @@
 import sys, os, shutil
 
 # source paths
-BASE_PATH = "D:\\BARATA"
-SCRIPT_PATH = f'{BASE_PATH}\\11.barata_layout'
-BASEMAP_PATH = f'{BASE_PATH}\\1.basemaps'
-DTO_BASEPATH = f'{BASE_PATH}\\6.dto'
-TEMPLATE_PATH = 'templates'
-QGIS_PATH = 'C:\\OSGeo4W64\\apps\\qgis'
-PROJECT_PATH = f'{TEMPLATE_PATH}\\project\\layout_dto.qgz'
-WPP_PATH = f'{BASEMAP_PATH}\\WPP_Full_PermenKP182014.shp'
-OPENLAYOUT_PATH = 'utils\\open_layout.py'
-QGIS_BAT = 'C:\\OSGeo4W64\\bin\\qgis.bat'
+SCRIPT_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+BASE_PATH = os.path.dirname(SCRIPT_PATH)
+BASEMAP_PATH = f'{BASE_PATH}/1.basemaps'
+DTO_BASEPATH = f'{BASE_PATH}/6.dto'
+TEMPLATE_PATH = f'{SCRIPT_PATH}/templates'
+QGIS_PATH = 'C:/OSGeo4W64/apps/qgis'
+PROJECT_PATH = f'{TEMPLATE_PATH}/project/layout_dto.qgz'
+WPP_PATH = f'{BASEMAP_PATH}/WPP_Full_PermenKP182014.shp'
+OPENLAYOUT_PATH = f'{SCRIPT_PATH}/utils/open_layout.py'
+QGIS_BAT = 'C:/OSGeo4W64/bin/qgis.bat'
 
 sys.path.append(SCRIPT_PATH)
 
@@ -75,7 +75,7 @@ if dtoinfo_list[0].sat == 'RADARSAT-2':
 else:
     sat_dir = 'cosmo_skymed'
 
-OUTPUT_FOLDER = f'{DTO_BASEPATH}\\{sat_dir}\\{local[:6]}\\{local[:8]}\\{layer_name[:-4]}'
+OUTPUT_FOLDER = f'{DTO_BASEPATH}/{sat_dir}/{local[:6]}/{local[:8]}/{layer_name[:-4]}'
 
 if not os.path.exists(OUTPUT_FOLDER):
     try:
@@ -83,8 +83,8 @@ if not os.path.exists(OUTPUT_FOLDER):
     except:
         os.mkdir(OUTPUT_FOLDER)
 
-dtogdf_path = f'{OUTPUT_FOLDER}\\{layer_name}.shp'
-newdto_path = f'{OUTPUT_FOLDER}\\{layer_name}.kml'
+dtogdf_path = f'{OUTPUT_FOLDER}/{layer_name}.shp'
+newdto_path = f'{OUTPUT_FOLDER}/{layer_name}.kml'
 
 shutil.copyfile(dto_path, newdto_path)
 
@@ -96,7 +96,7 @@ dto_gdf = dto_data.getDTOGeoDataFrame()
 dto_gdf.to_file(dtogdf_path)
 
 # load dto layer to project
-dto_template = f'{TEMPLATE_PATH}\\layer\\dto_layer_template.qml'
+dto_template = f'{TEMPLATE_PATH}/layer/dto_layer_template.qml'
 LoadVectorLayer(dto_layer, data_group, dto_template)
 
 # zoom to layer
@@ -115,7 +115,7 @@ layout_manager.insertTitleText()
 layout_manager.insertNoteText()
 
 # save project
-outputproj_path = f'{OUTPUT_FOLDER}\\{layer_name}.qgz'
+outputproj_path = f'{OUTPUT_FOLDER}/{layer_name}.qgz'
 project_layout.saveProject(outputproj_path)
 
 print('\nLayout telah dibuat\n')
@@ -131,6 +131,6 @@ ymin = extent.yMinimum()
 ymax = extent.yMaximum()
 
 # open current project using command line
-os.system(f'{QGIS_BAT} --projectfile {outputproj_path} --extent {xmin},{ymin},{xmax},{ymax} --code {OPENLAYOUT_PATH}')
+os.system(f'{QGIS_BAT} --project {outputproj_path} --extent {xmin},{ymin},{xmax},{ymax} --code {OPENLAYOUT_PATH}')
 
 print('\nMembuka project layout...')

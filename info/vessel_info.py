@@ -8,10 +8,10 @@ from datetime import datetime, timedelta
 from zipfile import ZipFile
 #from tkinter import Tk, filedialog
 
-BASE_PATH = 'D:\\BARATA'
-BARATA_SHIP_PATH = f'{BASE_PATH}\\7.barata_ship\\output\\'
-
-AISDATA_BASEPATH = f'{BASE_PATH}\\10.ais'
+SCRIPT_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+BASE_PATH = os.path.dirname(SCRIPT_PATH)
+BARATA_SHIP_PATH = f'{BASE_PATH}/7.barata_ship/output/'
+AISDATA_BASEPATH = f'{BASE_PATH}/10.ais'
 
 def get_ais_info(ship_path):
     # read ship data
@@ -24,7 +24,7 @@ def get_ais_info(ship_path):
     ship_basepath = os.path.dirname(ship_path)
 
     # read AIS data in the data folder if available
-    ais_paths = glob.glob(f'{ship_basepath}\\*ais.csv')
+    ais_paths = glob.glob(f'{ship_basepath}/*ais.csv')
 
     # check if there is ship with AIS associated
     if (shipfilterdf['Asosiasi (AIS/VMS)'] == 'AIS').any():
@@ -37,12 +37,12 @@ def get_ais_info(ship_path):
         # startdate = (shipdate - timedelta(hours=1)).strftime('%Y-%m-%dT%H:%M:%S')
         # stopdate = (shipdate + timedelta(hours=1)).strftime('%Y-%m-%dT%H:%M:%S')
 
-        #aisdata_list = glob.glob(f'{AISDATA_BASEPATH}\\{ship_basepath[-15:-11]}\\*{ship_basepath[-15:-7]}*_ais.csv')
-        aisdata_list = glob.glob(f'{AISDATA_BASEPATH}\\{ship_basepath[-15:-11]}\\*{ship_basepath[-15:-7]}*.zip')
+        #aisdata_list = glob.glob(f'{AISDATA_BASEPATH}/{ship_basepath[-15:-11]}/*{ship_basepath[-15:-7]}*_ais.csv')
+        aisdata_list = glob.glob(f'{AISDATA_BASEPATH}/{ship_basepath[-15:-11]}/*{ship_basepath[-15:-7]}*.zip')
 
         if len(aisdata_list) > 0:
             aisdatazip_path = aisdata_list[0]
-            aisdatacsv_path = f'{os.path.dirname(aisdatazip_path)}\\indo_{ship_basepath[-15:-7]}_ais.csv'
+            aisdatacsv_path = f'{os.path.dirname(aisdatazip_path)}/indo_{ship_basepath[-15:-7]}_ais.csv'
 
             # extract ais data csv in zip file
             if not os.path.exists(aisdatacsv_path):
@@ -111,7 +111,7 @@ def get_vms_info(ship_path):
     shipfilterdf = shipfilterdf[~pd.isnull(shipfilterdf['Asosiasi (AIS/VMS)'])]
 
     # read VMS data in the data folder if available
-    vms_paths = glob.glob(f'{os.path.dirname(ship_path)}\\*_vms.csv')
+    vms_paths = glob.glob(f'{os.path.dirname(ship_path)}/*_vms.csv')
 
     # check if there is ship with VMS associated
     if (shipfilterdf['Asosiasi (AIS/VMS)'] == 'VMS').any():
@@ -119,7 +119,7 @@ def get_vms_info(ship_path):
 
         # read output of VMS correlation analysis
         vms_ff = os.path.dirname(ship_path)[-15:].replace('_', '')[:-4]
-        vms_list = glob.glob(f'{BARATA_SHIP_PATH}\\{vms_ff}*\\*.csv')
+        vms_list = glob.glob(f'{BARATA_SHIP_PATH}/{vms_ff}*/*.csv')
 
         if len(vms_list) > 0:
 
@@ -165,9 +165,9 @@ def get_vms_info(ship_path):
 
             # #alternative correlated VMS directory
             # correlated_path = os.path.dirname(ship_path).replace('2.seonse_outputs','12.correlated_ship')
-            # vms_list = glob.glob(f'{correlated_path}\\*CORRELATED.shp')
+            # vms_list = glob.glob(f'{correlated_path}/*CORRELATED.shp')
             # if len(vms_list) > 0:
-            #     vmsdata_list = glob.glob(f'{correlated_path}\\*vms.csv')
+            #     vmsdata_list = glob.glob(f'{correlated_path}/*vms.csv')
 
             #     vmsgdf = gpd.GeoDataFrame(pd.concat([gpd.read_file(vms_path) for vms_path in vms_list], ignore_index=True))
             #     vmsgdf = vmsgdf[vmsgdf['STATUS'].isin(['VMS'])]
@@ -213,7 +213,7 @@ data_paths = glob.glob(filedialog.askdirectory(initialdir = BASE_PATH, title = "
 #data_paths = filedialog.askopenfilename(initialdir = basePath, title = "Choose data ship file", filetypes = (("CSV files","*.csv"),("all files","*.*")))
 #data_paths = QFileDialog.getOpenFileName(None, "Choose data ship file", basePath, 'CSV Files (*.csv)')[0]
 for data_path in data_paths:
-    ship_paths = glob.glob(f'{data_path}\\*ship.csv')
+    ship_paths = glob.glob(f'{data_path}/*ship.csv')
     if len(ship_paths) > 0:
         for ship_path in ship_paths:
             print (os.path.basename(ship_path)[:-4])

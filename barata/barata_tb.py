@@ -6,9 +6,9 @@ from docxtpl import DocxTemplate, InlineImage
 from docx.shared import Mm
 
 # source paths
-BASE_PATH = "D:/BARATA"
-SCRIPT_PATH = f'{BASE_PATH}/11.barata_layout'
-TEMPLATE_BASEPATH = 'templates/tb'
+SCRIPT_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+BASE_PATH = os.path.dirname(SCRIPT_PATH)
+TEMPLATE_BASEPATH = f'{SCRIPT_PATH}/templates/tb'
 TBOUTPUT_BASEPATH = f'{BASE_PATH}/8.technical_brief'
 
 sys.path.append(SCRIPT_PATH)
@@ -26,10 +26,24 @@ while True:
     else:
         print('Tipe project yang Anda masukkan tidak sesuai')
 
+while True:
+    option = input('Pilih jenis tb (satu[1] atau gabungan[2]): ')
+    if option == '1' or option.lower() == 'satu':
+        method = 'satu'
+        break
+    elif option == '2' or option.lower() == 'gabungan':
+        method = 'gabungan'
+        break
+    else:
+        print('Metode layout yang Anda masukkan tidak sesuai')
+
 
 # input directory path
 root = Tk()
-data_folder = filedialog.askdirectory(initialdir=f'{BASE_PATH}/2.seonse_outputs', title='Select Data Directory')[:-4] + '*'
+if method == 'satu':
+    data_folder = filedialog.askdirectory(initialdir=f'{BASE_PATH}/2.seonse_outputs', title='Select Data Directory')
+else:
+    data_folder = filedialog.askdirectory(initialdir=f'{BASE_PATH}/2.seonse_outputs', title='Select Data Directory')[:-4] + '*'
 #data_folder = QFileDialog.getExistingDirectory(None, 'Select Data Directory', f'{BASE_PATH}/2.seonse_outputs')[:-4] + '*'
 
 print('\nSumber data:')
@@ -100,6 +114,9 @@ else:
 location = wil.capitalize()
 if location == 'Kepri':
     location = 'Kepulauan Riau'
+elif location == 'Seribu':
+    location == 'Kepulauan Seribu'
+
 radar = rdr_name
 date = f'{tgl_local} {(bulan_dict[bln_local]).capitalize()} {thn_local}'
 
@@ -289,14 +306,15 @@ else:
     }
 
 tpl.render(context)
-tboutput_path = f'{TBOUTPUT_BASEPATH}/{local_datetime[:4]}/{local_datetime[:6]}/{TBOUTPUT_NAME}'
+tboutput_path = f'{TBOUTPUT_BASEPATH}/{local_datetime[:4]}/{local_datetime[:6]}'
+
 if not os.path.exists(tboutput_path):
-    os.makedirs(os.path.dirname(tboutput_path))
+    os.makedirs(tboutput_path)
 else:
     pass
 
-tpl.save(tboutput_path)
+tpl.save(f'{tboutput_path}/{TBOUTPUT_NAME}')
 print('\nTB telah dibuat\n')
 
 print('Membuka TB...')
-os.startfile(tboutput_path)
+os.startfile(f'{tboutput_path}/{TBOUTPUT_NAME}')

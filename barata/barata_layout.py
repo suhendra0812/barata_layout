@@ -124,19 +124,19 @@ class DataList:
         self.base_path = base_path
 
     def getRasterList(self):
-        self.rasterList = glob.glob(f'{self.base_path}\\*.tif')
+        self.rasterList = glob.glob(f'{self.base_path}/*.tif')
         return self.rasterList
 
     def getShipList(self):
-        self.shipList = glob.glob(f'{self.base_path}\\*SHIP.shp')
+        self.shipList = glob.glob(f'{self.base_path}/*SHIP.shp')
         return self.shipList
 
     def getOilList(self):
-        self.oilList = glob.glob(f'{self.base_path}\\*OIL.shp')
+        self.oilList = glob.glob(f'{self.base_path}/*OIL.shp')
         return self.oilList
 
     def getWindList(self):
-        self.windList = glob.glob(f'{self.base_path}\\*Wind.gml')
+        self.windList = glob.glob(f'{self.base_path}/*Wind.gml')
         return self.windList
 
 
@@ -384,19 +384,27 @@ class OilData(AggregationData, WindData):
     def __init__(self, oil_list, wind_list):
         AggregationData.__init__(self, oil_list)
         self.oil_gdf = AggregationData.getAggGeoDataFrame(self)
-        WindData.__init__(self, wind_list)
-        self.wind_gdf = WindData.getWindGeoDataFrame(self)
+        
+        if len(wind_list) > 0:
+            WindData.__init__(self, wind_list)
+            self.wind_gdf = WindData.getWindGeoDataFrame(self)
 
-        windoil_gdf = gpd.sjoin(self.oil_gdf, self.wind_gdf, how='left')
-        wspd_min = windoil_gdf.groupby(id)['speed'].agg('min')
-        wspd_max = windoil_gdf.groupby(id)['speed'].agg('max')
-        wspd_mean = windoil_gdf.groupby(id)['speed'].agg('mean')
-        wdir_mean = windoil_gdf.groupby(id)['direction'].agg('mean')
+            windoil_gdf = gpd.sjoin(self.oil_gdf, self.wind_gdf, how='left')
+            wspd_min = windoil_gdf.groupby(id)['speed'].agg('min')
+            wspd_max = windoil_gdf.groupby(id)['speed'].agg('max')
+            wspd_mean = windoil_gdf.groupby(id)['speed'].agg('mean')
+            wdir_mean = windoil_gdf.groupby(id)['direction'].agg('mean')
 
-        self.oil_gdf['WSPDMIN'] = wspd_min
-        self.oil_gdf['WSPDMAX'] = wspd_max
-        self.oil_gdf['WSPDMEAN'] = wspd_mean
-        self.oil_gdf['WDIRMEAN'] = wdir_mean
+            self.oil_gdf['WSPDMIN'] = wspd_min
+            self.oil_gdf['WSPDMAX'] = wspd_max
+            self.oil_gdf['WSPDMEAN'] = wspd_mean
+            self.oil_gdf['WDIRMEAN'] = wdir_mean
+        else:
+            self.oil_gdf['WSPDMIN'] = [np.nan for i in range(len(self.oil_gdf))]
+            self.oil_gdf['WSPDMAX'] = [np.nan for i in range(len(self.oil_gdf))]
+            self.oil_gdf['WSPDMEAN'] = [np.nan for i in range(len(self.oil_gdf))]
+            self.oil_gdf['WDIRMEAN'] = [np.nan for i in range(len(self.oil_gdf))]
+
 
     def getOilGeoDataFrame(self):
         return self.oil_gdf
