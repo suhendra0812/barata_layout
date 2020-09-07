@@ -289,6 +289,8 @@ class ShipData(AggregationData):
                 if shipvms_gdf.loc[i, 'status'] == 'vms':
                     self.ship_gdf.loc[i, 'DESC'] = 'VMS'
 
+        self.ship_gdf.drop_duplicates(inplace=True, ignore_index=True)
+
     def getShipGeoDataFrame(self):
         return self.ship_gdf
 

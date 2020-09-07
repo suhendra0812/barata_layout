@@ -38,21 +38,20 @@ def get_ais_info(ship_path):
         # stopdate = (shipdate + timedelta(hours=1)).strftime('%Y-%m-%dT%H:%M:%S')
 
         #aisdata_list = glob.glob(f'{AISDATA_BASEPATH}/{ship_basepath[-15:-11]}/*{ship_basepath[-15:-7]}*_ais.csv')
-        aisdata_list = glob.glob(f'{AISDATA_BASEPATH}/{ship_basepath[-15:-11]}/*{ship_basepath[-15:-7]}*.zip')
+        aisdata_list = glob.glob(f'{AISDATA_BASEPATH}/{ship_basepath[-15:-11]}/SEnSE-{ship_basepath[-15:-7]}*.zip')
 
         if len(aisdata_list) > 0:
             aisdatazip_path = aisdata_list[0]
             aisdatacsv_path = f'{os.path.dirname(aisdatazip_path)}/indo_{ship_basepath[-15:-7]}_ais.csv'
 
             # extract ais data csv in zip file
-            if not os.path.exists(aisdatacsv_path):
-                with ZipFile(aisdatazip_path) as theZip:
-                    fileNames = theZip.namelist()
-                    for fileName in fileNames:
-                        if fileName.endswith('csv'):
-                            with theZip.open(fileName) as f:
-                                with open(aisdatacsv_path, 'wb') as outfile:
-                                    shutil.copyfileobj(f, outfile)
+            with ZipFile(aisdatazip_path) as theZip:
+                fileNames = theZip.namelist()
+                for fileName in fileNames:
+                    if fileName.endswith('csv'):
+                        with theZip.open(fileName) as f:
+                            with open(aisdatacsv_path, 'wb') as outfile:
+                                shutil.copyfileobj(f, outfile)
 
             # read ais data csv
             aisdatadf = pd.read_csv(aisdatacsv_path)

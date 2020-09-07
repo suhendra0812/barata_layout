@@ -125,8 +125,8 @@ layout_basepath = f'{os.path.dirname(data_folder).replace("2.seonse_outputs","3.
 if project_type == 'ship':
     TBOUTPUT_NAME = f'TB IUU_{local_datetime} {wil.upper()}.docx'
 
-    ship_list = glob.glob(f'{data_folder}/*{local_datetime}_ship.csv')
-    layout_list = glob.glob(f'{layout_basepath}/*{local_datetime}_ship.png')
+    ship_list = glob.glob(f'{data_folder}/*{local_datetime}_ship*.csv')
+    layout_list = glob.glob(f'{layout_basepath}/*{local_datetime}_ship*.png')
 
     if len(ship_list) > 0:
         print('- Ada data kapal')
