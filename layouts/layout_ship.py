@@ -79,7 +79,7 @@ if len(raster_list) > 0:
     raster_extent = LayerExtent(rasterlayer_list).getExtent()
 
     for rasterlayer in rasterlayer_list:
-        load_raster = LoadLayer(PROJECT_PATH, rasterlayer)
+        load_raster = LoadLayer(project_layout, rasterlayer)
         load_raster.addRasterToMap()
 
     # get radar info from raster filename
@@ -180,8 +180,8 @@ if len(ship_list) > 0:
     feat_number = len(ship_gdf)
 
     # load two ship layers to project
-    load_ship = LoadLayer(PROJECT_PATH, ship_layer, ship_template)
-    load_ship2 = LoadLayer(PROJECT_PATH, ship2_layer, trm_template)
+    load_ship = LoadLayer(project_layout, ship_layer, ship_template)
+    load_ship2 = LoadLayer(project_layout, ship2_layer, trm_template)
     load_ship.addVectorToMap()
     load_ship2.addVectorToMap()
 
