@@ -65,7 +65,7 @@ class FileDialog:
 class Project:
     def __init__(self, project_path=None):
         # get project information
-        if project_path != None:
+        if project_path is not None:
             QgsProject.instance().read(project_path)
         else:
             pass
@@ -186,18 +186,6 @@ class RasterLayer:
         return self.rasterlayer_list
 
 
-class LoadRasterLayer:
-    def __init__(self, layer, group):
-        QgsProject.instance().addMapLayer(layer, False)
-
-        # remove NoData value
-        layer.dataProvider().setNoDataValue(1, 0)
-        layer.dataProvider().setUserNoDataValue(1, [QgsRasterRange(0, 0)])
-
-        # add raster layer to 'Basemap' group in 2nd order
-        group.insertChildNode(3, QgsLayerTreeLayer(layer))
-
-
 class AggregationData:
     def __init__(self, data_list):
         self.data_list = data_list
@@ -215,19 +203,6 @@ class AggregationData:
     def getLayer(self, layer_path, layer_name):
         layer = QgsVectorLayer(layer_path, layer_name, 'ogr')
         return layer
-
-
-class LoadVectorLayer:
-    def __init__(self, layer, group, template_path):
-        QgsProject.instance().addMapLayer(layer, False)
-
-        # add layer to group
-        group.addLayer(layer)
-
-        # load style to the layer and show feature count
-        layer.loadNamedStyle(template_path)
-        QgsProject.instance().layerTreeRoot().findLayer(
-            layer).setCustomProperty("showFeatureCount", True)
 
 
 class WindData(AggregationData):
@@ -346,9 +321,9 @@ class OilData(WindData):
 
         if len(wind_list) > 0:
             WindData.__init__(self, wind_list)
-            self.wind_gdf = WindData.getGeoDataFrame(self)
+            wind_gdf = WindData.getGeoDataFrame(self)
 
-            windoil_gdf = gpd.sjoin(self.oil_gdf, self.wind_gdf, how='left')
+            windoil_gdf = gpd.sjoin(self.oil_gdf, wind_gdf, how='left')
             wspd_min = windoil_gdf.groupby(id)['speed'].agg('min')
             wspd_max = windoil_gdf.groupby(id)['speed'].agg('max')
             wspd_mean = windoil_gdf.groupby(id)['speed'].agg('mean')
@@ -602,6 +577,35 @@ class DataElements:
         print(f"\nTotal jumlah tumpahan minyak\t\t\t= {self.hi+self.lo}")
 
         return [self.hi, self.lo, self.lenmin, self.lenmax, self.widmin, self.widmax]
+
+
+class LoadLayer:
+    def __init__(self, project, layer, template=None):
+        self.data_group = project.getDataGroup()
+        self.basemap_group = project.getBasemapGroup()
+        
+        self.layer = layer
+        QgsProject.instance().addMapLayer(layer, False)
+
+        if template is not None:
+            self.template = template
+
+    def addRasterToMap(self):
+        # remove NoData value
+        self.layer.dataProvider().setNoDataValue(1, 0)
+        self.layer.dataProvider().setUserNoDataValue(1, [QgsRasterRange(0, 0)])
+
+        # add raster layer to 'Basemap' group in 2nd order
+        self.basemap_group.insertChildNode(3, QgsLayerTreeLayer(self.layer))
+    
+    def addVectorToMap(self):
+        # add layer to group
+        self.data_group.addLayer(self.layer)
+
+        # load style to the layer and show feature count
+        self.layer.loadNamedStyle(self.template)
+        QgsProject.instance().layerTreeRoot().findLayer(
+            self.layer).setCustomProperty("showFeatureCount", True)
 
 
 class Layout:

@@ -20,12 +20,11 @@ from barata.barata_layout import (
     DataList,
     RasterLayer,
     LayerExtent,
-    LoadRasterLayer,
     WindData,
     WPPData,
     OilData,
-    LoadVectorLayer,
     DataElements,
+    LoadLayer,
     Layout,
 )
 from info.radar_info import RadarInfo
@@ -81,7 +80,8 @@ if len(raster_list) > 0:
     raster_extent = LayerExtent(rasterlayer_list).getExtent()
 
     for rasterlayer in rasterlayer_list:
-        LoadRasterLayer(rasterlayer, basemap_group)
+        load_raster = LoadLayer(project_layout, rasterlayer)
+        load_raster.addRasterToMap()
 
     # get radar info from raster filename
     wil = os.path.basename(OUTPUT_FOLDER)[:-16]
@@ -158,7 +158,8 @@ if len(oil_list) > 0:
     feat_number = len(oil_gdf)
 
     # load oil layer to project
-    LoadVectorLayer(oil_layer, data_group, oil_template)
+    load_oils = LoadLayer(project_layout, oil_layer, oil_template)
+    load_oils.addVectorToMap()
 
     # overlay wpp layer and oil extent
     oil_extent = oil_gdf.total_bounds

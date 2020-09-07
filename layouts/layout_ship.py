@@ -21,11 +21,10 @@ from barata.barata_layout import (
     DataList,
     RasterLayer,
     LayerExtent,
-    LoadRasterLayer,
     WindData,
     WPPData,
     ShipData,
-    LoadVectorLayer,
+    LoadLayer,
     DataElements,
     Layout,
 )
@@ -44,10 +43,6 @@ project_layout.removeLayerHistory()
 project_type = project_layout.getProjectType()
 
 print(f'\nTipe project: {project_type}')
-
-# define group
-basemap_group = project_layout.getBasemapGroup()
-data_group = project_layout.getDataGroup()
 
 # input directory path
 while True:
@@ -84,7 +79,8 @@ if len(raster_list) > 0:
     raster_extent = LayerExtent(rasterlayer_list).getExtent()
 
     for rasterlayer in rasterlayer_list:
-        LoadRasterLayer(rasterlayer, basemap_group)
+        load_raster = LoadLayer(PROJECT_PATH, rasterlayer)
+        load_raster.addRasterToMap()
 
     # get radar info from raster filename
     wil = os.path.basename(OUTPUT_FOLDER)[:-16]
@@ -184,8 +180,10 @@ if len(ship_list) > 0:
     feat_number = len(ship_gdf)
 
     # load two ship layers to project
-    LoadVectorLayer(ship_layer, data_group, ship_template)
-    LoadVectorLayer(ship2_layer, data_group, trm_template)
+    load_ship = LoadLayer(PROJECT_PATH, ship_layer, ship_template)
+    load_ship2 = LoadLayer(PROJECT_PATH, ship2_layer, trm_template)
+    load_ship.addVectorToMap()
+    load_ship2.addVectorToMap()
 
     # overlay wpp layer and ship extent
     ship_extent = ship_gdf.total_bounds

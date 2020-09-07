@@ -19,9 +19,9 @@ from barata.barata_layout import (
     Project,
     FileDialog,
     DTOData,
-    LoadVectorLayer,
     LayerExtent,
     WPPData,
+    LoadLayer,
     LayoutDTO,
 )
 from info.dto_info import DTOInfo
@@ -37,10 +37,6 @@ project_layout.removeLayerHistory()
 project_type = os.path.basename(PROJECT_PATH)[:-4][-3:]
 
 print(f'\nTipe project: {project_type}')
-
-# define group
-basemap_group = project_layout.getBasemapGroup()
-data_group = project_layout.getDataGroup()
 
 dto_path = FileDialog(BASE_PATH).open(type=project_type)
 
@@ -96,7 +92,8 @@ dto_layer = dto_data.getLayer(dtogdf_path, dtoinfo_list[0].sat_id)
 
 # load dto layer to project
 dto_template = f'{TEMPLATE_PATH}/layer/dto_layer_template.qml'
-LoadVectorLayer(dto_layer, data_group, dto_template)
+load_dto = LoadLayer(project_layout, dto_layer, dto_template)
+load_dto.addVectorToMap()
 
 # zoom to layer
 extent = LayerExtent(dto_layer).getExtent()
