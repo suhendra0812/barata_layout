@@ -268,22 +268,22 @@ class ShipData(AggregationData):
     def __init__(self, data_list, vms_list):
         super().__init__(data_list)
 
-        ship_ori_gdf = super().getGeoDataFrame()
+        self.ship_gdf = super().getGeoDataFrame()
 
         # remove overlapped geometry
-        point_nodes = list(ship_ori_gdf.geometry)
-        for i in range(len(point_nodes) - 1):
-            if point_nodes[i] is None:
-                continue
-            for j in range(i + 1, len(point_nodes)):
-                if point_nodes[j] is None:
-                    continue
-                if point_nodes[i].buffer(0.0001).intersects(point_nodes[j]):
-                    point_nodes[j] = None
-        bool_nodes = [True if x is not None else False for x in point_nodes]
-
-        self.ship_gdf = ship_ori_gdf.copy()
-        self.ship_gdf = self.ship_gdf.loc[bool_nodes]
+##        point_nodes = list(ship_ori_gdf.geometry)
+##        for i in range(len(point_nodes) - 1):
+##            if point_nodes[i] is None:
+##                continue
+##            for j in range(i + 1, len(point_nodes)):
+##                if point_nodes[j] is None:
+##                    continue
+##                if point_nodes[i].buffer(0.0001).intersects(point_nodes[j]):
+##                    point_nodes[j] = None
+##        bool_nodes = [True if x is not None else False for x in point_nodes]
+##
+##        self.ship_gdf = ship_ori_gdf.copy()
+##        self.ship_gdf = self.ship_gdf.loc[bool_nodes]
         
         self.vms_list = vms_list
 
