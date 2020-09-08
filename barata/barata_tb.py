@@ -147,8 +147,8 @@ if project_type == 'ship':
         echo_text = str(echo_len)
         non_text = str(echo_len - (ais_len+vms_len))
 
-        ais_list = glob.glob(f'{os.path.dirname(raster_path)}/*ais.csv')
-        vms_list = glob.glob(f'{os.path.dirname(raster_path)}/*vms.csv')
+        ais_list = glob.glob(f'{os.path.dirname(raster_path)}/*{local_datetime}_ais.csv')
+        vms_list = glob.glob(f'{os.path.dirname(raster_path)}/**{local_datetime}_vms.csv')
 
         if len(ais_list) > 0:
             print('- Ada data AIS')
@@ -238,7 +238,7 @@ else:
     TBOUTPUT_NAME = f"TB OILSPILL_{local_datetime} {wil.upper()}.docx"
 
     oil_list = glob.glob(f'{data_folder}/*{local_datetime}_oils.csv')
-    layout_list = glob.glob(f'{layout_basepath}/*{local_datetime}_oils**.png')
+    layout_list = glob.glob(f'{layout_basepath}/*{local_datetime}_oils*.png')
 
     if len(oil_list) > 0:
         print('- Ada data tumpahan minyak')
