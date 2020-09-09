@@ -40,7 +40,7 @@ def correlation(data_path):
                         
                 if len(ship_list) == 5:
                     for ship in ship_list:
-                        shutil.copy(ship,TEMP_VMS_PATH)
+                        shutil.copy(ship, TEMP_VMS_PATH)
                     
                     os.chdir(SRC_VMS_PATH)
                     
@@ -52,7 +52,7 @@ def correlation(data_path):
                     else:
                         subprocess.call('bash -c ./run_radarsat.R')
 
-                    temp_list = glob.glob(TEMP_VMS_PATH + "\\" + "*")        
+                    temp_list = glob.glob(f"{TEMP_VMS_PATH}\\*")        
                     if len(temp_list) > 0:
                         #remove files
                         for temp in temp_list:
@@ -64,7 +64,9 @@ def correlation(data_path):
             break
         
         else:
-            # download AIS data from SEonSE Portal
+            print(f'Data VMS pada periode {date} tidak tersedia\n')
+
+            # download VMS data from UMV Portal
             vms_downloader = glob.glob(f'{VMS_PATH}/*/vms_downloader.py')[0]
             cmd = f'python {vms_downloader} {date}'
             subprocess.call(cmd)

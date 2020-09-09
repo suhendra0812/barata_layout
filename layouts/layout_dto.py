@@ -127,6 +127,7 @@ ymin = extent.yMinimum()
 ymax = extent.yMaximum()
 
 # open current project using command line
+os.chdir(SCRIPT_PATH)
 os.system(f'{QGIS_BAT} --project {outputproj_path} --extent {xmin},{ymin},{xmax},{ymax} --code {OPENLAYOUT_PATH}')
 
 print('\nMembuka project layout...')

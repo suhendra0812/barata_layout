@@ -148,7 +148,7 @@ if len(ship_list) > 0:
     ship_template = f'{TEMPLATE_PATH}/layer/ship_size_color_layer_template.qml'
     trm_template = f'{TEMPLATE_PATH}/layer/ais_vms_layer_template.qml'
 
-    print('\nMendapatkan informasi asosiasi dengan AIS dan VMS...')
+    print('\nMendapatkan informasi asosiasi dengan AIS dan VMS...\n')
     for ship_path in ship_list:
         # get AIS_MMSI information on KML file
         read_kml.AIS(os.path.dirname(ship_path))
@@ -166,7 +166,10 @@ if len(ship_list) > 0:
 
 
     # get transmitted layer of ship data
-    ship_data = ShipData(ship_list, vms_list)
+    if len(vms_list) > 0:
+        ship_data = ShipData(ship_list, vms_list)
+    else:
+        ship_data = ShipData(ship_list)
     ship_gdf = ship_data.getShipGeoDataFrame()
     ship_gdf.to_file(shipgdf_path, driver='GeoJSON')
     ship_df = ship_data.getShipDataFrame()
@@ -236,6 +239,7 @@ ymin = raster_extent.yMinimum()
 ymax = raster_extent.yMaximum()
 
 # open current project using command line
+os.chdir(SCRIPT_PATH)
 os.system(f'{QGIS_BAT} --project {outputproj_path} --extent {xmin},{ymin},{xmax},{ymax} --code {OPENLAYOUT_PATH}')
 
 print('\nMembuka project layout...')

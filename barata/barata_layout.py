@@ -265,7 +265,7 @@ class WindData(AggregationData):
 
 
 class ShipData(AggregationData):
-    def __init__(self, data_list, vms_list):
+    def __init__(self, data_list, vms_list=None):
         super().__init__(data_list)
 
         self.ship_gdf = super().getGeoDataFrame()
@@ -290,16 +290,11 @@ class ShipData(AggregationData):
         self.ship_gdf['DESC'] = [
             'AIS' if i is not None else None for i in self.ship_gdf['AIS_MMSI']]
 
-        if len(self.vms_list) > 0:
-            vms_gdf = gpd.GeoDataFrame(
-                pd.concat(
-                    [gpd.read_file(vms) for vms in self.vms_list],
-                    ignore_index=True,
-                )
-            )
-            vms_gdf.drop_duplicates(inplace=True, ignore_index=True)
+        if len(self.vms_list) is not None:
+            super().__init__(vms_list)
+            self.vms_gdf = super().getGeoDataFrame()
 
-            shipvms_gdf = gpd.sjoin(self.ship_gdf, vms_gdf, how='left')
+            shipvms_gdf = gpd.sjoin(self.ship_gdf, self.vms_gdf, how='left')
 
             for i in range(len(shipvms_gdf)):
                 if shipvms_gdf.loc[i, 'status'] == 'vms':
@@ -328,12 +323,6 @@ class ShipData(AggregationData):
         shipfilter_df.index.name = 'No.'
 
         return shipfilter_df
-
-class VMSData(AggregationData):
-    def __init__(self, data_list):
-        super().__init__(data_list)
-
-        self.vms_gdf = super().getGeoDataFrame()
 
 
 class OilData(WindData):
