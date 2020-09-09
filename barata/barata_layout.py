@@ -271,19 +271,19 @@ class ShipData(AggregationData):
         self.ship_gdf = super().getGeoDataFrame()
 
         # remove overlapped geometry
-##        point_nodes = list(ship_ori_gdf.geometry)
-##        for i in range(len(point_nodes) - 1):
-##            if point_nodes[i] is None:
-##                continue
-##            for j in range(i + 1, len(point_nodes)):
-##                if point_nodes[j] is None:
-##                    continue
-##                if point_nodes[i].buffer(0.0001).intersects(point_nodes[j]):
-##                    point_nodes[j] = None
-##        bool_nodes = [True if x is not None else False for x in point_nodes]
-##
-##        self.ship_gdf = ship_ori_gdf.copy()
-##        self.ship_gdf = self.ship_gdf.loc[bool_nodes]
+        # point_nodes = list(ship_ori_gdf.geometry)
+        # for i in range(len(point_nodes) - 1):
+        #     if point_nodes[i] is None:
+        #         continue
+        #     for j in range(i + 1, len(point_nodes)):
+        #         if point_nodes[j] is None:
+        #             continue
+        #         if point_nodes[i].buffer(0.0001).intersects(point_nodes[j]):
+        #             point_nodes[j] = None
+        # bool_nodes = [True if x is not None else False for x in point_nodes]
+
+        # self.ship_gdf = ship_ori_gdf.copy()
+        # self.ship_gdf = self.ship_gdf.loc[bool_nodes]
         
         self.vms_list = vms_list
 
@@ -304,8 +304,6 @@ class ShipData(AggregationData):
             for i in range(len(shipvms_gdf)):
                 if shipvms_gdf.loc[i, 'status'] == 'vms':
                     self.ship_gdf.loc[i, 'DESC'] = 'VMS'
-
-        self.ship_gdf.drop_duplicates(inplace=True, ignore_index=True)
 
     def getShipGeoDataFrame(self):
         return self.ship_gdf
@@ -330,6 +328,12 @@ class ShipData(AggregationData):
         shipfilter_df.index.name = 'No.'
 
         return shipfilter_df
+
+class VMSData(AggregationData):
+    def __init__(self, data_list):
+        super().__init__(data_list)
+
+        self.vms_gdf = super().getGeoDataFrame()
 
 
 class OilData(WindData):
@@ -547,7 +551,6 @@ class DataElements:
         else:
             self.k0 = self.k1 = self.k2 = self.k3 = self.k4 = self.k5 = self.k6 = self.k7 = self.k8 = self.k9 = self.k10 = self.k11 = '0'
 
-        print("\nMenghitung jumlah kapal\n")
         print(f"<10\tNon Transmitter\t\t\t= {self.k0}")
         print(f"20-30\tNon Transmitter\t\t\t= {self.k2}")
         print(f"30-40\tNon Transmitter\t\t\t= {self.k3}")
@@ -582,8 +585,7 @@ class DataElements:
         else:
             self.lenmin = self.lenmax = self.widmin = self.widmax = self.hi = self.lo = 0
 
-        print("\nMenghitung statistik tumpahan minyak")
-        print(f"\nPanjang tumpahan minyak terendah\t\t= {self.lenmin} km")
+        print(f"Panjang tumpahan minyak terendah\t\t= {self.lenmin} km")
         print(f"Panjang tumpahan minyak tertinggi\t\t= {self.lenmax} km")
         print(
             f"\nLuas tumpahan minyak terendah\t\t\t= {self.widmin} km\u00B2")

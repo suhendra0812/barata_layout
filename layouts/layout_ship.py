@@ -28,7 +28,7 @@ from barata.barata_layout import (
     DataElements,
     Layout,
 )
-from utils import read_kml
+from utils import read_kml, vms_correlation
 from info.radar_info import RadarInfo
 from info import vessel_info
 
@@ -148,9 +148,13 @@ if len(ship_list) > 0:
     ship_template = f'{TEMPLATE_PATH}/layer/ship_size_color_layer_template.qml'
     trm_template = f'{TEMPLATE_PATH}/layer/ais_vms_layer_template.qml'
 
+    print('\nMendapatkan informasi asosiasi dengan AIS dan VMS...')
     for ship_path in ship_list:
         # get AIS_MMSI information on KML file
         read_kml.AIS(os.path.dirname(ship_path))
+
+        # execute VMS correlation
+        vms_correlation.correlation(os.path.dirname(ship_path))
 
     # define correlated VMS availability
     vms_list = []
@@ -159,11 +163,6 @@ if len(ship_list) > 0:
         vms_path = glob.glob(f'{BARATA_SHIP_PATH}/{vms_ff}*/*.shp')
         if len(vms_path) > 0:
             vms_list.append(vms_path[0])
-    
-    if len(vms_list) > 0:
-        print('- Ada data VMS')
-    else:
-        print('- Tidak ada data VMS')
 
 
     # get transmitted layer of ship data
@@ -176,6 +175,7 @@ if len(ship_list) > 0:
     ship2_layer = ship_data.getLayer(shipgdf_path, trmlayer_name)
 
     # get ship elements and feature number
+    print("\nMenghitung jumlah kapal...\n")
     ship_elements = DataElements(ship_gdf).getShipElements()
     feat_number = len(ship_gdf)
 

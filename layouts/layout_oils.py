@@ -154,6 +154,7 @@ if len(oil_list) > 0:
     oil_layer = oil_data.getLayer(oilgdf_path, layer_name)
 
     # get oil elements and feature number
+    print("\nMenghitung statistik tumpahan minyak...\n")
     oil_elements = DataElements(oil_gdf).getOilElements()
     feat_number = len(oil_gdf)
 
