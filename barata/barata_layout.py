@@ -334,11 +334,16 @@ class OilData(WindData):
             WindData.__init__(self, wind_list)
             wind_gdf = WindData.getGeoDataFrame(self)
 
-            windoil_gdf = gpd.sjoin(self.oil_gdf, wind_gdf, how='left')
-            wspd_min = windoil_gdf.groupby(id)['speed'].agg('min')
-            wspd_max = windoil_gdf.groupby(id)['speed'].agg('max')
-            wspd_mean = windoil_gdf.groupby(id)['speed'].agg('mean')
-            wdir_mean = windoil_gdf.groupby(id)['direction'].agg('mean')
+            self.oil_gdf.crs = 'EPSG:4326'
+            oil_buffer = self.oil_gdf.to_crs('EPSG:3857')
+            oil_buffer.geometry = oil_buffer.geometry.buffer(1000)
+            oil_buffer.to_crs('EPSG:4326', inplace=True)
+
+            windoil_gdf = gpd.sjoin(oil_buffer, wind_gdf, how='left')
+            wspd_min = windoil_gdf.groupby('DATE-TIME')['speed'].agg('min').tolist()
+            wspd_max = windoil_gdf.groupby('DATE-TIME')['speed'].agg('max').tolist()
+            wspd_mean = windoil_gdf.groupby('DATE-TIME')['speed'].agg('mean').tolist()
+            wdir_mean = windoil_gdf.groupby('DATE-TIME')['direction'].agg('mean').tolist()
 
             self.oil_gdf['WSPDMIN'] = wspd_min
             self.oil_gdf['WSPDMAX'] = wspd_max
