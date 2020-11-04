@@ -88,6 +88,8 @@ if len(raster_list) > 0:
     for rasterbasename in rasterbasename_list:
         radar_info = RadarInfo(rasterbasename)
         radar_info_list.append(radar_info)
+    
+    local = radar_info.local
 
     # define layout method based on data length
     if len(raster_list) == 1:
