@@ -89,22 +89,6 @@ if len(raster_list) > 0:
         radar_info = RadarInfo(rasterbasename)
         radar_info_list.append(radar_info)
 
-    rdr_name = radar_info.rdr_name
-    local = radar_info.local
-    tgl_local = radar_info.tgl_local
-    bln_local = radar_info.bln_local
-    thn_local = radar_info.thn_local
-    jam_local = radar_info.jam_local
-    thn = radar_info.thn
-    bln = radar_info.bln
-    tgl = radar_info.tgl
-    j = radar_info.j
-    m = radar_info.m
-    d = radar_info.d
-    con = radar_info.con
-    mode = radar_info.mode
-    pola = radar_info.pola
-
     # define layout method based on data length
     if len(raster_list) == 1:
         method = 'satu'

@@ -1,12 +1,15 @@
 from datetime import datetime, timedelta
+import dateutil
 
 
 class RadarInfo:
     def __init__(self, rasterBaseName):
-        self.rdr = rasterBaseName[0:3]
-        if self.rdr == 'CSK':
+        name_list = rasterBaseName.split("_")
+        self.rdr = name_list[0]
+        if 'CSK' in self.rdr:
             self.rdr_name = 'COSMO-SkyMed'
-            self.mode = {
+            self.cons = self.rdr[-1]
+            self.sensor = {
                 'WR': 'ScanSAR Wide Region',
                 'HR': 'ScanSAR Huge Region',
                 'S2': 'Enhanced Spotlight',
@@ -14,28 +17,30 @@ class RadarInfo:
                 'HI': 'Himage',
             }
 
-            self.con = rasterBaseName[4:5]
-            self.pola = rasterBaseName[12:14]
+            self.pola = name_list[5]
+            self.mode = name_list[3]
 
-            self.tgl = rasterBaseName[33:35]
-            self.bln = rasterBaseName[31:33]
-            self.thn = rasterBaseName[27:31]
-            self.j = rasterBaseName[35:37]
-            self.m = rasterBaseName[37:39]
-            self.d = rasterBaseName[39:41]
+            s_datetime = dateutil.parser.parse(name_list[-3])
 
-            self.rdr_fn = f"{self.rdr_name} {self.con}"
-            self.rdr_mode = f'{self.rdr_fn}, {self.mode[self.pola]}'
+            self.tgl = s_datetime.day
+            self.bln = s_datetime.month
+            self.thn = s_datetime.year
+            self.j = s_datetime.hour
+            self.m = s_datetime.minute
+            self.d = s_datetime.second
 
-        elif self.rdr == 'Rad' or self.rdr == 'RS2':
+            self.rdr_fn = f"{self.rdr_name} {self.cons}"
+            self.rdr_mode = f'{self.rdr_fn}, {self.sensor[self.mode]}'
+
+        elif 'Radarsat-2' or 'RS2' in self.rdr:
             self.rdr_name = 'RADARSAT-2'
-            self.mode = {
+            self.sensor = {
                 '': '',
-                'SN': 'ScanSAR Narrow',
-                'FW': 'Wide Fine',
+                'SCN': 'ScanSAR Narrow',
+                'F0W': 'Wide Fine',
                 'S2': 'Spotlight',
                 'SC': 'ScanSAR',
-                'SW': 'ScanSAR Wide',
+                'SCW': 'ScanSAR Wide',
                 'WD': 'Wide',
                 'UF': 'Ultrafine',
                 'XF': 'Extra Fine',
@@ -46,54 +51,65 @@ class RadarInfo:
 
             self.rdr_fn = self.rdr_name
 
-            if self.rdr == 'RS2':
-                self.con = rasterBaseName[2:3]
-                self.pola = rasterBaseName[32:34]
+            if 'RS2' in self.rdr:
+                self.pola = name_list[-3]
+                self.beam = name_list[4]
+                self.mode = self.beam[:-1]
+                
+                s_date = name_list[5]
+                s_time = name_list[6]
+                s_datetime = dateutil.parser.parse(f'{s_date}{s_time}')
 
-                self.tgl = rasterBaseName[42:44]
-                self.bln = rasterBaseName[40:42]
-                self.thn = rasterBaseName[36:40]
-                self.j = rasterBaseName[45:47]
-                self.m = rasterBaseName[47:49]
-                self.d = rasterBaseName[49:51]
+                self.tgl = s_datetime.day
+                self.bln = s_datetime.month
+                self.thn = s_datetime.year
+                self.j = s_datetime.hour
+                self.m = s_datetime.minute
+                self.d = s_datetime.second
 
-                self.rdr_mode = f'{self.rdr_fn}, {self.mode[self.pola]}'
+                self.rdr_mode = f'{self.rdr_fn}, {self.sensor[self.mode]}'
 
-            elif self.rdr == 'Rad':
-                self.con = rasterBaseName[9:10]
+            elif 'Radarsat-2' in self.rdr:
+                self.rdr_name = 'RADARSAT-2'
                 self.pola = ''
+                self.mode = ''
 
-                self.tgl = rasterBaseName[53:55]
-                self.bln = rasterBaseName[50:52]
-                self.thn = rasterBaseName[45:49]
-                self.j = rasterBaseName[56:58]
-                self.m = rasterBaseName[59:61]
-                self.d = rasterBaseName[62:64]
+                s_datetime = dateutil.parser.parse(''.join(name_list[-7:-1]))
+
+                self.tgl = s_datetime.day
+                self.bln = s_datetime.month
+                self.thn = s_datetime.year
+                self.j = s_datetime.hour
+                self.m = s_datetime.minute
+                self.d = s_datetime.second
 
                 self.rdr_mode = self.rdr_fn
 
-        elif self.rdr[:2] == 'S1':
-            self.rdr_name = 'Sentinel 1'
-            self.mode = {
-                'SM': 'Stripmap',
+        elif 'S1' in self.rdr:
+            self.rdr_name = 'Sentinel-1'
+            self.cons = self.rdr[-1]
+            self.sensor = {
+                'SM': 'StripMap',
                 'IW': 'Interferometric Wide Swath',
                 'EW': 'Extra Wide Swath',
                 'WV': 'Wave',
             }
-            self.con = rasterBaseName[2:3]
-            self.pola = rasterBaseName[4:6]
+            self.mode = name_list[1]
+            self.pola = name_list[3]
 
-            self.tgl = rasterBaseName[23:25]
-            self.bln = rasterBaseName[21:23]
-            self.thn = rasterBaseName[17:21]
-            self.j = rasterBaseName[26:28]
-            self.m = rasterBaseName[28:30]
-            self.d = rasterBaseName[30:32]
+            s_datetime = dateutil.parser.parse(name_list[4])
 
-            self.rdr_fn = f'{self.rdr_name}{self.con}'
-            self.rdr_mode = f'{self.rdr_fn}, {self.mode[self.pola]}'
+            self.tgl = s_datetime.day
+            self.bln = s_datetime.month
+            self.thn = s_datetime.year
+            self.j = s_datetime.hour
+            self.m = s_datetime.minute
+            self.d = s_datetime.second
 
-        self.utc_datetime = datetime.strptime(f"{self.thn}-{self.bln}-{self.tgl} {self.j}:{self.m}:{self.d}", "%Y-%m-%d %H:%M:%S")
+            self.rdr_fn = f'{self.rdr_name}{self.cons}'
+            self.rdr_mode = f'{self.rdr_fn}, {self.sensor[self.mode]}'
+
+        self.utc_datetime = s_datetime
 
         self.GMT_7 = 7
         self.result_local_datetime = self.utc_datetime + timedelta(hours=self.GMT_7)
