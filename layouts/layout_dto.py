@@ -36,8 +36,6 @@ project_layout.removeLayerPanel()
 project_layout.removeLayerHistory()
 project_type = os.path.basename(PROJECT_PATH)[:-4][-3:]
 
-print(f'\nTipe project: {project_type}')
-
 dto_path = FileDialog(BASE_PATH).open(type=project_type)
 
 print('\nSumber data:')

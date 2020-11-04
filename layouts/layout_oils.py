@@ -39,26 +39,14 @@ project_layout.removeLayerPanel()
 project_layout.removeLayerHistory()
 project_type = project_layout.getProjectType()
 
-print(f'\nTipe project: {project_type}')
-
 # define group
 basemap_group = project_layout.getBasemapGroup()
 data_group = project_layout.getDataGroup()
 
+# define method
+method = sys.argv[-1]
+
 # input directory path
-while True:
-    option = input('Pilih metode layout (satu[1] atau gabungan[2]): ')
-    if option == '1' or option.lower() == 'satu':
-        method = 'satu'
-        break
-    elif option == '2' or option.lower() == 'gabungan':
-        method = 'gabungan'
-        break
-    else:
-        print('Metode layout yang Anda masukkan tidak sesuai')
-
-print(f'Metode layout: {method}')
-
 data_folder = FileDialog(BASE_PATH, method=method).open()
 
 print('\nSumber data:')

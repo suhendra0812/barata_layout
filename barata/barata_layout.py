@@ -1,5 +1,6 @@
 from qgis.core import (
     QgsApplication,
+    QgsProcessing,
     QgsProject,
     QgsRectangle,
     QgsRasterLayer,
@@ -13,12 +14,16 @@ from qgis.core import (
     QgsLayoutItemMapOverview,
     QgsLayoutItemLabel,
     QgsRasterRange,
+    QgsCoordinateReferenceSystem,
     QgsCoordinateTransformContext
 )
 from qgis.gui import QgsMapCanvas
 from qgis.utils import iface
 from PyQt5.QtCore import QFileInfo, QVariant
 from PyQt5.QtWidgets import QFileDialog
+import sys
+sys.path.append('C:/OSGeo4W64/apps/qgis/python/plugins')
+import processing
 from datetime import datetime, timedelta
 import geopandas as gpd
 import numpy as np
@@ -186,31 +191,29 @@ class RasterLayer:
         return self.rasterlayer_list
 
 
-class AggregationData:
+class MergeLayer:
     def __init__(self, data_list):
         self.data_list = data_list
-        self.data_gdf = gpd.GeoDataFrame(
-            pd.concat(
-                [gpd.read_file(data) for data in self.data_list],
-                ignore_index=True,
-            )
-        )
-        self.data_gdf.drop_duplicates(inplace=True, ignore_index=True)
+        merge_params = {
+            'LAYERS':self.data_list,
+            'CRS': QgsCoordinateReferenceSystem('EPSG:4326'),
+            'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+        }
         
-    def getGeoDataFrame(self):
-        return self.data_gdf
+        merge_output = processing.run("native:mergevectorlayers", merge_params)
+        
+        self.layer = merge_output['OUTPUT']
 
-    def getLayer(self, layer_path, layer_name):
-        layer = QgsVectorLayer(layer_path, layer_name, 'ogr')
-        return layer
+    def getLayer(self):
+        return self.layer
 
 
-class WindData(AggregationData):
+class WindLayer(MergeLayer):
     def __init__(self, wind_list):
         super().__init__(wind_list)
 
         # read wind data 'gml' in a list
-        self.wind_gdf = super().getGeoDataFrame()
+        self.wind_layer = super().getLayer()
 
         if self.wind_gdf[['speed', 'meridionalSpeed', 'zonalSpeed']].isnull().all().all():
             self.windrange = self.dire = 'n/a'
@@ -601,7 +604,7 @@ class LoadLayer:
         self.layer = layer
         QgsProject.instance().addMapLayer(layer, False)
 
-        if template is not None:
+        if template != None:
             self.template = template
 
     def addRasterToMap(self):
