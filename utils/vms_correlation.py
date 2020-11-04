@@ -19,55 +19,51 @@ def correlation(data_path):
     starttime = (date_time - timedelta(minutes=30)).strftime('%m/%d/%Y %H:%M:%S')
     endtime = (date_time + timedelta(minutes=30)).strftime('%m/%d/%Y %H:%M:%S')
     
-    while True:
-        vms_list = glob.glob(f"{VMS_PATH}\\{date[:4]}\\*{date}*.csv")
-        if len(vms_list) > 0:
-            for vms_path in vms_list:
-                vms_df = pd.read_csv(vms_path)
-                vmsfilter_df = vms_df.copy()
-                vmsfilter_df = vmsfilter_df.loc[(vmsfilter_df['Location date'] >= starttime) & (vmsfilter_df['Location date'] <= endtime)]
-            
-                vmsfilter_df.to_csv(f"{TEMP_VMS_PATH}\\dataUMV.csv", index=False)
+    vms_list = glob.glob(f"{VMS_PATH}\\{date[:4]}\\*{date}*.csv")
+    if len(vms_list) == 0:
+        print(f'Data VMS pada periode {date} tidak tersedia\n')
 
-            if len(outputvms_list) == 0:   
-                types = ('*SHIPKML.zip','*SHIP.shp','*SHIP.dbf','*SHIP.prj','*SHIP.shx')
-                ship_list = []
-                for files in types:
-                    file_list = glob.glob(f"{data_path}\\{files}")
-                    if len(file_list) > 0:
-                        file_type = file_list[0]
-                        ship_list.append(file_type)
-                        
-                if len(ship_list) == 5:
-                    for ship in ship_list:
-                        shutil.copy(ship, TEMP_VMS_PATH)
-                    
-                    os.chdir(SRC_VMS_PATH)
-                    
-                    sat_name = os.path.basename(ship)[:2]
-                    if sat_name == 'CS':
-                        subprocess.call('bash -c ./run_cosmo.R')
-                    elif sat_name == 'S1':
-                        subprocess.call('bash -c ./run_sentinel.R')
+        # download VMS data from UMV Portal
+        vms_downloader = glob.glob(f'{VMS_PATH}/*/vms_downloader.py')[0]
+        cmd = f'python {vms_downloader} {date}'
+        subprocess.call(cmd)
+
+    for vms_path in vms_list:
+        vms_df = pd.read_csv(vms_path)
+        vmsfilter_df = vms_df.copy()
+        vmsfilter_df = vmsfilter_df.loc[(vmsfilter_df['Location date'] >= starttime) & (vmsfilter_df['Location date'] <= endtime)]
+    
+        vmsfilter_df.to_csv(f"{TEMP_VMS_PATH}\\dataUMV.csv", index=False)
+
+    if len(outputvms_list) == 0:   
+        types = ('*SHIPKML.zip','*SHIP.shp','*SHIP.dbf','*SHIP.prj','*SHIP.shx')
+        ship_list = []
+        for files in types:
+            file_list = glob.glob(f"{data_path}\\{files}")
+            if len(file_list) > 0:
+                file_type = file_list[0]
+                ship_list.append(file_type)
+                
+        if len(ship_list) == 5:
+            for ship in ship_list:
+                shutil.copy(ship, TEMP_VMS_PATH)
+            
+            os.chdir(SRC_VMS_PATH)
+            
+            sat_name = os.path.basename(ship)[:2]
+            if sat_name == 'CS':
+                subprocess.call('bash -c ./run_cosmo.R')
+            elif sat_name == 'S1':
+                subprocess.call('bash -c ./run_sentinel.R')
+            else:
+                subprocess.call('bash -c ./run_radarsat.R')
+
+            temp_list = glob.glob(f"{TEMP_VMS_PATH}\\*")        
+            if len(temp_list) > 0:
+                #remove files
+                for temp in temp_list:
+                    if temp == f"{TEMP_VMS_PATH}\\dataUMV.csv":
+                        pass
                     else:
-                        subprocess.call('bash -c ./run_radarsat.R')
-
-                    temp_list = glob.glob(f"{TEMP_VMS_PATH}\\*")        
-                    if len(temp_list) > 0:
-                        #remove files
-                        for temp in temp_list:
-                            if temp == f"{TEMP_VMS_PATH}\\dataUMV.csv":
-                                pass
-                            else:
-                                os.remove(temp)
-            
-            break
-        
-        else:
-            print(f'Data VMS pada periode {date} tidak tersedia\n')
-
-            # download VMS data from UMV Portal
-            vms_downloader = glob.glob(f'{VMS_PATH}/*/vms_downloader.py')[0]
-            cmd = f'python {vms_downloader} {date}'
-            subprocess.call(cmd)
+                        os.remove(temp)
 

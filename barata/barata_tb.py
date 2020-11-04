@@ -197,6 +197,8 @@ if project_type == 'ship':
         ais_text = '0'
         vms_text = '0'
         non_text = '0'
+        ship_columns = []
+        ship_rows = []
         ais_columns = []
         ais_rows = []
         vms_columns = []

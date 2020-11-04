@@ -150,7 +150,6 @@ if len(ship_list) > 0:
         if len(vms_path) > 0:
             vms_list.append(vms_path[0])
 
-
     # get transmitted layer of ship data
     if len(vms_list) > 0:
         ship_data = ShipData(ship_list, vms_list)
