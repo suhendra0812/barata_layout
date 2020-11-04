@@ -90,9 +90,6 @@ if len(raster_list) > 0:
     j = radar_info.j
     m = radar_info.m
     d = radar_info.d
-    con = radar_info.con
-    mode = radar_info.mode
-    pola = radar_info.pola
 
 else:
     print('- Tidak ada data raster')
@@ -136,8 +133,8 @@ if project_type == 'ship':
         ship_df[['Longitude', 'Latitude']] = ship_df[['Longitude', 'Latitude']].applymap('{:,.6f}'.format)
         ship_df[['Heading (deg)', 'MMSI']] = ship_df[['Heading (deg)', 'MMSI']].astype('Int64')
 
-        ship_columns = ship_df.columns.to_list()
-        ship_rows = [{'label': row.to_list()[0], 'cols': row.fillna('-').to_list()[1:]} for i, row in ship_df.iterrows()]
+        ship_columns = ship_df.columns.tolist()
+        ship_rows = [{'label': row.tolist()[0], 'cols': row.fillna('-').tolist()[1:]} for i, row in ship_df.iterrows()]
 
         echo_len = len(ship_df)
 
@@ -156,8 +153,8 @@ if project_type == 'ship':
             ais_df = pd.read_csv(ais_path)
             ais_df[['Longitude', 'Latitude']] = ais_df[['Longitude', 'Latitude']].applymap('{:,.6f}'.format)
 
-            ais_columns = ais_df.columns.to_list()
-            ais_rows = [{'label': row.to_list()[0], 'cols': row.fillna('-').to_list()[1:]} for i, row in ais_df.iterrows()]
+            ais_columns = ais_df.columns.tolist()
+            ais_rows = [{'label': row.tolist()[0], 'cols': row.fillna('-').tolist()[1:]} for i, row in ais_df.iterrows()]
             ais_text = f"{ais_len}"
 
         else:
@@ -173,8 +170,8 @@ if project_type == 'ship':
             vms_df[['Longitude', 'Latitude']] = vms_df[['Longitude', 'Latitude']].applymap('{:,.6f}'.format)
             vms_df['Heading (deg)'] = vms_df['Heading (deg)'].astype('Int64')
 
-            vms_columns = vms_df.columns.to_list()
-            vms_rows = [{'label': row.to_list()[0], 'cols': row.fillna('-').to_list()[1:]} for i, row in vms_df.iterrows()]
+            vms_columns = vms_df.columns.tolist()
+            vms_rows = [{'label': row.tolist()[0], 'cols': row.fillna('-').tolist()[1:]} for i, row in vms_df.iterrows()]
             vms_text = f"{vms_len}"
 
         else:
