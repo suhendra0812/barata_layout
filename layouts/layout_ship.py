@@ -22,8 +22,8 @@ from barata.barata_layout import (
     RasterLayer,
     LayerExtent,
     WindLayer,
-    WPPData,
-    ShipData,
+    WPPLayer,
+    ShipLayer,
     LoadLayer,
     DataElements,
     Layout,
@@ -35,6 +35,7 @@ from info import vessel_info
 # set QGIS application path and initialize it
 qgs_app = QgsApp(QGIS_PATH)
 qgs_app.start()
+qgs_app.start_plugins()
 
 # define project type and remove previous layer
 project_layout = Project(PROJECT_PATH)
@@ -97,8 +98,8 @@ else:
     print('- Tidak ada data angin')
 
 # load wpp data and get WPP area which is overlaid within raster
-wpp_data = WPPData(WPP_PATH, raster_extent)
-wpp_area = wpp_data.wpp_area
+wpp_layer = WPPLayer(WPP_PATH, raster_extent)
+wpp_area = wpp_layer.wpp_area
 
 # define layer name
 if method == 'satu':
@@ -107,14 +108,14 @@ else:
     layer_name = f'{wil}_{local[:-2]}_{project_type}'
 
 # load data layer based on project type and setup the layout
-ship_list = data_list.getShipList()
+ship_list = data_list.get_ship_list()
 if len(ship_list) > 0:
     print('- Ada data kapal')
 
     # define transmitted layer name and ship csv path
     trmlayer_name = f'{layer_name[:-4]}AIS/VMS'
-    shipgdf_path = f'{OUTPUT_FOLDER}/{layer_name}.geojson'
-    shipdf_path = f'{OUTPUT_FOLDER}/{layer_name}.csv'
+    ship_geo_path = f'{OUTPUT_FOLDER}/{layer_name}.geojson'
+    ship_csv_path = f'{OUTPUT_FOLDER}/{layer_name}.csv'
 
     # define path of ship template
     ship_template = f'{TEMPLATE_PATH}/layer/ship_size_color_layer_template.qml'
@@ -138,15 +139,14 @@ if len(ship_list) > 0:
 
     # get transmitted layer of ship data
     if len(vms_list) > 0:
-        ship_data = ShipData(ship_list, vms_list)
+        ship_layer = ShipLayer(ship_list, vms_list)
     else:
-        ship_data = ShipData(ship_list)
-    ship_gdf = ship_data.getShipGeoDataFrame()
-    ship_gdf.to_file(shipgdf_path, driver='GeoJSON')
-    ship_df = ship_data.getShipDataFrame()
-    ship_df.to_csv(shipdf_path)
-    ship_layer = ship_data.getLayer(shipgdf_path, layer_name)
-    ship2_layer = ship_data.getLayer(shipgdf_path, trmlayer_name)
+        ship_layer = ShipLayer(ship_list)
+    
+    ship_layer.export_vector(ship_geo_path, file_format='GeoJSON')
+    ship_layer.export_ship_to_csv(ship_csv_path)
+    ship_layer = ship_layer.get_ship_layer(ship_geo_path, layer_name)
+    ship2_layer = ship_layer.get_ship_layer(ship_geo_path, trmlayer_name)
 
     # get ship elements and feature number
     print("\nMenghitung jumlah kapal...\n")
@@ -161,18 +161,18 @@ if len(ship_list) > 0:
 
     # overlay wpp layer and ship extent
     ship_extent = ship_gdf.total_bounds
-    wpp_data = WPPData(WPP_PATH, ship_extent)
+    wpp_layer = WPPLayer(WPP_PATH, ship_extent)
 
 else:
     print('- Tidak ada data kapal')
 
     feat_number = 0
     ship_gdf = None
-    shipdf_path = None
+    ship_csv_path = None
     ship_elements = DataElements(ship_gdf).getShipElements()
 
 # define layout manager
-layout_manager = Layout(project_type, method, feat_number, wil, radar_info_list, wpp_data, wind_data)
+layout_manager = Layout(project_type, method, feat_number, wil, radar_info_list, wpp_layer, wind_data)
 
 # insert ship elements to layout
 layout_manager.insertShipElements(ship_elements)
@@ -190,12 +190,12 @@ project_layout.saveProject(outputproj_path)
 
 print('\nLayout telah dibuat\n')
 
-if shipdf_path is not None:
+if ship_csv_path is not None:
     # get vessel info
     print('======================================')
     print('\nMendapatkan informasi vessel...\n')
-    ais_info = vessel_info.get_ais_info(shipdf_path)
-    vms_info = vessel_info.get_vms_info(shipdf_path)
+    ais_info = vessel_info.get_ais_info(ship_csv_path)
+    vms_info = vessel_info.get_vms_info(ship_csv_path)
     print('======================================')
 
 print('\nSelesai')

@@ -30,10 +30,6 @@ import processing
 from processing.core.Processing import Processing
 from processing.algs.grass7.Grass7Utils import Grass7Utils
 
-Processing.initialize()
-Grass7Utils.checkGrassIsInstalled()
-QgsApplication.processingRegistry().addProvider(QgsNativeAlgorithms())
-
 from datetime import datetime, timedelta
 import geopandas as gpd
 import numpy as np
@@ -53,6 +49,11 @@ class QgsApp:
 
     def quit(self):
         self.qgs.exitQgis()
+    
+    def start_plugins(self):
+        Processing.initialize()
+        Grass7Utils.checkGrassIsInstalled()
+        QgsApplication.processingRegistry().addProvider(QgsNativeAlgorithms())
 
 
 class FileDialog:
@@ -93,23 +94,23 @@ class Project:
         self.basemapGroup = QgsProject.instance(
         ).layerTreeRoot().findGroups()[1]
 
-    def getProjectPath(self):
+    def get_project_path(self):
         return self.projectPath
 
-    def getProjectBasename(self):
+    def get_project_basename(self):
         return self.projectBasename
 
-    def getProjectType(self):
+    def get_project_type(self):
         return self.projectType
 
-    def getDataGroup(self):
+    def get_data_group(self):
         return self.dataGroup
 
-    def getBasemapGroup(self):
+    def get_basemap_group(self):
         return self.basemapGroup
 
     # remove layer from layer panel
-    def removeLayerPanel(self):
+    def remove_layer_panel(self):
         if len(self.dataGroup.findLayers()) > 0:
             for i in self.dataGroup.children():
                 self.dataGroup.removeChildNode(i)
@@ -124,14 +125,14 @@ class Project:
             pass
 
     # remove registry layer history
-    def removeLayerHistory(self):
+    def remove_layer_history(self):
         self.registryLayers = QgsProject.instance().mapLayers().keys()
         self.legendLayers = QgsProject.instance().layerTreeRoot().findLayerIds()
         self.layerToRemove = set(self.registryLayers) - set(self.legendLayers)
         QgsProject.instance().removeMapLayers(list(self.layerToRemove))
 
     # save project to specific directory
-    def saveProject(self, output_path):
+    def save_project(self, output_path):
         QgsProject.instance().write(output_path)
 
 
@@ -140,19 +141,19 @@ class DataList:
     def __init__(self, base_path):
         self.base_path = base_path
 
-    def getRasterList(self):
+    def get_raster_list(self):
         self.rasterList = glob.glob(f'{self.base_path}/*.tif')
         return self.rasterList
 
-    def getShipList(self):
+    def get_ship_list(self):
         self.shipList = glob.glob(f'{self.base_path}/*SHIP.shp')
         return self.shipList
 
-    def getOilList(self):
+    def get_oil_list(self):
         self.oilList = glob.glob(f'{self.base_path}/*OIL.shp')
         return self.oilList
 
-    def getWindList(self):
+    def get_wind_list(self):
         self.windList = glob.glob(f'{self.base_path}/*Wind.gml')
         return self.windList
 
@@ -164,7 +165,7 @@ class LayerExtent:
         elif isinstance(layer, QgsVectorLayer):
             self.layer_list = [layer]
 
-    def getExtent(self):
+    def get_extent(self):
         # set up extent
         self.extent = QgsRectangle()
         self.extent.setMinimal()
@@ -194,10 +195,10 @@ class RasterLayer:
             self.rasterbasename_list.append(rasterbasename)
             self.rasterlayer_list.append(rasterlayer)
 
-    def getRasterBasename(self):
+    def get_raster_basename(self):
         return self.rasterbasename_list
 
-    def getRasterLayer(self):
+    def get_raster_layer(self):
         return self.rasterlayer_list
 
 
@@ -208,9 +209,9 @@ class Layer:
         elif isinstance(data_path, QgsVectorLayer):
             self.data_list = [data_path]
 
-        self.layer = self.merge_layer(self.data_list)
+        self.layer = self.merge_vector_layer(self.data_list)
 
-    def merge_layer(self, data_list):
+    def merge_vector_layer(self, data_list):
         params = {
             'LAYERS': data_list,
             'CRS': QgsCoordinateReferenceSystem('EPSG:4326'),
@@ -218,8 +219,8 @@ class Layer:
         }
         
         output = processing.run("native:mergevectorlayers", params)
-        layer = output['OUTPUT']
-        return layer
+        
+        return output['OUTPUT']
 
     def extract_by_extent(self, extent):
         if len(self.data_list) == 1:
@@ -231,13 +232,32 @@ class Layer:
             }
             
             output = processing.run("native:extractbyextent", params)
-            layer = output['OUTPUT']
-            return layer
+            
+            return output['OUTPUT']
         else:
             raise ValueError
+    
+    def join_attributes_by_location(self, base_layer, join_layer, join_fields=None):
+        params =  {
+            'INPUT': base_layer,
+            'JOIN': join_layer,
+            'PREDICATE': [0],
+            'JOIN_FIELDS': join_fields,
+            'METHOD': 0,
+            'DISCARD_NONMATCHING': False,
+            'PREFIX': '',
+            'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+        }
+
+        output = processing.run("native:joinattributesbylocation", params)
+
+        return output['OUTPUT']
 
     def get_layer(self):
         return self.layer
+    
+    def export_vector(self, output_path, file_format='CSV'):
+        QgsVectorFileWriter.writeAsVectorFormat(self.layer, output_path, "utf-8", None, file_format, layerOptions='GEOMETRY=AS_XY')
 
 
 class WindLayer(Layer):
@@ -253,7 +273,7 @@ class WindLayer(Layer):
             for feat in self.wind_layer.getFeatures():
                 wind_ang = self.wind_angle(feat['zonalSpeed'], feat['meridionalSpeed'])
                 wind_dir = self.wind_direction(wind_ang)
-                feat.setAttribute(feat.fieldNameIndex('angle'), wind_angle)
+                feat.setAttribute(feat.fieldNameIndex('angle'), wind_ang)
                 feat.setAttribute(feat.fieldNameIndex('direction'), wind_dir)
                 self.wind_layer.updateFeature(feat)
     
@@ -305,7 +325,8 @@ class WPPLayer(Layer):
         self.wpp_layer = super().get_layer()
 
         self.wpp_filter = super().extract_by_extent(extent)
-        self.wpp_list = [wpp[-3:] for wpp in self.wpp_filter['WPP']]
+        
+        self.wpp_list = [feat['WPP'][-3:] for feat in self.wpp_filter['OUTPUT'].getFeatures()]
 
         if len(self.wpp_list) == 1:
             self.wpp_area = f'WPP NRI {self.wpp_list[0]}'
@@ -316,78 +337,62 @@ class WPPLayer(Layer):
         else:
             self.wpp_area = 'LUAR INDONESIA'
 
-    def getWPPGeoDataFrame(self):
-        return self.wpp_gdf
 
 class ShipLayer(Layer):
     def __init__(self, data_list, vms_list=None):
         super().__init__(data_list)
 
-        self.ship_gdf = super().getGeoDataFrame()
+        self.ship_layer = super().get_layer()
+        self.ship_layer.dataProvider().addAttributes([QgsField("DESC", QVariant.String)])
 
-        # remove overlapped geometry
-        # point_nodes = list(ship_ori_gdf.geometry)
-        # for i in range(len(point_nodes) - 1):
-        #     if point_nodes[i] is None:
-        #         continue
-        #     for j in range(i + 1, len(point_nodes)):
-        #         if point_nodes[j] is None:
-        #             continue
-        #         if point_nodes[i].buffer(0.0001).intersects(point_nodes[j]):
-        #             point_nodes[j] = None
-        # bool_nodes = [True if x is not None else False for x in point_nodes]
-
-        # self.ship_gdf = ship_ori_gdf.copy()
-        # self.ship_gdf = self.ship_gdf.loc[bool_nodes]
-        
-        self.vms_list = vms_list
+        with edit(self.ship_layer):
+            for feat in self.ship_layer.getFeatures():
+                if feat['AIS_MMSI'] != None:
+                    feat.setAttribute(feat.fieldNameIndex('DESC'), 'AIS')
 
         self.ship_gdf['DESC'] = [
             'AIS' if i is not None else None for i in self.ship_gdf['AIS_MMSI']]
 
-        if len(self.vms_list) > 0 or self.vms_list != None:
+        if len(vms_list) > 0 or vms_list != None:
             super().__init__(vms_list)
-            self.vms_gdf = super().getGeoDataFrame()
+            self.vms_layer = super().get_layer()
 
-            shipvms_gdf = gpd.sjoin(self.ship_gdf, self.vms_gdf, how='left')
+            shipvms_layer = super().join_attributes_by_location(self.ship_layer, self.vms_layer, join_fields=['status'])
 
-            for i in range(len(shipvms_gdf)):
-                if shipvms_gdf.loc[i, 'status'] == 'vms':
-                    self.ship_gdf.loc[i, 'DESC'] = 'VMS'
+            with edit(self.ship_layer):
+                for feat in shipvms_layer.getFeatures():
+                    if feat['status'] == 'vms':
+                        feat.setAttribute(feat.fieldNameIndex('DESC'), 'VMS')
 
-    def getShipGeoDataFrame(self):
-        return self.ship_gdf
+    def get_ship_layer(self, layer_path, layer_name):
+        super().export_vector(layer_path, file_format='GeoJSON')
+        ship_layer = QgsVectorLayer(layer_path, layer_name, 'ogr')
+        return ship_layer
 
-    def getShipDataFrame(self):
-        shipfilter_df = self.ship_gdf.copy()
-        shipfilter_df = shipfilter_df[[
-            'LON_CENTRE', 'LAT_CENTRE', 'TARGET_DIR', 'LENGTH', 'DESC', 'AIS_MMSI']]
-        shipfilter_df.rename(
-            columns={
-                'LON_CENTRE': 'Longitude',
-                'LAT_CENTRE': 'Latitude',
-                'TARGET_DIR': 'Heading (deg)',
-                'LENGTH': 'Panjang (m)',
-                'DESC': 'Asosiasi (AIS/VMS)',
-                'AIS_MMSI': 'MMSI',
-            },
-            inplace=True,
+    def export_ship_to_csv(self, output_path):
+        ship_layer = self.ship_layer.copy()
+        ship_layer.dataProvider().renameAttribute(
+            {
+                ship_layer.fields().indexFromName('LON_CENTRE'): 'Longitude',
+                ship_layer.fields().indexFromName('LAT_CENTRE'): 'Latitude',
+                ship_layer.fields().indexFromName('TARGET_DIR'): 'Heading (deg)',
+                ship_layer.fields().indexFromName('LENGTH'): 'Panjang (m)',
+                ship_layer.fields().indexFromName('DESC'): 'Asosiasi (AIS/VMS)',
+                ship_layer.fields().indexFromName('AIS_MMSI'): 'MMSI',
+            }
         )
 
-        shipfilter_df.index += 1
-        shipfilter_df.index.name = 'No.'
-
-        return shipfilter_df
+        super().export_vector(output_path, file_format='CSV')
 
 
-class OilData(WindData):
+class OilLayer(WindLayer):
     def __init__(self, oil_list, wind_list):
-        AggregationData.__init__(self, oil_list)
-        self.oil_gdf = AggregationData.getGeoDataFrame(self)
+        Layer.__init__(self, oil_list)
+        self.oil_layer = Layer.get_layer(self)
 
         if len(wind_list) > 0:
-            WindData.__init__(self, wind_list)
-            wind_gdf = WindData.getGeoDataFrame(self)
+            WindLayer.__init__(self, wind_list)
+            wind_layer = WindLayer.get_layer(self)
 
             self.oil_gdf.crs = 'EPSG:4326'
             oil_buffer = self.oil_gdf.to_crs('EPSG:3857')
@@ -619,8 +624,8 @@ class DataElements:
 
 class LoadLayer:
     def __init__(self, project, layer, template=None):
-        self.data_group = project.getDataGroup()
-        self.basemap_group = project.getBasemapGroup()
+        self.data_group = project.get_data_group()
+        self.basemap_group = project.get_basemap_group()
         
         self.layer = layer
         QgsProject.instance().addMapLayer(layer, False)

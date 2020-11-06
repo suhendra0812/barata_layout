@@ -22,12 +22,12 @@ class RadarInfo:
 
             s_datetime = dateutil.parser.parse(name_list[-3])
 
-            self.tgl = s_datetime.day
-            self.bln = s_datetime.month
-            self.thn = s_datetime.year
-            self.j = s_datetime.hour
-            self.m = s_datetime.minute
-            self.d = s_datetime.second
+            self.tgl = s_datetime.strftime('%d')
+            self.bln = s_datetime.strftime('%m')
+            self.thn = s_datetime.strftime('%Y')
+            self.j = s_datetime.strftime('%H')
+            self.m = s_datetime.strftime('%M')
+            self.d = s_datetime.strftime('%S')
 
             self.rdr_fn = f"{self.rdr_name} {self.cons}"
             self.rdr_mode = f'{self.rdr_fn}, {self.sensor[self.mode]}'
@@ -60,12 +60,12 @@ class RadarInfo:
                 s_time = name_list[6]
                 s_datetime = dateutil.parser.parse(f'{s_date}{s_time}')
 
-                self.tgl = s_datetime.day
-                self.bln = s_datetime.month
-                self.thn = s_datetime.year
-                self.j = s_datetime.hour
-                self.m = s_datetime.minute
-                self.d = s_datetime.second
+                self.tgl = s_datetime.strftime('%d')
+                self.bln = s_datetime.strftime('%m')
+                self.thn = s_datetime.strftime('%Y')
+                self.j = s_datetime.strftime('%H')
+                self.m = s_datetime.strftime('%M')
+                self.d = s_datetime.strftime('%S')
 
                 self.rdr_mode = f'{self.rdr_fn}, {self.sensor[self.mode]}'
 
@@ -76,12 +76,12 @@ class RadarInfo:
 
                 s_datetime = dateutil.parser.parse(''.join(name_list[-7:-1]))
 
-                self.tgl = s_datetime.day
-                self.bln = s_datetime.month
-                self.thn = s_datetime.year
-                self.j = s_datetime.hour
-                self.m = s_datetime.minute
-                self.d = s_datetime.second
+                self.tgl = s_datetime.strftime('%d')
+                self.bln = s_datetime.strftime('%m')
+                self.thn = s_datetime.strftime('%Y')
+                self.j = s_datetime.strftime('%H')
+                self.m = s_datetime.strftime('%M')
+                self.d = s_datetime.strftime('%S')
 
                 self.rdr_mode = self.rdr_fn
 
@@ -99,12 +99,12 @@ class RadarInfo:
 
             s_datetime = dateutil.parser.parse(name_list[4])
 
-            self.tgl = s_datetime.day
-            self.bln = s_datetime.month
-            self.thn = s_datetime.year
-            self.j = s_datetime.hour
-            self.m = s_datetime.minute
-            self.d = s_datetime.second
+            self.tgl = s_datetime.strftime('%d')
+            self.bln = s_datetime.strftime('%m')
+            self.thn = s_datetime.strftime('%Y')
+            self.j = s_datetime.strftime('%H')
+            self.m = s_datetime.strftime('%M')
+            self.d = s_datetime.strftime('%S')
 
             self.rdr_fn = f'{self.rdr_name}{self.cons}'
             self.rdr_mode = f'{self.rdr_fn}, {self.sensor[self.mode]}'
