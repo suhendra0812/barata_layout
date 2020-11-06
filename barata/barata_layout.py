@@ -1,4 +1,5 @@
 from qgis.core import (
+    edit,
     QgsApplication,
     QgsProcessing,
     QgsProject,
@@ -19,11 +20,20 @@ from qgis.core import (
 )
 from qgis.gui import QgsMapCanvas
 from qgis.utils import iface
+from qgis.analysis import QgsNativeAlgorithms
 from PyQt5.QtCore import QFileInfo, QVariant
 from PyQt5.QtWidgets import QFileDialog
+
 import sys
 sys.path.append('C:/OSGeo4W64/apps/qgis/python/plugins')
 import processing
+from processing.core.Processing import Processing
+from processing.algs.grass7.Grass7Utils import Grass7Utils
+
+Processing.initialize()
+Grass7Utils.checkGrassIsInstalled()
+QgsApplication.processingRegistry().addProvider(QgsNativeAlgorithms())
+
 from datetime import datetime, timedelta
 import geopandas as gpd
 import numpy as np
@@ -191,83 +201,125 @@ class RasterLayer:
         return self.rasterlayer_list
 
 
-class MergeLayer:
-    def __init__(self, data_list):
-        self.data_list = data_list
-        merge_params = {
-            'LAYERS':self.data_list,
+class Layer:
+    def __init__(self, data_path):
+        if isinstance(data_path, list):
+            self.data_list = data_path
+        elif isinstance(data_path, QgsVectorLayer):
+            self.data_list = [data_path]
+
+        self.layer = self.merge_layer(self.data_list)
+
+    def merge_layer(self, data_list):
+        params = {
+            'LAYERS': data_list,
             'CRS': QgsCoordinateReferenceSystem('EPSG:4326'),
             'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
         }
         
-        merge_output = processing.run("native:mergevectorlayers", merge_params)
-        
-        self.layer = merge_output['OUTPUT']
+        output = processing.run("native:mergevectorlayers", params)
+        layer = output['OUTPUT']
+        return layer
 
-    def getLayer(self):
+    def extract_by_extent(self, extent):
+        if len(self.data_list) == 1:
+            params = {
+                'INPUT': self.data_list[0],
+                'EXTENT': extent,
+                'CLIP': False,
+                'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+            }
+            
+            output = processing.run("native:extractbyextent", params)
+            layer = output['OUTPUT']
+            return layer
+        else:
+            raise ValueError
+
+    def get_layer(self):
         return self.layer
 
 
-class WindLayer(MergeLayer):
+class WindLayer(Layer):
     def __init__(self, wind_list):
         super().__init__(wind_list)
 
         # read wind data 'gml' in a list
-        self.wind_layer = super().getLayer()
+        self.wind_layer = super().get_layer()
+        self.wind_layer.dataProvider().addAttributes([QgsField("angle", QVariant.Double)])
+        self.wind_layer.dataProvider().addAttributes([QgsField("direction", QVariant.String)])  
 
-        if self.wind_gdf[['speed', 'meridionalSpeed', 'zonalSpeed']].isnull().all().all():
-            self.windrange = self.dire = 'n/a'
+        with edit(self.wind_layer):
+            for feat in self.wind_layer.getFeatures():
+                wind_ang = self.wind_angle(feat['zonalSpeed'], feat['meridionalSpeed'])
+                wind_dir = self.wind_direction(wind_ang)
+                feat.setAttribute(feat.fieldNameIndex('angle'), wind_angle)
+                feat.setAttribute(feat.fieldNameIndex('direction'), wind_dir)
+                self.wind_layer.updateFeature(feat)
+    
+    def wind_angle(self, x, y):
+        angle = np.arctan2(y, x)*(180/np.pi)+180
+        return angle
+    
+    def wind_direction(self, angle):
+        # define mean wind direction
+        if angle < 180:
+            wind_ang = angle + 180
+        elif angle > 180:
+            wind_ang = angle - 180
+
+        # define wind direction value to wind direction name
+        if wind_ang > 22.5 and wind_ang <= 67.5:
+            wind_dir = "Timur Laut"
+        elif wind_ang > 67.5 and wind_ang <= 112.5:
+            wind_dir = "Timur"
+        elif wind_ang > 112.5 and wind_ang <= 157.5:
+            wind_dir = "Tenggara"
+        elif wind_ang > 157.5 and wind_ang <= 202.5:
+            wind_dir = "Selatan"
+        elif wind_ang > 202.5 and wind_ang <= 247.5:
+            wind_dir = "Barat Daya"
+        elif wind_ang > 247.5 and wind_ang <= 292.5:
+            wind_dir = "Barat"
+        elif wind_ang > 292.5 and wind_ang <= 337.5:
+            wind_dir = "Barat Laut"
         else:
-            self.wind_gdf['speed'] = self.wind_gdf['speed'].astype(float)
-            self.wind_gdf['meridionalSpeed'] = self.wind_gdf['meridionalSpeed'].astype(
-                float)
-            self.wind_gdf['zonalSpeed'] = self.wind_gdf['zonalSpeed'].astype(
-                float)
+            wind_dir = "Utara"
+        return wind_dir
+    
+    def get_wind_range(self):
+        wind_sp = [feat['speed'] for feat in self.wind_layer.getFeatures()]
+        wsp_min = round(wind_sp.min(), 2)
+        wsp_max = round(wind_sp.max(), 2)
+        return wsp_min, wsp_max
+    
+    def get_wind_direction(self):
+        wind_ang = [feat['angle'] for feat in self.wind_layer.getFeatures()]
+        ang_mean = wind_ang.mean()
+        wind_dir = self.wind_direction(ang_mean)
+        return wind_dir
 
-            # calculate wind direction using atan2 formula
-            self.wind_gdf['direction'] = np.arctan2(
-                self.wind_gdf['meridionalSpeed'],
-                self.wind_gdf['zonalSpeed'],
-            )*(180/np.pi) + 180
+class WPPLayer(Layer):
+    def __init__(self, wpp_path, extent):
+        super().__init__(wpp_path)
+        self.wpp_layer = super().get_layer()
 
-            # calculate wind speed (min, max, mean) and direction
-            self.wind_sp = self.wind_gdf['speed']
-            self.wind_dir = self.wind_gdf['direction']
-            self.dir_mean = self.wind_dir.mean()
-            self.wind_min = self.wind_sp.min()
-            self.wind_max = self.wind_sp.max()
-            self.wmin = float(f"{self.wind_min:.2f}")
-            self.wmax = float(f"{self.wind_max:.2f}")
-            self.windmin = str(self.wmin)
-            self.windmax = str(self.wmax)
-            self.windrange = f'{self.windmin} - {self.windmax} m/s'
+        self.wpp_filter = super().extract_by_extent(extent)
+        self.wpp_list = [wpp[-3:] for wpp in self.wpp_filter['WPP']]
 
-            # define mean wind direction
-            if self.dir_mean < 180:
-                self.ar = self.dir_mean + 180
-            elif self.dir_mean > 180:
-                self.ar = self.dir_mean - 180
+        if len(self.wpp_list) == 1:
+            self.wpp_area = f'WPP NRI {self.wpp_list[0]}'
+        elif len(self.wpp_list) == 2:
+            self.wpp_area = f'WPP NRI {self.wpp_list[0]} & {self.wpp_list[1]}'
+        elif len(self.wpp_list) > 2:
+            self.wpp_area = f'WPP NRI {self.wpp_list[0]}, {self.wpp_list[1]} & {self.wpp_list[2]}'
+        else:
+            self.wpp_area = 'LUAR INDONESIA'
 
-            # define wind direction value to wind direction name
-            if self.ar > 22.5 and self.ar <= 67.5:
-                self.dire = "Timur Laut"
-            elif self.ar > 67.5 and self.ar <= 112.5:
-                self.dire = "Timur"
-            elif self.ar > 112.5 and self.ar <= 157.5:
-                self.dire = "Tenggara"
-            elif self.ar > 157.5 and self.ar <= 202.5:
-                self.dire = "Selatan"
-            elif self.ar > 202.5 and self.ar <= 247.5:
-                self.dire = "Barat Daya"
-            elif self.ar > 247.5 and self.ar <= 292.5:
-                self.dire = "Barat"
-            elif self.ar > 292.5 and self.ar <= 337.5:
-                self.dire = "Barat Laut"
-            else:
-                self.dire = "Utara"
+    def getWPPGeoDataFrame(self):
+        return self.wpp_gdf
 
-
-class ShipData(AggregationData):
+class ShipLayer(Layer):
     def __init__(self, data_list, vms_list=None):
         super().__init__(data_list)
 
@@ -448,37 +500,6 @@ class DTOData(AggregationData):
 
     def getDTOGeoDataFrame(self):
         return self.dto_gdf
-
-
-class WPPData:
-    def __init__(self, wpp_path, extent):
-        if isinstance(extent, tuple):
-            self.xmin, self.xmax, self.ymin, self.ymax = extent
-        elif isinstance(extent, np.ndarray):
-            self.xmin, self.ymin, self.xmax, self.ymax = extent
-        else:
-            self.xmin = extent.xMinimum()
-            self.xmax = extent.xMaximum()
-            self.ymin = extent.yMinimum()
-            self.ymax = extent.yMaximum()
-
-        self.wpp_gdf = gpd.read_file(wpp_path)
-
-        self.wpp_filter = self.wpp_gdf.cx[self.xmin:self.xmax,
-                                          self.ymin:self.ymax]
-        self.wpp_list = [wpp[-3:] for wpp in self.wpp_filter['WPP']]
-
-        if len(self.wpp_list) == 1:
-            self.wpp_area = f'WPP NRI {self.wpp_list[0]}'
-        elif len(self.wpp_list) == 2:
-            self.wpp_area = f'WPP NRI {self.wpp_list[0]} & {self.wpp_list[1]}'
-        elif len(self.wpp_list) > 2:
-            self.wpp_area = f'WPP NRI {self.wpp_list[0]}, {self.wpp_list[1]} & {self.wpp_list[2]}'
-        else:
-            self.wpp_area = 'LUAR INDONESIA'
-
-    def getWPPGeoDataFrame(self):
-        return self.wpp_gdf
 
 
 class DataElements:

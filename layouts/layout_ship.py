@@ -21,7 +21,7 @@ from barata.barata_layout import (
     DataList,
     RasterLayer,
     LayerExtent,
-    WindData,
+    WindLayer,
     WPPData,
     ShipData,
     LoadLayer,
@@ -90,13 +90,11 @@ else:
 # load wind data and get wind range and direction
 if len(wind_list) > 0:
     print('- Ada data angin')
-    wind_data = WindData(wind_list)
-    wind_range = wind_data.windrange
-    wind_direction = wind_data.dire
-    windgdf = wind_data.getGeoDataFrame()
+    wind_layer = WindLayer(wind_list)
+    wind_range = wind_layer.get_wind_range()
+    wind_direction = wind_layer.get_wind_direction()
 else:
     print('- Tidak ada data angin')
-    wind_data = None
 
 # load wpp data and get WPP area which is overlaid within raster
 wpp_data = WPPData(WPP_PATH, raster_extent)
