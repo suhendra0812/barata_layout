@@ -1,5 +1,4 @@
 from qgis.core import (
-    edit,
     QgsApplication,
     QgsProcessing,
     QgsProject,
@@ -20,14 +19,8 @@ from qgis.core import (
 )
 from qgis.gui import QgsMapCanvas
 from qgis.utils import iface
-from qgis.analysis import QgsNativeAlgorithms
 from PyQt5.QtCore import QFileInfo, QVariant
 from PyQt5.QtWidgets import QFileDialog
-
-import sys
-sys.path.append('C:/OSGeo4W64/apps/qgis/python/plugins')
-import processing
-from processing.core.Processing import Processing
 
 from datetime import datetime, timedelta
 import geopandas as gpd
@@ -39,22 +32,20 @@ import sip
 
 
 class QgsApp:
-    def __init__(self, path):
-        QgsApplication.setPrefixPath(path, True)
+    def __init__(self):
+        QgsApplication.setPrefixPath('C:/OSGeo4W64/apps/qgis', True)
         self.qgs = QgsApplication([], False)
 
     def start(self):
         self.qgs.initQgis()
 
     def quit(self):
-        self.qgs.exitQgis()
-        
+        self.qgs.exitQgis()   
 
-class QgsProc:
+class QgsProc(QgsApp):
     def __init__(self):
-        Processing.initialize()
-        QgsApplication.processingRegistry().addProvider(QgsNativeAlgorithms())
-        
+        pass
+
     def merge_vector_layer(self, data_list, epsg_code=4326):
         params = {
             'LAYERS': data_list,
@@ -252,7 +243,7 @@ class VectorLayer(QgsProc):
         elif isinstance(data_path, QgsVectorLayer):
             data_list = [data_path]
 
-        self.layer = QgsProc.merge_vector_layer(self, data_list)    
+        self.layer = QgsProc().merge_vector_layer(self, data_list)    
 
     def get_vector_layer(self):
         return self.layer
@@ -325,9 +316,9 @@ class WindLayer(VectorLayer):
 
 class WPPLayer(VectorLayer):
     def __init__(self, wpp_path, extent):
-        self.wpp_layer = VectorLayer(wpp_path).get_vector_layer()
+        self.wpp_layer = VectorLayer(wpp_path).get_vector_layer(self)
 
-        self.wpp_filter = QgsProc().extract_by_extent(wpp_path, extent)
+        self.wpp_filter = QgsProc().extract_by_extent(self, wpp_path, extent)
         
         self.wpp_list = [feat['WPP'][-3:] for feat in self.wpp_filter['OUTPUT'].getFeatures()]
 
