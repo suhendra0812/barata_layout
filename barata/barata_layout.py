@@ -318,6 +318,9 @@ class WindLayer(Layer):
         ang_mean = wind_ang.mean()
         wind_dir = self.wind_direction(ang_mean)
         return wind_dir
+    
+    def get_wind_layer(self):
+        return self.wind_layer
 
 class WPPLayer(Layer):
     def __init__(self, wpp_path, extent):
@@ -392,37 +395,69 @@ class OilLayer(WindLayer):
 
         if len(wind_list) > 0:
             WindLayer.__init__(self, wind_list)
-            wind_layer = WindLayer.get_layer(self)
+            wind_layer = WindLayer.get_wind_layer(self)
+'
+            oil_buffer = self.oil_buffer(self.oil_layer, radius=1000)
 
-            self.oil_gdf.crs = 'EPSG:4326'
-            oil_buffer = self.oil_gdf.to_crs('EPSG:3857')
-            oil_buffer.geometry = oil_buffer.geometry.buffer(1000)
-            oil_buffer.to_crs('EPSG:4326', inplace=True)
+            self.windoil_layer = self.join_by_location_summary(oil_buffer, wind_layer, ['speed', 'angle'])
 
-            windoil_gdf = gpd.sjoin(oil_buffer, wind_gdf, how='left')
-            wspd_min = windoil_gdf.groupby('DATE-TIME')['speed'].agg('min').tolist()
-            wspd_max = windoil_gdf.groupby('DATE-TIME')['speed'].agg('max').tolist()
-            wspd_mean = windoil_gdf.groupby('DATE-TIME')['speed'].agg('mean').tolist()
-            wdir_mean = windoil_gdf.groupby('DATE-TIME')['direction'].agg('mean').tolist()
-
-            self.oil_gdf['WSPDMIN'] = wspd_min
-            self.oil_gdf['WSPDMAX'] = wspd_max
-            self.oil_gdf['WSPDMEAN'] = wspd_mean
-            self.oil_gdf['WDIRMEAN'] = wdir_mean
+            self.windoil_layer.dataProvider().renameAttribute(
+                {
+                    self.windoil_layer.fields().indexFromName('speed_min'): 'WSPDMIN',
+                    self.windoil_layer.fields().indexFromName('speed_max'): 'WSPDMAX',
+                    self.windoil_layer.fields().indexFromName('speed_mean'): 'WSPDMEAN',
+                    self.windoil_layer.fields().indexFromName('angle_min'): 'WANGMIN',
+                    self.windoil_layer.fields().indexFromName('angle_max'): 'WANGMAX',
+                    self.windoil_layer.fields().indexFromName('angle_mean'): 'WANGMEAN',
+                }
+            )
         else:
-            self.oil_gdf['WSPDMIN'] = [
-                np.nan for i in range(len(self.oil_gdf))]
-            self.oil_gdf['WSPDMAX'] = [
-                np.nan for i in range(len(self.oil_gdf))]
-            self.oil_gdf['WSPDMEAN'] = [
-                np.nan for i in range(len(self.oil_gdf))]
-            self.oil_gdf['WDIRMEAN'] = [
-                np.nan for i in range(len(self.oil_gdf))]
+            self.windoil_layer = self.oil_layer
+    
+    def oil_buffer(self, layer, radius):          
+        oil_proj = self.reproject_layer(layer, epsg_code=3857)
 
-    def getOilGeoDataFrame(self):
-        return self.oil_gdf
+        buffer_params = {
+            'INPUT': oil_proj,
+            'DISTANCE': 1000,
+            'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+        }
+        buffer_output = processing.run("native:buffer", params)
+        buffer_layer = buffer_output['OUTPUT']
 
-    def getOilDataFrame(self):
+        oil_buffer_geo = self.reproject_layer(buffer_layer, epsg_code=3857)
+
+        return oil_buffer_geo
+    
+    def reproject_layer(self, layer, epsg_code=4326):
+        reproject_params = {
+            'INPUT': layer,
+            'TARGET_CRS': QgsCoordinateReferenceSystem(f'EPSG:{epsg_code}')
+        }
+        reproject_output = processing.run("native:reprojectlayer", params)
+        reproject_layer = reproject_output['OUTPUT']
+
+        return reproject_layer
+    
+    def join_by_location_summary(self, base_layer, join_layer, join_fields):
+        params =  {
+            'INPUT': base_layer,
+            'JOIN': join_layer,
+            'PREDICATE': [0],
+            'JOIN_FIELDS': join_fields,
+            'SUMMARIES':[2,3,6],
+            'DISCARD_NONMATCHING': False,
+            'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+        }
+
+        output = processing.run("native:joinbylocationsummary", params)
+
+        return output['OUTPUT']
+
+    def get_oil_layer(self):
+        return self.windoil_layer
+
+    def export_oil_to_csv(self):
         oilfilter_gdf = self.oil_gdf.copy()
         oilfilter_gdf = oilfilter_gdf[[
             'BARIC_LON', 'BARIC_LAT', 'LENGTH_KM', 'AREA_KM', 'WSPDMEAN', 'WDIRMEAN', 'ALARM_LEV']]
