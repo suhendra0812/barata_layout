@@ -16,6 +16,7 @@ sys.path.append(SCRIPT_PATH)
 
 from barata.barata_layout import (
     QgsApp,
+    QgsProc,
     Project,
     FileDialog,
     DataList,
@@ -35,13 +36,12 @@ from info import vessel_info
 # set QGIS application path and initialize it
 qgs_app = QgsApp(QGIS_PATH)
 qgs_app.start()
-qgs_app.start_plugins()
 
 # define project type and remove previous layer
 project_layout = Project(PROJECT_PATH)
-project_layout.removeLayerPanel()
-project_layout.removeLayerHistory()
-project_type = project_layout.getProjectType()
+project_layout.remove_layer_panel()
+project_layout.remove_layer_history()
+project_type = project_layout.get_project_type()
 
 # define method
 method = sys.argv[-1]
@@ -54,8 +54,8 @@ print(data_folder)
 
 # define list of data based on data folder
 data_list = DataList(data_folder)
-raster_list = data_list.getRasterList()
-wind_list = data_list.getWindList()
+raster_list = data_list.get_raster_list()
+wind_list = data_list.get_wind_list()
 
 OUTPUT_FOLDER = os.path.dirname(raster_list[-1])
 
@@ -63,13 +63,13 @@ print('\nKetersediaan data:')
 # load raster layer and get raster info
 if len(raster_list) > 0:
     print('- Ada data raster')
-    rasterlayer_list = RasterLayer(raster_list).getRasterLayer()
-    rasterbasename_list = RasterLayer(raster_list).getRasterBasename()
-    raster_extent = LayerExtent(rasterlayer_list).getExtent()
+    rasterlayer_list = RasterLayer(raster_list).get_raster_layer()
+    rasterbasename_list = RasterLayer(raster_list).get_raster_basename()
+    raster_extent = LayerExtent(rasterlayer_list).get_extent()
 
     for rasterlayer in rasterlayer_list:
         load_raster = LoadLayer(project_layout, rasterlayer)
-        load_raster.addRasterToMap()
+        load_raster.add_raster_to_map()
 
     # get radar info from raster filename
     wil = os.path.basename(OUTPUT_FOLDER)[:-16]

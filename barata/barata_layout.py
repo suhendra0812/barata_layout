@@ -28,7 +28,6 @@ import sys
 sys.path.append('C:/OSGeo4W64/apps/qgis/python/plugins')
 import processing
 from processing.core.Processing import Processing
-from processing.algs.grass7.Grass7Utils import Grass7Utils
 
 from datetime import datetime, timedelta
 import geopandas as gpd
@@ -49,12 +48,56 @@ class QgsApp:
 
     def quit(self):
         self.qgs.exitQgis()
-    
-    def start_plugins(self):
-        Processing.initialize()
-        Grass7Utils.checkGrassIsInstalled()
-        QgsApplication.processingRegistry().addProvider(QgsNativeAlgorithms())
+        
 
+class QgsProc:
+    def __init__(self):
+        Processing.initialize()
+        QgsApplication.processingRegistry().addProvider(QgsNativeAlgorithms())
+        
+    def merge_vector_layer(self, data_list, epsg_code=4326):
+        params = {
+            'LAYERS': data_list,
+            'CRS': QgsCoordinateReferenceSystem(f'EPSG:{epsg_code}'),
+            'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+        }
+        
+        output = processing.run("native:mergevectorlayers", params)
+        
+        return output['OUTPUT']
+    
+    def extract_by_extent(self, layer, extent):
+        if len(layer) == 1:
+            params = {
+                'INPUT': layer,
+                'EXTENT': extent,
+                'CLIP': False,
+                'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+            }
+            
+            output = processing.run("native:extractbyextent", params)
+            
+            return output['OUTPUT']
+        else:
+            raise ValueError
+    
+    def join_attributes_by_location(self, base_layer, join_layer, join_fields=None):
+        params =  {
+            'INPUT': base_layer,
+            'JOIN': join_layer,
+            'PREDICATE': [0],
+            'JOIN_FIELDS': join_fields,
+            'METHOD': 0,
+            'DISCARD_NONMATCHING': False,
+            'PREFIX': '',
+            'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+        }
+
+        output = processing.run("native:joinattributesbylocation", params)
+
+        return output['OUTPUT']
+    
+    
 
 class FileDialog:
     def __init__(self, base_path, method='gabungan'):
@@ -202,80 +245,38 @@ class RasterLayer:
         return self.rasterlayer_list
 
 
-class Layer:
+class VectorLayer(QgsProc):
     def __init__(self, data_path):
         if isinstance(data_path, list):
-            self.data_list = data_path
+            data_list = data_path
         elif isinstance(data_path, QgsVectorLayer):
-            self.data_list = [data_path]
+            data_list = [data_path]
 
-        self.layer = self.merge_vector_layer(self.data_list)
+        self.layer = QgsProc.merge_vector_layer(self, data_list)    
 
-    def merge_vector_layer(self, data_list):
-        params = {
-            'LAYERS': data_list,
-            'CRS': QgsCoordinateReferenceSystem('EPSG:4326'),
-            'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
-        }
-        
-        output = processing.run("native:mergevectorlayers", params)
-        
-        return output['OUTPUT']
-
-    def extract_by_extent(self, extent):
-        if len(self.data_list) == 1:
-            params = {
-                'INPUT': self.data_list[0],
-                'EXTENT': extent,
-                'CLIP': False,
-                'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
-            }
-            
-            output = processing.run("native:extractbyextent", params)
-            
-            return output['OUTPUT']
-        else:
-            raise ValueError
-    
-    def join_attributes_by_location(self, base_layer, join_layer, join_fields=None):
-        params =  {
-            'INPUT': base_layer,
-            'JOIN': join_layer,
-            'PREDICATE': [0],
-            'JOIN_FIELDS': join_fields,
-            'METHOD': 0,
-            'DISCARD_NONMATCHING': False,
-            'PREFIX': '',
-            'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
-        }
-
-        output = processing.run("native:joinattributesbylocation", params)
-
-        return output['OUTPUT']
-
-    def get_layer(self):
+    def get_vector_layer(self):
         return self.layer
-    
-    def export_vector(self, output_path, file_format='CSV'):
-        QgsVectorFileWriter.writeAsVectorFormat(self.layer, output_path, "utf-8", None, file_format, layerOptions='GEOMETRY=AS_XY')
 
 
-class WindLayer(Layer):
+class WindLayer(VectorLayer):
     def __init__(self, wind_list):
         super().__init__(wind_list)
 
         # read wind data 'gml' in a list
-        self.wind_layer = super().get_layer()
+        self.wind_layer = super().get_vector_layer()
         self.wind_layer.dataProvider().addAttributes([QgsField("angle", QVariant.Double)])
-        self.wind_layer.dataProvider().addAttributes([QgsField("direction", QVariant.String)])  
+        self.wind_layer.dataProvider().addAttributes([QgsField("direction", QVariant.String)])
+        self.wind_layer.updateFields()
 
-        with edit(self.wind_layer):
-            for feat in self.wind_layer.getFeatures():
-                wind_ang = self.wind_angle(feat['zonalSpeed'], feat['meridionalSpeed'])
-                wind_dir = self.wind_direction(wind_ang)
-                feat.setAttribute(feat.fieldNameIndex('angle'), wind_ang)
-                feat.setAttribute(feat.fieldNameIndex('direction'), wind_dir)
-                self.wind_layer.updateFeature(feat)
+        self.wind_layer.startEditing()
+        for feat in self.wind_layer.getFeatures():
+            wind_ang = self.wind_angle(feat['zonalSpeed'], feat['meridionalSpeed'])
+            wind_dir = self.wind_direction(wind_ang)
+            feat.setAttribute(feat.fieldNameIndex('angle'), wind_ang)
+            feat.setAttribute(feat.fieldNameIndex('direction'), wind_dir)
+            self.wind_layer.updateFeature(feat)
+
+        self.wind_layer.commitChanges()
     
     def wind_angle(self, x, y):
         angle = np.arctan2(y, x)*(180/np.pi)+180
@@ -309,25 +310,24 @@ class WindLayer(Layer):
     
     def get_wind_range(self):
         wind_sp = [feat['speed'] for feat in self.wind_layer.getFeatures()]
-        wsp_min = round(wind_sp.min(), 2)
-        wsp_max = round(wind_sp.max(), 2)
+        wsp_min = round(min(wind_sp), 2)
+        wsp_max = round(max(wind_sp), 2)
         return wsp_min, wsp_max
     
     def get_wind_direction(self):
         wind_ang = [feat['angle'] for feat in self.wind_layer.getFeatures()]
-        ang_mean = wind_ang.mean()
+        ang_mean = np.mean(wind_ang)
         wind_dir = self.wind_direction(ang_mean)
         return wind_dir
     
     def get_wind_layer(self):
         return self.wind_layer
 
-class WPPLayer(Layer):
+class WPPLayer(VectorLayer):
     def __init__(self, wpp_path, extent):
-        super().__init__(wpp_path)
-        self.wpp_layer = super().get_layer()
+        self.wpp_layer = VectorLayer(wpp_path).get_vector_layer()
 
-        self.wpp_filter = super().extract_by_extent(extent)
+        self.wpp_filter = QgsProc().extract_by_extent(wpp_path, extent)
         
         self.wpp_list = [feat['WPP'][-3:] for feat in self.wpp_filter['OUTPUT'].getFeatures()]
 
@@ -341,11 +341,11 @@ class WPPLayer(Layer):
             self.wpp_area = 'LUAR INDONESIA'
 
 
-class ShipLayer(Layer):
+class ShipLayer(VectorLayer):
     def __init__(self, data_list, vms_list=None):
         super().__init__(data_list)
 
-        self.ship_layer = super().get_layer()
+        self.ship_layer = super().get_vector_layer()
         self.ship_layer.dataProvider().addAttributes([QgsField("DESC", QVariant.String)])
 
         with edit(self.ship_layer):
@@ -358,7 +358,7 @@ class ShipLayer(Layer):
 
         if len(vms_list) > 0 or vms_list != None:
             super().__init__(vms_list)
-            self.vms_layer = super().get_layer()
+            self.vms_layer = super().get_vector_layer()
 
             shipvms_layer = super().join_attributes_by_location(self.ship_layer, self.vms_layer, join_fields=['status'])
 
@@ -390,13 +390,12 @@ class ShipLayer(Layer):
 
 class OilLayer(WindLayer):
     def __init__(self, oil_list, wind_list):
-        Layer.__init__(self, oil_list)
-        self.oil_layer = Layer.get_layer(self)
+        VectorLayer.__init__(self, oil_list)
+        self.oil_layer = VectorLayer.get_vector_layer(self)
 
         if len(wind_list) > 0:
             WindLayer.__init__(self, wind_list)
             wind_layer = WindLayer.get_wind_layer(self)
-'
             oil_buffer = self.oil_buffer(self.oil_layer, radius=1000)
 
             self.windoil_layer = self.join_by_location_summary(oil_buffer, wind_layer, ['speed', 'angle'])
@@ -479,7 +478,7 @@ class OilLayer(WindLayer):
         return oilfilter_gdf
 
 
-class DTOData(AggregationData):
+class DTOLayer(VectorLayer):
     def __init__(self, dto_path, info_list=None):
         self.dto_path = dto_path
 
@@ -668,7 +667,7 @@ class LoadLayer:
         if template != None:
             self.template = template
 
-    def addRasterToMap(self):
+    def add_raster_to_map(self):
         # remove NoData value
         self.layer.dataProvider().setNoDataValue(1, 0)
         self.layer.dataProvider().setUserNoDataValue(1, [QgsRasterRange(0, 0)])
@@ -676,7 +675,7 @@ class LoadLayer:
         # add raster layer to 'Basemap' group in 2nd order
         self.basemap_group.insertChildNode(3, QgsLayerTreeLayer(self.layer))
     
-    def addVectorToMap(self):
+    def add_vector_to_map(self):
         # add layer to group
         self.data_group.addLayer(self.layer)
 
