@@ -340,10 +340,10 @@ class OilData(WindData):
             oil_buffer.to_crs('EPSG:4326', inplace=True)
 
             windoil_gdf = gpd.sjoin(oil_buffer, wind_gdf, how='left')
-            wspd_min = windoil_gdf.groupby('DATE-TIME')['speed'].agg('min').tolist()
-            wspd_max = windoil_gdf.groupby('DATE-TIME')['speed'].agg('max').tolist()
-            wspd_mean = windoil_gdf.groupby('DATE-TIME')['speed'].agg('mean').tolist()
-            wdir_mean = windoil_gdf.groupby('DATE-TIME')['direction'].agg('mean').tolist()
+            wspd_min = windoil_gdf.groupby(id)['speed'].agg('min').tolist()
+            wspd_max = windoil_gdf.groupby(id)['speed'].agg('max').tolist()
+            wspd_mean = windoil_gdf.groupby(id)['speed'].agg('mean').tolist()
+            wdir_mean = windoil_gdf.groupby(id)['direction'].agg('mean').tolist()
 
             self.oil_gdf['WSPDMIN'] = wspd_min
             self.oil_gdf['WSPDMAX'] = wspd_max
@@ -604,13 +604,13 @@ class LoadLayer:
         if template is not None:
             self.template = template
 
-    def addRasterToMap(self):
+    def addRasterToMap(self, node=3):
         # remove NoData value
         self.layer.dataProvider().setNoDataValue(1, 0)
         self.layer.dataProvider().setUserNoDataValue(1, [QgsRasterRange(0, 0)])
 
         # add raster layer to 'Basemap' group in 2nd order
-        self.basemap_group.insertChildNode(3, QgsLayerTreeLayer(self.layer))
+        self.basemap_group.insertChildNode(node, QgsLayerTreeLayer(self.layer))
     
     def addVectorToMap(self):
         # add layer to group

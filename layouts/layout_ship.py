@@ -80,7 +80,7 @@ if len(raster_list) > 0:
 
     for rasterlayer in rasterlayer_list:
         load_raster = LoadLayer(project_layout, rasterlayer)
-        load_raster.addRasterToMap()
+        load_raster.addRasterToMap(node=4)
 
     # get radar info from raster filename
     wil = os.path.basename(OUTPUT_FOLDER)[:-16]
