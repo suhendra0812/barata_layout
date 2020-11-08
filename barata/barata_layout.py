@@ -196,6 +196,7 @@ class AggregationData:
             )
         )
         self.data_gdf.drop_duplicates(inplace=True, ignore_index=True)
+        self.data_gdf.crs = 'EPSG:4326'
         
     def getGeoDataFrame(self):
         return self.data_gdf
@@ -334,7 +335,6 @@ class OilData(WindData):
             WindData.__init__(self, wind_list)
             wind_gdf = WindData.getGeoDataFrame(self)
 
-            self.oil_gdf.crs = 'EPSG:4326'
             oil_buffer = self.oil_gdf.to_crs('EPSG:3857')
             oil_buffer.geometry = oil_buffer.geometry.buffer(1000)
             oil_buffer.to_crs('EPSG:4326', inplace=True)
