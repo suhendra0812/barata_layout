@@ -604,7 +604,7 @@ class LoadLayer:
         if template is not None:
             self.template = template
 
-    def addRasterToMap(self, node=3):
+    def addRasterToMap(self, node=2):
         # remove NoData value
         self.layer.dataProvider().setNoDataValue(1, 0)
         self.layer.dataProvider().setUserNoDataValue(1, [QgsRasterRange(0, 0)])
