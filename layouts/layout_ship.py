@@ -38,9 +38,9 @@ qgs_app.start()
 
 # define project type and remove previous layer
 project_layout = Project(PROJECT_PATH)
-project_layout.removeLayerPanel()
-project_layout.removeLayerHistory()
 project_type = project_layout.getProjectType()
+project_layout.removeLayerPanel(project_type)
+project_layout.removeLayerHistory()
 
 # define method
 method = sys.argv[-1]
@@ -68,7 +68,7 @@ if len(raster_list) > 0:
 
     for rasterlayer in rasterlayer_list:
         load_raster = LoadLayer(project_layout, rasterlayer)
-        load_raster.addRasterToMap(node=4)
+        load_raster.addRasterToMap(node=3)
 
     # get radar info from raster filename
     wil = os.path.basename(OUTPUT_FOLDER)[:-16]

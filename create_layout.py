@@ -35,4 +35,17 @@ if type_option.lower() != 'dto':
     os.system(f'{python_qgis} {layout_path} {method}')
 
 else:
-    os.system(f'{python_qgis} {layout_path}')
+    while True:
+        method_option = input('\nPilih metode layout (satu[1] atau banyak[2]): ')
+        if method_option == '1' or method_option.lower() == 'satu':
+            method = 'satu'
+            break
+        elif method_option == '2' or method_option.lower() == 'banyak':
+            method = 'banyak'
+            break
+        else:
+            print('Metode layout yang Anda masukkan tidak sesuai')
+
+    print(f'Metode layout: {method}\n')
+    
+    os.system(f'{python_qgis} {layout_path} {method}')

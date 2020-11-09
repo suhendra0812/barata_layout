@@ -41,7 +41,7 @@ class QgsApp:
 
 
 class FileDialog:
-    def __init__(self, base_path, method='gabungan'):
+    def __init__(self, base_path, method='satu'):
         self.base_path = base_path
         self.method = method
 
@@ -94,17 +94,16 @@ class Project:
         return self.basemapGroup
 
     # remove layer from layer panel
-    def removeLayerPanel(self):
+    def removeLayerPanel(self, project_type=None):
         if len(self.dataGroup.findLayers()) > 0:
             for i in self.dataGroup.children():
                 self.dataGroup.removeChildNode(i)
-        else:
-            pass
-
-        if len(self.basemapGroup.findLayers()) > 3:
-            self.rasterlayerRemove = self.basemapGroup.findLayers()[3:-1]
-            for layer in self.rasterlayerRemove:
-                self.basemapGroup.removeChildNode(layer)
+        
+        if project_type == 'ship' or project_type == 'oils':
+            if len(self.basemapGroup.findLayers()) > 4:
+                self.rasterlayerRemove = self.basemapGroup.findLayers()[3:-1]
+                for layer in self.rasterlayerRemove:
+                    self.basemapGroup.removeChildNode(layer)
         else:
             pass
 
@@ -140,6 +139,10 @@ class DataList:
     def getWindList(self):
         self.windList = glob.glob(f'{self.base_path}/*Wind.gml')
         return self.windList
+    
+    def getDTOList(self):
+        self.dtoList = glob.glob(f'{self.base_path}/*.kml')
+        return self.dtoList
 
 
 class LayerExtent:
