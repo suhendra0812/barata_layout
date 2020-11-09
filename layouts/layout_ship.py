@@ -26,7 +26,7 @@ from barata.barata_layout import (
     WPPLayer,
     ShipLayer,
     LoadLayer,
-    DataElements,
+    DataNumbers,
     Layout,
 )
 from utils import read_kml, vms_correlation
@@ -145,15 +145,16 @@ if len(ship_list) > 0:
     else:
         ship_layer = ShipLayer(ship_list)
     
-    ship_layer.export_vector(ship_geo_path, file_format='GeoJSON')
     ship_layer.export_ship_to_csv(ship_csv_path)
+    ship_layer.export_ship_to_geojson(ship_geo_path)
     ship_layer = ship_layer.get_ship_layer(ship_geo_path, layer_name)
     ship2_layer = ship_layer.get_ship_layer(ship_geo_path, trmlayer_name)
 
     # get ship elements and feature number
     print("\nMenghitung jumlah kapal...\n")
-    ship_elements = DataElements(ship_gdf).getShipElements()
-    feat_number = len(ship_gdf)
+    data_numbers = DataNumbers(ship_csv_path)
+    ship_numbers = data_numbers.get_ship_numbers()
+    feat_numbers = data_numbers.get_feature_count()
 
     # load two ship layers to project
     load_ship = LoadLayer(project_layout, ship_layer, ship_template)
@@ -162,22 +163,21 @@ if len(ship_list) > 0:
     load_ship2.addVectorToMap()
 
     # overlay wpp layer and ship extent
-    ship_extent = ship_gdf.total_bounds
+    ship_extent = ship_layer.extent()
     wpp_layer = WPPLayer(WPP_PATH, ship_extent)
 
 else:
     print('- Tidak ada data kapal')
 
-    feat_number = 0
-    ship_gdf = None
+    feat_numbers = 0
     ship_csv_path = None
-    ship_elements = DataElements(ship_gdf).getShipElements()
+    ship_numbers = DataNumbers(ship_csv_path).getShipElements()
 
 # define layout manager
-layout_manager = Layout(project_type, method, feat_number, wil, radar_info_list, wpp_layer, wind_data)
+layout_manager = Layout(project_type, method, feat_numbers, wil, radar_info_list, wpp_layer, wind_data)
 
 # insert ship elements to layout
-layout_manager.insertShipElements(ship_elements)
+layout_manager.insertShipElements(ship_numbers)
 
 # set and insert attributes to layout
 layout_manager.setMap(raster_extent)

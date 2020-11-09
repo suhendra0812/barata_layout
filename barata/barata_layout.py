@@ -64,11 +64,10 @@ class QgsProc(QgsApp):
         Processing.initialize()
         app.processingRegistry().addProvider(QgsNativeAlgorithms())
 
-        return app, processing  
+        return processing  
 
     def merge_vector_layer(self, data_list, epsg_code=4326):
-        app, proc = self.initialize_processing()
-        print(data_list)
+        proc = self.initialize_processing()
         params = {
             'LAYERS': data_list,
             'CRS': QgsCoordinateReferenceSystem(f'EPSG:{epsg_code}'),
@@ -80,7 +79,7 @@ class QgsProc(QgsApp):
         return output['OUTPUT']
     
     def extract_by_extent(self, layer, extent):
-        app, proc = self.initialize_processing()
+        proc = self.initialize_processing()
         if len(layer) == 1:
             params = {
                 'INPUT': layer,
@@ -96,7 +95,7 @@ class QgsProc(QgsApp):
             raise ValueError
     
     def join_attributes_by_location(self, base_layer, join_layer, join_fields=None):
-        app, proc = self.initialize_processing()
+        proc = self.initialize_processing()
         params =  {
             'INPUT': base_layer,
             'JOIN': join_layer,
@@ -264,14 +263,19 @@ class VectorLayer(QgsProc):
     def __init__(self, data_path):
         QgsProc.__init__(self)
         if isinstance(data_path, list):
-            self.data_list = data_path
+            data_list = data_path
         elif isinstance(data_path, QgsVectorLayer):
-            self.data_list = [data_path]
+            data_list = [data_path]
+        elif isinstance(data_path, str):
+            data_list = [data_path]
 
-        self.layer = QgsProc.merge_vector_layer(self, self.data_list)    
+        self.layer = QgsProc.merge_vector_layer(self, data_list)    
 
     def get_vector_layer(self):
         return self.layer
+    
+    def export_vector_layer(self, layer_path, file_format='CSV'):
+        QgsVectorFileWriter.writeAsVectorFormat(self.layer, layer_path, "utf-8", QgsCoordinateReferenceSystem('EPSG:4326'), file_format)
 
 
 class WindLayer(VectorLayer):
@@ -294,11 +298,13 @@ class WindLayer(VectorLayer):
 
         self.wind_layer.commitChanges()
     
-    def wind_angle(self, x, y):
+    @staticmethod
+    def wind_angle(x, y):
         angle = np.arctan2(y, x)*(180/np.pi)+180
         return angle
     
-    def wind_direction(self, angle):
+    @staticmethod
+    def wind_direction(angle):
         # define mean wind direction
         if angle < 180:
             wind_ang = angle + 180
@@ -339,11 +345,14 @@ class WindLayer(VectorLayer):
     def get_wind_layer(self):
         return self.wind_layer
 
+
 class WPPLayer(VectorLayer):
     def __init__(self, wpp_path, extent):
-        self.wpp_layer = VectorLayer(wpp_path).get_vector_layer(self)
+        VectorLayer.__init__(self, wpp_path)
+        self.wpp_layer = VectorLayer.get_vector_layer(self)
 
-        self.wpp_filter = QgsProc().extract_by_extent(self, wpp_path, extent)
+        QgsProc.__init__(self)
+        self.wpp_filter = QgsProc.extract_by_extent(self, self.wpp_layer, extent)
         
         self.wpp_list = [feat['WPP'][-3:] for feat in self.wpp_filter['OUTPUT'].getFeatures()]
 
@@ -364,10 +373,12 @@ class ShipLayer(VectorLayer):
         self.ship_layer = super().get_vector_layer()
         self.ship_layer.dataProvider().addAttributes([QgsField("DESC", QVariant.String)])
 
-        with edit(self.ship_layer):
-            for feat in self.ship_layer.getFeatures():
-                if feat['AIS_MMSI'] != None:
-                    feat.setAttribute(feat.fieldNameIndex('DESC'), 'AIS')
+        self.ship_layer.startEditing()
+        for feat in self.ship_layer.getFeatures():
+            if feat['AIS_MMSI'] != None:
+                feat.setAttribute(feat.fieldNameIndex('DESC'), 'AIS')
+                self.ship_layer.updateFeature(feat)
+        self.ship_layer.commitChanges()
 
         self.ship_gdf['DESC'] = [
             'AIS' if i is not None else None for i in self.ship_gdf['AIS_MMSI']]
@@ -378,16 +389,20 @@ class ShipLayer(VectorLayer):
 
             shipvms_layer = super().join_attributes_by_location(self.ship_layer, self.vms_layer, join_fields=['status'])
 
-            with edit(self.ship_layer):
-                for feat in shipvms_layer.getFeatures():
-                    if feat['status'] == 'vms':
-                        feat.setAttribute(feat.fieldNameIndex('DESC'), 'VMS')
+            self.ship_layer.startEditing()
+            for feat in shipvms_layer.getFeatures():
+                if feat['status'] == 'vms':
+                    feat.setAttribute(feat.fieldNameIndex('DESC'), 'VMS')
+                    self.ship_layer.updateFeature(feat)
+            self.ship_layer.commitChanges()
 
     def get_ship_layer(self, layer_path, layer_name):
-        super().export_vector(layer_path, file_format='GeoJSON')
         ship_layer = QgsVectorLayer(layer_path, layer_name, 'ogr')
         return ship_layer
 
+    def export_ship_to_geojson(self, output_path, epsg_code=4326):
+        QgsVectorFileWriter.writeAsVectorFormat(self.ship_layer, output_path, "utf-8", QgsCoordinateReferenceSystem(f'EPSG:{epsg_code}'), "GeoJSON")
+    
     def export_ship_to_csv(self, output_path):
         ship_layer = self.ship_layer.copy()
         ship_layer.dataProvider().renameAttribute(
@@ -401,7 +416,7 @@ class ShipLayer(VectorLayer):
             }
         )
 
-        super().export_vector(output_path, file_format='CSV')
+        QgsVectorFileWriter.writeAsVectorFormat(ship_layer, output_path, "utf-8", None, "CSV", layerOptions='GEOMETRY=AS_XYZ')
 
 
 class OilLayer(WindLayer):
@@ -437,7 +452,7 @@ class OilLayer(WindLayer):
             'DISTANCE': 1000,
             'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
         }
-        buffer_output = processing.run("native:buffer", params)
+        buffer_output = processing.run("native:buffer", buffer_params)
         buffer_layer = buffer_output['OUTPUT']
 
         oil_buffer_geo = self.reproject_layer(buffer_layer, epsg_code=3857)
@@ -557,26 +572,30 @@ class DTOLayer(VectorLayer):
         return self.dto_gdf
 
 
-class DataElements:
-    def __init__(self, data_gdf):
-        self.data_gdf = data_gdf
+class DataNumbers:
+    def __init__(self, data_csv):
+        self.data_csv = data_csv
+        self.data_df = pd.read_csv(data_csv)
 
-    def getShipElements(self):
-        if self.data_gdf is not None:
+    def get_feature_count(self):
+        return len(self.data_df)
+    
+    def get_ship_numbers(self):
+        if self.data_df != None:
             # get VMS count
-            self.vms = self.data_gdf[self.data_gdf['DESC'] == 'VMS']
+            self.vms = self.data_df[self.data_df['Asosiasi (AIS/VMS)'] == 'VMS']
             self.fv = len(self.vms)
 
             # define ship size category
-            self.ais = self.data_gdf['AIS_MMSI'].isnull() == False
-            self.echo = self.data_gdf['AIS_MMSI'].isnull() == True
-            self.fe = self.data_gdf[self.echo]
-            self.fa = self.data_gdf[self.ais]
+            self.ais = self.data_df['Asosiasi (AIS/VMS)'] == 'AIS'
+            self.echo = self.data_df['Asosiasi (AIS/VMS)'] == None
+            self.fe = self.data_df[self.echo]
+            self.fa = self.data_df[self.ais]
 
             # ship data selection based on size
-            self.s = self.data_gdf['LENGTH']
-            self.se = self.fe['LENGTH']
-            self.sa = self.fa['LENGTH']
+            self.s = self.data_df['Panjang (m)']
+            self.se = self.fe['Panjang (m)']
+            self.sa = self.fa['Panjang (m)']
 
             # sum untransmitted ship
             self.e6 = self.fe[(self.se <= 50)]  # kapal ikan
