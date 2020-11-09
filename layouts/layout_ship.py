@@ -34,8 +34,10 @@ from info.radar_info import RadarInfo
 from info import vessel_info
 
 # set QGIS application path and initialize it
-qgs_app = QgsApp(QGIS_PATH)
-qgs_app.start()
+qgs_app = QgsApp().initialize()
+qgs_app.initQgis()
+
+# QgsProc().initialize_processing()
 
 # define project type and remove previous layer
 project_layout = Project(PROJECT_PATH)
@@ -201,7 +203,7 @@ if ship_csv_path is not None:
 print('\nSelesai')
 
 # exit QGIS application
-qgs_app.quit()
+qgs_app.exitQgis()
 
 # set raster extent
 xmin = raster_extent.xMinimum()

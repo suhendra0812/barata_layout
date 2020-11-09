@@ -27,37 +27,60 @@ import geopandas as gpd
 import numpy as np
 import pandas as pd
 import os
+import sys
 import glob
 import sip
+import warnings
+from functools import wraps
 
 
 class QgsApp:
-    def __init__(self):
+    def initialize(self):
+        sys.path.append('C:/OSGeo4W64/apps/qgis/python/plugins')
         QgsApplication.setPrefixPath('C:/OSGeo4W64/apps/qgis', True)
         self.qgs = QgsApplication([], False)
-
-    def start(self):
-        self.qgs.initQgis()
-
-    def quit(self):
-        self.qgs.exitQgis()   
+        return self.qgs  
 
 class QgsProc(QgsApp):
     def __init__(self):
         pass
 
+    def ignore_warnings(f):
+        @wraps(f)
+        def inner(*args, **kwargs):
+            with warnings.catch_warnings(record=True) as w:
+                warnings.simplefilter("ignore")
+                response = f(*args, **kwargs)
+            return response
+        return inner
+
+    @ignore_warnings
+    def initialize_processing(self):
+        app = self.initialize()
+        app.initQgis()
+        from qgis.analysis import QgsNativeAlgorithms
+        import processing
+        from processing.core.Processing import Processing
+        Processing.initialize()
+        app.processingRegistry().addProvider(QgsNativeAlgorithms())
+
+        return app, processing  
+
     def merge_vector_layer(self, data_list, epsg_code=4326):
+        app, proc = self.initialize_processing()
+        print(data_list)
         params = {
             'LAYERS': data_list,
             'CRS': QgsCoordinateReferenceSystem(f'EPSG:{epsg_code}'),
             'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
         }
         
-        output = processing.run("native:mergevectorlayers", params)
+        output = proc.run("native:mergevectorlayers", params)
         
         return output['OUTPUT']
     
     def extract_by_extent(self, layer, extent):
+        app, proc = self.initialize_processing()
         if len(layer) == 1:
             params = {
                 'INPUT': layer,
@@ -66,13 +89,14 @@ class QgsProc(QgsApp):
                 'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
             }
             
-            output = processing.run("native:extractbyextent", params)
+            output = proc.run("native:extractbyextent", params)
             
             return output['OUTPUT']
         else:
             raise ValueError
     
     def join_attributes_by_location(self, base_layer, join_layer, join_fields=None):
+        app, proc = self.initialize_processing()
         params =  {
             'INPUT': base_layer,
             'JOIN': join_layer,
@@ -84,7 +108,7 @@ class QgsProc(QgsApp):
             'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
         }
 
-        output = processing.run("native:joinattributesbylocation", params)
+        output = proc.run("native:joinattributesbylocation", params)
 
         return output['OUTPUT']
     
@@ -238,12 +262,13 @@ class RasterLayer:
 
 class VectorLayer(QgsProc):
     def __init__(self, data_path):
+        QgsProc.__init__(self)
         if isinstance(data_path, list):
-            data_list = data_path
+            self.data_list = data_path
         elif isinstance(data_path, QgsVectorLayer):
-            data_list = [data_path]
+            self.data_list = [data_path]
 
-        self.layer = QgsProc().merge_vector_layer(self, data_list)    
+        self.layer = QgsProc.merge_vector_layer(self, self.data_list)    
 
     def get_vector_layer(self):
         return self.layer
@@ -251,10 +276,10 @@ class VectorLayer(QgsProc):
 
 class WindLayer(VectorLayer):
     def __init__(self, wind_list):
-        super().__init__(wind_list)
+        VectorLayer.__init__(self, wind_list)
 
         # read wind data 'gml' in a list
-        self.wind_layer = super().get_vector_layer()
+        self.wind_layer = VectorLayer.get_vector_layer(self)
         self.wind_layer.dataProvider().addAttributes([QgsField("angle", QVariant.Double)])
         self.wind_layer.dataProvider().addAttributes([QgsField("direction", QVariant.String)])
         self.wind_layer.updateFields()
