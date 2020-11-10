@@ -43,7 +43,7 @@ class QgsApp:
 
 class QgsProc(QgsApp):
     def __init__(self):
-        pass
+        self.proc = self.initialize_processing()
 
     def ignore_warnings(f):
         @wraps(f)
@@ -67,19 +67,19 @@ class QgsProc(QgsApp):
         return processing  
 
     def merge_vector_layer(self, data_list, epsg_code=4326):
-        proc = self.initialize_processing()
+        # proc = self.initialize_processing()
         params = {
             'LAYERS': data_list,
             'CRS': QgsCoordinateReferenceSystem(f'EPSG:{epsg_code}'),
             'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
         }
         
-        output = proc.run("native:mergevectorlayers", params)
+        output = self.proc.run("native:mergevectorlayers", params)
         
         return output['OUTPUT']
     
     def extract_by_extent(self, layer, extent):
-        proc = self.initialize_processing()
+        # proc = self.initialize_processing()
         if len(layer) == 1:
             params = {
                 'INPUT': layer,
@@ -88,14 +88,14 @@ class QgsProc(QgsApp):
                 'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
             }
             
-            output = proc.run("native:extractbyextent", params)
+            output = self.proc.run("native:extractbyextent", params)
             
             return output['OUTPUT']
         else:
             raise ValueError
     
     def join_attributes_by_location(self, base_layer, join_layer, join_fields=None):
-        proc = self.initialize_processing()
+        # proc = self.initialize_processing()
         params =  {
             'INPUT': base_layer,
             'JOIN': join_layer,
@@ -107,7 +107,7 @@ class QgsProc(QgsApp):
             'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
         }
 
-        output = proc.run("native:joinattributesbylocation", params)
+        output = self.proc.run("native:joinattributesbylocation", params)
 
         return output['OUTPUT']
     
