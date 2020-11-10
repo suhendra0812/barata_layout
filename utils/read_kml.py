@@ -16,7 +16,9 @@ class DTO:
             tree = ElementTree.fromstring(dto_content)
             kmlns = tree.tag.split('}')[0][1:]
             name_elems = tree.findall(".//{%s}name" % kmlns)
-
+            def check_string(text):
+                return any([True if text in name.text else False for name in name_elems])
+            
             if name_elems[3].text[:4] == 'PROG':
                 b_elems = tree.findall(".//{%s}b" % kmlns)
                 desc = [b.text for b in b_elems]
@@ -69,7 +71,7 @@ class DTO:
 
                 self.dto_dict = info_list[1:][i-1]
 
-            elif name_elems[1].text[:-2] == 'Cosmo-SkyMed':
+            elif check_string('Cosmo-SkyMed'):
                 edata_elems = tree.findall('.//{%s}ExtendedData' % kmlns)
                 self.dto_dict = {}
                 for i, data in enumerate(edata_elems[i], start=1):
