@@ -837,6 +837,7 @@ class LayoutDTO(Layout):
         super().__init__(project_type)
         self.layout_list = super().getLayoutList()
         self.dtoinfo_list = dtoinfo_list
+        self.sat = self.dtoinfo_list[0].sat
         self.wpp_layer = wpp_layer
 
     def getTitleExp(self):
@@ -845,7 +846,10 @@ class LayoutDTO(Layout):
         return title_exp
 
     def getNoteExp(self):
-        note_exp = """[%title(format_date("Start Time", 'dd MMMM yyyy', 'id'))%] sekitar pukul [%CASE WHEN to_time("Start Time") >=  to_time('06:21:00') AND to_time("Start Time") <=  to_time('18:21:00') THEN '06:00 WIB' ELSE '20:00 WIB' END%] \nSensor Mode : [% "Mode" %]"""
+        if self.sat == 'COSMO-SkyMed':
+            note_exp = """[%title(format_date("Start Time", 'dd MMMM yyyy', 'id'))%] sekitar pukul [%CASE WHEN to_time("Start Time") >=  to_time('06:21:00') AND to_time("Start Time") <=  to_time('18:21:00') THEN '06:00 WIB' ELSE '20:00 WIB' END%] \nSensor Mode : [% "Mode" %]"""
+        elif self.sat == 'RADARSAT-2':
+            note_exp = """Sensor Mode : [% "Mode" %]"""
 
         return note_exp
 
@@ -871,7 +875,7 @@ class LayoutDTO(Layout):
 
     def insertTitleText(self):
         title_exp = self.getTitleExp()
-        sat = self.dtoinfo_list[0].sat
+        sat = self.sat
         wpp = self.wpp_layer.wpp_area
         for layout in self.layout_list:
             # add title map
@@ -886,8 +890,12 @@ class LayoutDTO(Layout):
             # add note
             note_item = sip.cast(layout[1].itemById(
                 "note"), QgsLayoutItemLabel)
-            note_item.setText(
-                f'CATATAN:\nNotifikasi citra dapat diakuisisi atau tidak:\n{note_exp}')
+            if self.sat == 'COSMO-SkyMed': 
+                note_item.setText(
+                    f'CATATAN:\nNotifikasi citra dapat diakuisisi atau tidak:\n{note_exp}')
+            elif self.sat == 'RADARSAT-2':
+                note_item.setText(
+                    f'{note_exp}')
 
 
 if __name__ == '__main__':
