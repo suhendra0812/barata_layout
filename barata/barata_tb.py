@@ -1,11 +1,12 @@
 import sys, os, glob
 import pandas as pd
 from datetime import datetime
-from tkinter import Tk, filedialog
+#from tkinter import Tk, filedialog
 from docxtpl import DocxTemplate, InlineImage
 from docx.shared import Mm
 
 # source paths
+QGIS_PATH = 'C:/OSGeo4W64/apps/qgis'
 SCRIPT_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 BASE_PATH = os.path.dirname(SCRIPT_PATH)
 TEMPLATE_BASEPATH = f'{SCRIPT_PATH}/templates/tb'
@@ -13,40 +14,24 @@ TBOUTPUT_BASEPATH = f'{BASE_PATH}/8.technical_brief'
 
 sys.path.append(SCRIPT_PATH)
 
+from barata.barata_layout import QgsApp, FileDialog
 from info.radar_info import RadarInfo
 
-while True:
-    option = input('Pilih jenis project (ship/oils): ')
-    if option.lower() == 'ship':
-        project_type = 'ship'
-        break
-    elif option.lower() == 'oils':
-        project_type = 'oils'
-        break
-    else:
-        print('Tipe project yang Anda masukkan tidak sesuai')
+qgs = QgsApp(QGIS_PATH)
+qgs.start()
 
-while True:
-    option = input('Pilih jenis tb (satu[1] atau gabungan[2]): ')
-    if option == '1' or option.lower() == 'satu':
-        method = 'satu'
-        break
-    elif option == '2' or option.lower() == 'gabungan':
-        method = 'gabungan'
-        break
-    else:
-        print('Metode layout yang Anda masukkan tidak sesuai')
+# define project type
+project_type = sys.argv[-2]
 
+# define method
+method = sys.argv[-1]
 
 # input directory path
-root = Tk()
-if method == 'satu':
-    data_folder = filedialog.askdirectory(initialdir=f'{BASE_PATH}/2.seonse_outputs', title='Select Data Directory')
-else:
-    data_folder = filedialog.askdirectory(initialdir=f'{BASE_PATH}/2.seonse_outputs', title='Select Data Directory')[:-4] + '*'
-#data_folder = QFileDialog.getExistingDirectory(None, 'Select Data Directory', f'{BASE_PATH}/2.seonse_outputs')[:-4] + '*'
+data_folder = FileDialog(BASE_PATH, method=method).open()
 
-print('\nSumber data:')
+qgs.quit()
+
+print('Sumber data:')
 print(data_folder)
 print('\n')
 
