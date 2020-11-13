@@ -38,8 +38,8 @@ if method == 'banyak':
     data_folder = FileDialog(BASE_PATH).open()
     dto_list = DataList(data_folder).getDTOList()
 
-    user = input('\nMasukkan nama instansi\t: ')
-    location = input('Masukkan nama wilayah\t: ')
+    user = input('\nMasukkan nama instansi\t: ').lower()
+    location = input('Masukkan nama wilayah\t: ').lower()
 
     for dto_path in dto_list:
         # get project information
@@ -154,8 +154,8 @@ else:
     # user = fn_split[0]
     # location = fn_split[1]
     # if user.isdigit() and location.isdigit():
-    user = input('\nMasukkan nama instansi\t: ')
-    location = input('Masukkan nama wilayah\t: ')
+    user = input('\nMasukkan nama instansi\t: ').lower()
+    location = input('Masukkan nama wilayah\t: ').lower()
 
     local = dtoinfo_list[0].local
     layer_name = f'{user}_{location}_{local}_{project_type}'

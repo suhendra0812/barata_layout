@@ -3,24 +3,24 @@ import os
 python_qgis = 'C:/OSGeo4W64/bin/python-qgis.bat'
 
 while True:
-    type_option = input("Pilih tipe project (ship/oils/dto): ")
-    if type_option.lower() == 'ship':
+    project_type = input("Pilih tipe project (ship/oils/dto): ")
+    if project_type.lower() == 'ship':
         layout_path = "layouts/layout_ship.py"
         break
-    elif type_option.lower() == 'oils':
+    elif project_type.lower() == 'oils':
         layout_path = "layouts/layout_oils.py"
         break
-    elif type_option.lower() == 'dto':
+    elif project_type.lower() == 'dto':
         layout_path = "layouts/layout_dto.py"
         break
     else:
         print('Tipe project yang Anda masukkan tidak sesuai')
 
-print(f'Tipe project: {type_option.lower()}')
+print(f'Tipe project: {project_type.lower()}\n')
 
-if type_option.lower() != 'dto':
+if project_type.lower() != 'dto':
     while True:
-        method_option = input('\nPilih metode layout (satu[1] atau gabungan[2]): ')
+        method_option = input('Pilih metode layout (satu[1] atau gabungan[2]): ')
         if method_option == '1' or method_option.lower() == 'satu':
             method = 'satu'
             break
@@ -32,11 +32,11 @@ if type_option.lower() != 'dto':
 
     print(f'Metode layout: {method}\n')
 
-    os.system(f'{python_qgis} {layout_path} {method}')
+    os.system(f'{python_qgis} {layout_path} {method}\n')
 
 else:
     while True:
-        method_option = input('\nPilih metode layout (satu[1] atau banyak[2]): ')
+        method_option = input('Pilih metode layout (satu[1] atau banyak[2]): ')
         if method_option == '1' or method_option.lower() == 'satu':
             method = 'satu'
             break
