@@ -1,6 +1,5 @@
 from qgis.core import (
     QgsApplication,
-    QgsProcessing,
     QgsProject,
     QgsRectangle,
     QgsRasterLayer,
@@ -27,90 +26,68 @@ import geopandas as gpd
 import numpy as np
 import pandas as pd
 import os
+import subprocess
 import sys
 import glob
 import sip
-import warnings
-from functools import wraps
 
 
 class QgsApp:
     def initialize(self):
-        sys.path.append('C:/OSGeo4W64/apps/qgis/python/plugins')
         QgsApplication.setPrefixPath('C:/OSGeo4W64/apps/qgis', True)
         self.qgs = QgsApplication([], False)
         return self.qgs  
 
-class QgsProc(QgsApp):
+class QgsProc:
     def __init__(self):
-        self.proc = self.initialize_processing()
+        pass
+        # self.qgis_process = "C:/OSGeo4W64/bin/qgis_process-qgis.bat"
 
-    def ignore_warnings(f):
-        @wraps(f)
-        def inner(*args, **kwargs):
-            with warnings.catch_warnings(record=True) as w:
-                warnings.simplefilter("ignore")
-                response = f(*args, **kwargs)
-            return response
-        return inner
-
-    @ignore_warnings
-    def initialize_processing(self):
-        app = self.initialize()
-        app.initQgis()
-        from qgis.analysis import QgsNativeAlgorithms
-        import processing
-        from processing.core.Processing import Processing
-        Processing.initialize()
-        app.processingRegistry().addProvider(QgsNativeAlgorithms())
-
-        return processing  
-
-    def merge_vector_layer(self, data_list, epsg_code=4326):
-        # proc = self.initialize_processing()
-        params = {
-            'LAYERS': data_list,
-            'CRS': QgsCoordinateReferenceSystem(f'EPSG:{epsg_code}'),
-            'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
-        }
-        
-        output = self.proc.run("native:mergevectorlayers", params)
-        
-        return output['OUTPUT']
-    
-    def extract_by_extent(self, layer, extent):
-        # proc = self.initialize_processing()
-        if len(layer) == 1:
-            params = {
-                'INPUT': layer,
-                'EXTENT': extent,
-                'CLIP': False,
-                'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
-            }
-            
-            output = self.proc.run("native:extractbyextent", params)
-            
-            return output['OUTPUT']
+    def run_process(self, algorithm, params):
+        cmd = f'qgis_process-qgis run {algorithm} {params}'
+        result = subprocess.Popen(
+            cmd,
+            stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            shell=True,
+        )
+        output, error = result.communicate()
+        if result.returncode == 0:
+            print(output)
         else:
-            raise ValueError
+            print(error)
+
+    def merge_vector_layer(self, layers, output, epsg_code=4326):
+        params = f'--LAYERS={layers} --CRS="EPSG:{epsg_code}" --OUTPUT={output}'
+        algorithm = 'native:mergevectorlayers'
+        self.run_process(algorithm, params)
     
+    def extract_by_extent(self, input_layer, output, extent):
+        params = f'--INPUT={input_layer} --EXTENT={extent} --OUTPUT={output}'
+        algorithm = 'native:extractlayerbyextent'
+        self.run_process(algorithm, params) 
+        
+    def buffer(self, input_layer, distance, output):
+        params = f'--INPUT={input_layer} --DISTANCE={distance} --OUTPUT={output}'
+        algorithm = 'native:buffer'
+        self.run_process(algorithm, params)  
+    
+    def reproject_layer(self, input_layer, output, epsg_code=4326):
+        params = f'--INPUT={input_layer} --TARGET_CRS="EPSG:{epsg_code} --OUTPUT={output}'
+        algorithm = 'native:reprojectlayer'
+        self.run_process(algorithm, params) 
+
     def join_attributes_by_location(self, base_layer, join_layer, join_fields=None):
-        # proc = self.initialize_processing()
-        params =  {
-            'INPUT': base_layer,
-            'JOIN': join_layer,
-            'PREDICATE': [0],
-            'JOIN_FIELDS': join_fields,
-            'METHOD': 0,
-            'DISCARD_NONMATCHING': False,
-            'PREFIX': '',
-            'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
-        }
-
-        output = self.proc.run("native:joinattributesbylocation", params)
-
-        return output['OUTPUT']
+        params = f'--INPUT={base_layer} --JOIN={join_layer} --JOIN_FIELDS={join_fields} --METHOD=0 --OUTPUT={output}'
+        algorithm = 'native:joinattributesbylocation'
+        self.run_process(algorithm, params) 
     
+    def join_by_location_summary(self, base_layer, join_layer, join_fields):
+        params = f'--INPUT={base_layer} --JOIN={join_layer} --JOIN_FIELDS={join_fields} --SUMMARIES=[2,3,6] --OUTPUT={output}'
+        algorithm = 'native:joinbylocationsummary'
+        self.run_process(algorithm, params)
+
     
 
 class FileDialog:
@@ -261,15 +238,23 @@ class RasterLayer:
 
 class VectorLayer(QgsProc):
     def __init__(self, data_path):
-        QgsProc.__init__(self)
+        super().__init__()
         if isinstance(data_path, list):
             data_list = data_path
         elif isinstance(data_path, QgsVectorLayer):
             data_list = [data_path]
         elif isinstance(data_path, str):
             data_list = [data_path]
+        
+        layers = []
+        for data in data_list:
+            layer_name = QFileInfo(data).baseName()
+            layer = QgsVectorLayer(data, layer_name)
+            layers.append(layer)
 
-        self.layer = QgsProc.merge_vector_layer(self, data_list)    
+        temp_path = os.path.join(os.path.dirname(data_list[-1]), 'temp', 'merge_layer.shp')
+        super().merge_vector_layer(layers, temp_path)
+        self.layer = QgsVectorLayer(temp_path, os.path.basename(temp_path))    
 
     def get_vector_layer(self):
         return self.layer
@@ -456,33 +441,6 @@ class OilLayer(WindLayer):
         buffer_layer = buffer_output['OUTPUT']
 
         oil_buffer_geo = self.reproject_layer(buffer_layer, epsg_code=3857)
-
-        return oil_buffer_geo
-    
-    def reproject_layer(self, layer, epsg_code=4326):
-        reproject_params = {
-            'INPUT': layer,
-            'TARGET_CRS': QgsCoordinateReferenceSystem(f'EPSG:{epsg_code}')
-        }
-        reproject_output = processing.run("native:reprojectlayer", params)
-        reproject_layer = reproject_output['OUTPUT']
-
-        return reproject_layer
-    
-    def join_by_location_summary(self, base_layer, join_layer, join_fields):
-        params =  {
-            'INPUT': base_layer,
-            'JOIN': join_layer,
-            'PREDICATE': [0],
-            'JOIN_FIELDS': join_fields,
-            'SUMMARIES':[2,3,6],
-            'DISCARD_NONMATCHING': False,
-            'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
-        }
-
-        output = processing.run("native:joinbylocationsummary", params)
-
-        return output['OUTPUT']
 
     def get_oil_layer(self):
         return self.windoil_layer
