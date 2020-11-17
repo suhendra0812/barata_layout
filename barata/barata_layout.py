@@ -294,7 +294,7 @@ class ShipData(AggregationData):
         self.ship_gdf['DESC'] = [
             'AIS' if i is not None else None for i in self.ship_gdf['AIS_MMSI']]
 
-        if len(self.vms_list) > 0 or self.vms_list != None:
+        if self.vms_list != None:
             super().__init__(vms_list)
             self.vms_gdf = super().getGeoDataFrame()
 
