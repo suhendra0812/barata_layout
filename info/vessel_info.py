@@ -23,9 +23,6 @@ def get_ais_info(ship_path):
 
     ship_basepath = os.path.dirname(ship_path)
 
-    # read AIS data in the data folder if available
-    ais_paths = glob.glob(f'{ship_basepath}/*ais.csv')
-
     # check if there is ship with AIS associated
     if (shipfilterdf['Asosiasi (AIS/VMS)'] == 'AIS').any():
         print('Terdapat asosiasi dengan AIS\n')
@@ -115,9 +112,6 @@ def get_vms_info(ship_path):
     # filter ship data to show only transmitted ship
     shipfilterdf = shipdf.copy()
     shipfilterdf = shipfilterdf[~pd.isnull(shipfilterdf['Asosiasi (AIS/VMS)'])]
-
-    # read VMS data in the data folder if available
-    vms_paths = glob.glob(f'{os.path.dirname(ship_path)}/*_vms.csv')
 
     # check if there is ship with VMS associated
     if (shipfilterdf['Asosiasi (AIS/VMS)'] == 'VMS').any():

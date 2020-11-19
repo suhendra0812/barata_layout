@@ -9,8 +9,8 @@ sys.path.append(SCRIPT_PATH)
 from barata.barata_layout import Project, Layout
 
 # define project type and project path
-project_type = Project().getProjectType()
-project_path = Project().getProjectPath()
+project_type = Project().get_project_type()
+project_path = Project().get_project_path()
 
 # define data folder
 data_folder = os.path.dirname(project_path)
