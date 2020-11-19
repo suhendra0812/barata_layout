@@ -44,7 +44,9 @@ class QgsProc:
         self.qgis_process = "C:/OSGeo4W64/bin/qgis_process-qgis.bat"
 
     def run_process(self, algorithm, params):
-        print(f'- Processing: {algorithm}')
+        print(f'-----------------------')
+        print(f'Processing: {algorithm}')
+        print(f'-----------------------')
         cmd = f'{self.qgis_process} run {algorithm} {params}'
         result = subprocess.Popen(
             cmd,
@@ -459,7 +461,7 @@ class ShipLayer(VectorLayer):
                     # feat.setAttribute(feat.fieldNameIndex('DESC'), 'AIS')
                     self.ship_layer.updateFeature(feat)
 
-        if len(vms_list) > 0 or vms_list != None:
+        if vms_list != None:
             layer_name = 'vms_layer.gpkg'
             output = os.path.join(
                 os.path.dirname(data_list[-1]),
@@ -482,12 +484,13 @@ class ShipLayer(VectorLayer):
                 layer_name='shipvms_layer.gpkg'
             )
 
-            with edit(self.ship_layer):
+            with edit(shipvms_layer):
                 for feat in shipvms_layer.getFeatures():
                     if feat['status'] == 'vms':
                         # feat.setAttribute(feat.fieldNameIndex('DESC'), 'VMS')
                         feat['DESC'] = 'VMS'
-                        self.ship_layer.updateFeature(feat)
+                        shipvms_layer.updateFeature(feat)
+            self.ship_layer = shipvms_layer
 
     def get_ship_layer(self, layer_path, layer_name):
         ship_layer = QgsVectorLayer(layer_path, layer_name, 'ogr')
@@ -505,27 +508,33 @@ class ShipLayer(VectorLayer):
         )
     
     def export_ship_to_csv(self, output_path):
-        ship_layer = self.ship_layer.clone()
-        ship_layer.dataProvider().renameAttributes(
-            {
-                ship_layer.fields().indexFromName('LON_CENTRE'): 'Longitude',
-                ship_layer.fields().indexFromName('LAT_CENTRE'): 'Latitude',
-                ship_layer.fields().indexFromName('TARGET_DIR'): 'Heading (deg)',
-                ship_layer.fields().indexFromName('LENGTH'): 'Panjang (m)',
-                ship_layer.fields().indexFromName('DESC'): 'Asosiasi (AIS/VMS)',
-                ship_layer.fields().indexFromName('AIS_MMSI'): 'MMSI',
-            }
-        )
-
         options = QgsVectorFileWriter.SaveVectorOptions()
         options.driverName = "CSV"
 
         QgsVectorFileWriter.writeAsVectorFormatV2(
-            ship_layer,
+            self.ship_layer,
             output_path,
             QgsCoordinateTransformContext(),
             options
         )
+        ship_df = pd.read_csv(output_path)
+        ship_df = ship_df[['LON_CENTRE', 'LAT_CENTRE', 'TARGET_DIR', 'LENGTH', 'DESC', 'AIS_MMSI']]
+        ship_df.rename(
+            columns={
+                'LON_CENTRE': 'Longitude',
+                'LAT_CENTRE': 'Latitude',
+                'TARGET_DIR': 'Heading (deg)',
+                'LENGTH': 'Panjang (m)',
+                'DESC': 'Asosiasi (AIS/VMS)',
+                'AIS_MMSI': 'MMSI',
+            },
+            inplace=True
+        )
+
+        ship_df.index += 1
+        ship_df.index.name = 'No.'
+
+        ship_df.to_csv(output_path)
 
 
 class OilLayer(WindLayer):
@@ -665,52 +674,55 @@ class DataNumbers:
     def get_ship_numbers(self):
         if self.data_csv != None:
             # get echo, AIS and VMS data
-            self.none = self.data_df[self.data_df['Asosiasi (AIS/VMS)'] == None]
-            self.vms = self.data_df[self.data_df['Asosiasi (AIS/VMS)'] == 'VMS']
-            self.ais = self.data_df[self.data_df['Asosiasi (AIS/VMS)'] == 'AIS']
+            vms = self.data_df['Asosiasi (AIS/VMS)'] == 'VMS'
+            ais = self.data_df['Asosiasi (AIS/VMS)'] == 'AIS'
+
+            fv = self.data_df[vms]
+            fa = self.data_df[ais]
+            fu = self.data_df[~vms & ~ais]
 
             # ship data selection based on size
-            self.se = self.data_df['Panjang (m)']
-            self.su = self.none['Panjang (m)']
-            self.sv = self.vms['Panjang (m)']
-            self.sa = self.ais['Panjang (m)']
+            se = self.data_df['Panjang (m)']
+            su = fu['Panjang (m)']
+            sv = fv['Panjang (m)']
+            sa = fa['Panjang (m)']
 
             # untransmitted ship selection by 50 size scale
-            self.u1 = self.none[(self.su <= 50)]  # kapal ikan
-            self.u2 = self.none[(self.su > 50)]  # bukan kapal ikan
+            u1 = fu[(su <= 50)]  # kapal ikan
+            u2 = fu[(su > 50)]  # bukan kapal ikan
 
             # AIS ship selection by 50 size scale
-            self.a1 = self.ais[(self.sa <= 50)]  # kapal ikan
-            self.a2 = self.ais[(self.sa > 50)]  # bukan kapal ikan
+            a1 = fa[(sa <= 50)]  # kapal ikan
+            a2 = fa[(sa > 50)]  # bukan kapal ikan
 
             # ship classification by 10 size scale
-            self.e0 = self.data_df[(self.se <= 10)]
-            self.e10 = self.data_df[(self.se > 10) & (self.se <= 20)]
-            self.e20 = self.data_df[(self.se > 20) & (self.se <= 30)]
-            self.e30 = self.data_df[(self.se > 30) & (self.se <= 40)]
-            self.e40 = self.data_df[(self.se > 40) & (self.se <= 50)]
-            self.e50 = self.data_df[(self.se > 50)]
+            e0 = self.data_df[(se <= 10)]
+            e10 = self.data_df[(se > 10) & (se <= 20)]
+            e20 = self.data_df[(se > 20) & (se <= 30)]
+            e30 = self.data_df[(se > 30) & (se <= 40)]
+            e40 = self.data_df[(se > 40) & (se <= 50)]
+            e50 = self.data_df[(se > 50)]
 
             # define component of ship number
-            self.k0 = str(len(self.e0))
-            self.k1 = str(len(self.e10))
-            self.k2 = str(len(self.e20))
-            self.k3 = str(len(self.e30))
-            self.k4 = str(len(self.e40))
-            self.k5 = str(len(self.e50))
+            self.k0 = str(len(e0))
+            self.k1 = str(len(e10))
+            self.k2 = str(len(e20))
+            self.k3 = str(len(e30))
+            self.k4 = str(len(e40))
+            self.k5 = str(len(e50))
 
             # total of untransmitted ship
-            self.k6 = str(len(self.none))
+            self.k6 = str(len(fu))
 
             # VMS transmitted ship
-            self.k11 = str(len(self.vms))
+            self.k11 = str(len(fv))
 
             # AIS transmitted ship for <=50 and >50
-            self.k7 = str(len(self.a1))
-            self.k8 = str(len(self.a2))
+            self.k7 = str(len(a1))
+            self.k8 = str(len(a2))
 
             # total of AIS transmitted ship
-            self.k9 = str(len(self.ais))
+            self.k9 = str(len(fa))
 
             # total number of ship
             self.k10 = str(len(self.data_df))

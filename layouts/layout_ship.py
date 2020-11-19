@@ -49,6 +49,7 @@ project_type = project_layout.get_project_type()
 method = sys.argv[-1]
 
 # input directory path
+print()
 data_folder = FileDialog(BASE_PATH, method=method).open()
 
 print('\nSumber data:')
@@ -58,13 +59,28 @@ print(data_folder)
 data_list = DataList(data_folder)
 raster_list = data_list.get_raster_list()
 wind_list = data_list.get_wind_list()
+ship_list = data_list.get_ship_list()
 
 OUTPUT_FOLDER = os.path.dirname(raster_list[-1])
 
 print('\nKetersediaan data:')
-# load raster layer and get raster info
 if len(raster_list) > 0:
     print('- Ada data raster')
+else:
+    print('- Tidak ada data raster')
+if len(wind_list) > 0:
+    print('- Ada data angin')
+else:
+    print('- Tidak ada data angin')
+if len(ship_list) > 0:
+    print('- Ada data kapal')
+else:
+    print('- Tidak ada data kapal')
+
+print('\n')
+
+# load raster layer and get raster info
+if len(raster_list) > 0:
     rasterlayer_list = RasterLayer(raster_list).get_raster_layer()
     rasterbasename_list = RasterLayer(raster_list).get_raster_basename()
     raster_extent = LayerExtent(rasterlayer_list).get_extent()
@@ -87,8 +103,6 @@ if len(raster_list) > 0:
         method = 'satu'
     else:
         method = 'gabungan'
-else:
-    print('- Tidak ada data raster')
 
 # set raster extent
 xmin = raster_extent.xMinimum()
@@ -98,12 +112,9 @@ ymax = raster_extent.yMaximum()
 
 # load wind data and get wind range and direction
 if len(wind_list) > 0:
-    print('- Ada data angin')
     wind_layer = WindLayer(wind_list)
     wind_range = wind_layer.get_wind_range()
     wind_direction = wind_layer.get_wind_direction()
-else:
-    print('- Tidak ada data angin')
 
 # load wpp data and get WPP area which is overlaid within raster
 wpp_extent = f'{xmin}, {xmax}, {ymin}, {ymax}'
@@ -117,10 +128,7 @@ else:
     layer_name = f'{wil}_{local[:-2]}_{project_type}'
 
 # load data layer based on project type and setup the layout
-ship_list = data_list.get_ship_list()
 if len(ship_list) > 0:
-    print('- Ada data kapal')
-
     # define transmitted layer name and ship csv path
     trmlayer_name = f'{layer_name[:-4]}AIS/VMS'
     ship_geo_path = f'{OUTPUT_FOLDER}/{layer_name}.geojson'
@@ -184,8 +192,6 @@ if len(ship_list) > 0:
     )
 
 else:
-    print('- Tidak ada data kapal')
-
     feat_numbers = 0
     ship_csv_path = None
     ship_numbers = DataNumbers(ship_csv_path).getShipElements()
@@ -211,16 +217,21 @@ print('\nLayout telah dibuat\n')
 
 if ship_csv_path is not None:
     # get vessel info
-    print('======================================')
+    print('-----------------------------------------')
     print('\nMendapatkan informasi vessel...\n')
     ais_info = vessel_info.get_ais_info(ship_csv_path)
     vms_info = vessel_info.get_vms_info(ship_csv_path)
-    print('======================================')
+    print('-----------------------------------------')
 
 print('\nSelesai')
 
 # exit QGIS application
 qgs_app.exitQgis()
+
+# remove 'temp' directory
+os.chdir(OUTPUT_FOLDER)
+if os.path.exists('temp'):
+    os.system('rmdir /s /q temp')
 
 # open current project using command line
 os.chdir(SCRIPT_PATH)
