@@ -60,13 +60,19 @@ class QgsProc:
         else:
             print(error)
 
-    def temp_output(self, data_path, layer_name):
-        if isinstance(data_path, list):
-            base_path = os.path.dirname(data_path[-1])
-        else:
-            base_path = os.path.dirname(data_path)
+    def temp_output(self, data, layer_name):
+        if isinstance(data, list):
+            base_path = os.path.dirname(data[-1])
+        elif isinstance(data, str):
+            base_path = os.path.dirname(data)
+        elif isinstance(data, QgsVectorLayer):
+            base_path = os.path.dirname(
+                data.dataProvider().dataSourceUri())
 
-        temp_path = os.path.join(base_path, 'temp')
+        if os.path.basename(base_path) == 'temp':
+            temp_path = base_path
+        else:
+            temp_path = os.path.join(base_path, 'temp')
 
         if not os.path.exists(temp_path):
             os.makedirs(temp_path)
@@ -83,11 +89,11 @@ class QgsProc:
 
     def merge_vector_layer(self, layers, epsg_code=4326, layer_name=None, output=None):
         if output == None:
-            if layer_name != None:
+            if layer_name == None:
                 layer_name = 'mergevectorlayers.gpkg'
             output = self.temp_output(layers, layer_name)
 
-        params = f'--LAYERS={",".join(layers)} --CRS="EPSG:{epsg_code}" --OUTPUT={output}'
+        params = f'--LAYERS={";".join(layers)} --CRS="EPSG:{epsg_code}" --OUTPUT={output}'
         algorithm = 'native:mergevectorlayers'
         self.run_process(algorithm, params)
 
@@ -97,12 +103,12 @@ class QgsProc:
     
     def extract_by_extent(self, input_layer, extent, layer_name=None, output=None):
         if output == None:
-            if layer_name != None:
+            if layer_name == None:
                 layer_name = 'extractlayerbyextent.gpkg'
             output = self.temp_output(input_layer, layer_name)
 
-        params = f'--INPUT={input_layer} --EXTENT={extent} --OUTPUT={output}'
-        algorithm = 'native:extractlayerbyextent'
+        params = f'--INPUT={input_layer} --EXTENT="{extent}" --OUTPUT={output}'
+        algorithm = 'native:extractbyextent'
         self.run_process(algorithm, params)
 
         layer = self.get_layer(output)
@@ -111,7 +117,7 @@ class QgsProc:
         
     def buffer(self, input_layer, distance, layer_name=None, output=None):
         if output == None:
-            if layer_name != None:
+            if layer_name == None:
                 layer_name = 'buffer.gpkg'
             output = self.temp_output(input_layer, layer_name)
 
@@ -125,7 +131,7 @@ class QgsProc:
     
     def reproject_layer(self, input_layer, epsg_code=4326, layer_name=None, output=None):
         if output == None:
-            if layer_name != None:
+            if layer_name == None:
                 layer_name = 'reprojectlayer.gpkg'
             output = self.temp_output(input_layer, layer_name)
 
@@ -139,11 +145,11 @@ class QgsProc:
 
     def join_attributes_by_location(self, base_layer, join_layer, join_fields=None, layer_name=None, output=None):
         if output == None:
-            if layer_name != None:
+            if layer_name == None:
                 layer_name = 'joinattributesbylocation.gpkg'
             output = self.temp_output(base_layer, layer_name)
 
-        params = f'--INPUT={base_layer} --JOIN={join_layer} --JOIN_FIELDS={join_fields} --METHOD=0 --OUTPUT={output}'
+        params = f'--INPUT={base_layer} --JOIN={join_layer} --JOIN_FIELDS="{join_fields}" --METHOD=0 --OUTPUT={output}'
         algorithm = 'native:joinattributesbylocation'
         self.run_process(algorithm, params)
 
@@ -153,7 +159,7 @@ class QgsProc:
     
     def join_by_location_summary(self, base_layer, join_layer, join_fields=None, output=None):
         if output == None:
-            if layer_name != None:
+            if layer_name == None:
                 layer_name = 'joinattributesbylocation.gpkg'
             output = self.temp_output(base_layer, layer_name)
 
@@ -164,8 +170,7 @@ class QgsProc:
         layer = self.get_layer(output)
 
         return layer
-
-    
+   
 
 class FileDialog:
     def __init__(self, base_path, method='gabungan'):
@@ -314,7 +319,7 @@ class RasterLayer:
 
 
 class VectorLayer(QgsProc):
-    def __init__(self, data_path, layer_name):
+    def __init__(self, data_path, layer_name=None, output=None):
         super().__init__()
         if isinstance(data_path, list):
             data_list = data_path
@@ -329,7 +334,7 @@ class VectorLayer(QgsProc):
         #     layer = QgsVectorLayer(data, layer_name)
         #     layers.append(layer)
         
-        self.layer = super().merge_vector_layer(data_list, layer_name)   
+        self.layer = super().merge_vector_layer(data_list, layer_name=layer_name, output=output)   
     
     def get_vector_layer(self):
         return self.layer
@@ -340,7 +345,7 @@ class VectorLayer(QgsProc):
 
 class WindLayer(VectorLayer):
     def __init__(self, wind_list):
-        super(VectorLayer, self).__init__(wind_list, layer_name='wind_layer.gpkg')
+        super().__init__(wind_list, layer_name='wind_layer.gpkg')
 
         # read wind data 'gml' in a list
         self.wind_layer = self.get_vector_layer()
@@ -410,12 +415,21 @@ class WindLayer(VectorLayer):
 
 
 class WPPLayer(QgsProc):
-    def __init__(self, wpp_path, extent):
+    def __init__(self, wpp_path, extent, layer_name=None, output_dir=None):
         # VectorLayer.__init__(self, wpp_path)
         # self.wpp_layer = VectorLayer.get_vector_layer(self)
 
         super().__init__()
-        self.wpp_filter = super().extract_by_extent(wpp_path, extent, layer_name='wpp_layer.gpkg')
+
+        if layer_name==None:
+            layer_name='wpp_layer.gpkg'
+        output = os.path.join(output_dir, 'temp', layer_name)
+
+        self.wpp_filter = super().extract_by_extent(
+            wpp_path,
+            extent,
+            output=output
+        )
         
         self.wpp_list = [feat['WPP'][-3:] for feat in self.wpp_filter.getFeatures()]
 
@@ -446,11 +460,27 @@ class ShipLayer(VectorLayer):
                     self.ship_layer.updateFeature(feat)
 
         if len(vms_list) > 0 or vms_list != None:
-            super().__init__(vms_list, layer_name='vms_layer.gpkg')
+            layer_name = 'vms_layer.gpkg'
+            output = os.path.join(
+                os.path.dirname(data_list[-1]),
+                'temp',
+                layer_name
+            )
+
+            super().__init__(
+                vms_list,
+                layer_name=layer_name,
+                output=output
+            )
+
             self.vms_layer = super().get_vector_layer()
 
             shipvms_layer = super().join_attributes_by_location(
-                self.ship_layer, self.vms_layer, join_fields=['status'], layer_name='shipvms_layer.gpkg')
+                self.ship_layer.dataProvider().dataSourceUri(),
+                self.vms_layer.dataProvider().dataSourceUri(),
+                join_fields='status',
+                layer_name='shipvms_layer.gpkg'
+            )
 
             with edit(self.ship_layer):
                 for feat in shipvms_layer.getFeatures():
@@ -464,11 +494,19 @@ class ShipLayer(VectorLayer):
         return ship_layer
 
     def export_ship_to_geojson(self, output_path, epsg_code=4326):
-        QgsVectorFileWriter.writeAsVectorFormat(self.ship_layer, output_path, "utf-8", QgsCoordinateReferenceSystem(f'EPSG:{epsg_code}'), "GeoJSON")
+        options = QgsVectorFileWriter.SaveVectorOptions()
+        options.driverName = "GeoJSON"
+
+        QgsVectorFileWriter.writeAsVectorFormatV2(
+            self.ship_layer,
+            output_path,
+            QgsCoordinateTransformContext(),
+            options
+        )
     
     def export_ship_to_csv(self, output_path):
-        ship_layer = self.ship_layer.copy()
-        ship_layer.dataProvider().renameAttribute(
+        ship_layer = self.ship_layer.clone()
+        ship_layer.dataProvider().renameAttributes(
             {
                 ship_layer.fields().indexFromName('LON_CENTRE'): 'Longitude',
                 ship_layer.fields().indexFromName('LAT_CENTRE'): 'Latitude',
@@ -479,7 +517,15 @@ class ShipLayer(VectorLayer):
             }
         )
 
-        QgsVectorFileWriter.writeAsVectorFormat(ship_layer, output_path, "utf-8", None, "CSV", layerOptions='GEOMETRY=AS_XYZ')
+        options = QgsVectorFileWriter.SaveVectorOptions()
+        options.driverName = "CSV"
+
+        QgsVectorFileWriter.writeAsVectorFormatV2(
+            ship_layer,
+            output_path,
+            QgsCoordinateTransformContext(),
+            options
+        )
 
 
 class OilLayer(WindLayer):
@@ -617,40 +663,33 @@ class DataNumbers:
         return len(self.data_df)
     
     def get_ship_numbers(self):
-        if self.data_df != None:
-            # get VMS count
+        if self.data_csv != None:
+            # get echo, AIS and VMS data
+            self.none = self.data_df[self.data_df['Asosiasi (AIS/VMS)'] == None]
             self.vms = self.data_df[self.data_df['Asosiasi (AIS/VMS)'] == 'VMS']
-            self.fv = len(self.vms)
-
-            # define ship size category
-            self.ais = self.data_df['Asosiasi (AIS/VMS)'] == 'AIS'
-            self.echo = self.data_df['Asosiasi (AIS/VMS)'] == None
-            self.fe = self.data_df[self.echo]
-            self.fa = self.data_df[self.ais]
+            self.ais = self.data_df[self.data_df['Asosiasi (AIS/VMS)'] == 'AIS']
 
             # ship data selection based on size
-            self.s = self.data_df['Panjang (m)']
-            self.se = self.fe['Panjang (m)']
-            self.sa = self.fa['Panjang (m)']
+            self.se = self.data_df['Panjang (m)']
+            self.su = self.none['Panjang (m)']
+            self.sv = self.vms['Panjang (m)']
+            self.sa = self.ais['Panjang (m)']
 
-            # sum untransmitted ship
-            self.e6 = self.fe[(self.se <= 50)]  # kapal ikan
-            self.e7 = self.fe[(self.se > 50)]  # bukan kapal ikan
+            # untransmitted ship selection by 50 size scale
+            self.u1 = self.none[(self.su <= 50)]  # kapal ikan
+            self.u2 = self.none[(self.su > 50)]  # bukan kapal ikan
 
-            # transmitted ship selection by 50 size scale
-            self.u7 = self.fa[(self.sa <= 50)]  # kapal ikan
-            self.u8 = self.fa[(self.sa > 50)]  # bukan kapal ikan
-
-            # calculate total number of ship
-            self.t10 = len(self.data_gdf)  # len(s) + len(ss)
+            # AIS ship selection by 50 size scale
+            self.a1 = self.ais[(self.sa <= 50)]  # kapal ikan
+            self.a2 = self.ais[(self.sa > 50)]  # bukan kapal ikan
 
             # ship classification by 10 size scale
-            self.e0 = self.data_gdf[(self.s <= 10)]
-            self.e10 = self.data_gdf[(self.s > 10) & (self.s <= 20)]
-            self.e20 = self.data_gdf[(self.s > 20) & (self.s <= 30)]
-            self.e30 = self.data_gdf[(self.s > 30) & (self.s <= 40)]
-            self.e40 = self.data_gdf[(self.s > 40) & (self.s <= 50)]
-            self.e50 = self.data_gdf[(self.s > 50)]
+            self.e0 = self.data_df[(self.se <= 10)]
+            self.e10 = self.data_df[(self.se > 10) & (self.se <= 20)]
+            self.e20 = self.data_df[(self.se > 20) & (self.se <= 30)]
+            self.e30 = self.data_df[(self.se > 30) & (self.se <= 40)]
+            self.e40 = self.data_df[(self.se > 40) & (self.se <= 50)]
+            self.e50 = self.data_df[(self.se > 50)]
 
             # define component of ship number
             self.k0 = str(len(self.e0))
@@ -661,20 +700,20 @@ class DataNumbers:
             self.k5 = str(len(self.e50))
 
             # total of untransmitted ship
-            self.k6 = str(len(self.e6) + len(self.e7) - self.fv)
+            self.k6 = str(len(self.none))
 
             # VMS transmitted ship
-            self.k11 = str(self.fv)
+            self.k11 = str(len(self.vms))
 
             # AIS transmitted ship for <=50 and >50
-            self.k7 = str(len(self.u7))
-            self.k8 = str(len(self.u8))
+            self.k7 = str(len(self.a1))
+            self.k8 = str(len(self.a2))
 
             # total of AIS transmitted ship
-            self.k9 = str(len(self.u7)+len(self.u8))
+            self.k9 = str(len(self.ais))
 
             # total number of ship
-            self.k10 = str(self.t10)
+            self.k10 = str(len(self.data_df))
 
         else:
             self.k0 = self.k1 = self.k2 = self.k3 = self.k4 = self.k5 = self.k6 = self.k7 = self.k8 = self.k9 = self.k10 = self.k11 = '0'
@@ -757,7 +796,7 @@ class LoadLayer:
 
 
 class Layout:
-    def __init__(self, project_type=None, method=None, feat_number=None, location=None, radar_info_list=None, wpp_layer=None, wind_data=None):
+    def __init__(self, project_type=None, method=None, feat_number=None, location=None, radar_info_list=None, wpp_layer=None, wind_layer=None):
         self.bulan_dict = {
             '01': 'JANUARI',
             '02': 'FEBRUARI',
@@ -777,7 +816,7 @@ class Layout:
         self.feat_number = feat_number
         self.radar_info = radar_info_list
         self.wpp_layer = wpp_layer
-        self.wind_data = wind_data
+        self.wind_layer = wind_layer
 
         if self.project_type == 'oils':
             if feat_number == 0:
@@ -844,9 +883,11 @@ class Layout:
         return source_txt
 
     def getWindText(self):
-        wind = self.wind_data
+        wind = self.wind_layer
         if not wind == None:
-            wind_txt = f'{wind.windrange}\n{wind.dire}'
+            wind_range = ' - '.join([str(i) for i in wind.get_wind_range()])
+            wind_dir = wind.get_wind_direction()
+            wind_txt = f'{wind_range}\n{wind_dir}'
         else:
             wind_txt = 'n/a\nn/a'
         return wind_txt

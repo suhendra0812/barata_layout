@@ -90,6 +90,12 @@ if len(raster_list) > 0:
 else:
     print('- Tidak ada data raster')
 
+# set raster extent
+xmin = raster_extent.xMinimum()
+xmax = raster_extent.xMaximum()
+ymin = raster_extent.yMinimum()
+ymax = raster_extent.yMaximum()
+
 # load wind data and get wind range and direction
 if len(wind_list) > 0:
     print('- Ada data angin')
@@ -100,7 +106,8 @@ else:
     print('- Tidak ada data angin')
 
 # load wpp data and get WPP area which is overlaid within raster
-wpp_layer = WPPLayer(WPP_PATH, raster_extent)
+wpp_extent = f'{xmin}, {xmax}, {ymin}, {ymax}'
+wpp_layer = WPPLayer(WPP_PATH, wpp_extent, output_dir=OUTPUT_FOLDER)
 wpp_area = wpp_layer.wpp_area
 
 # define layer name
@@ -141,14 +148,14 @@ if len(ship_list) > 0:
 
     # get transmitted layer of ship data
     if len(vms_list) > 0:
-        ship_layer = ShipLayer(ship_list, vms_list)
+        ship = ShipLayer(ship_list, vms_list)
     else:
-        ship_layer = ShipLayer(ship_list)
+        ship = ShipLayer(ship_list)
     
-    ship_layer.export_ship_to_csv(ship_csv_path)
-    ship_layer.export_ship_to_geojson(ship_geo_path)
-    ship_layer = ship_layer.get_ship_layer(ship_geo_path, layer_name)
-    ship2_layer = ship_layer.get_ship_layer(ship_geo_path, trmlayer_name)
+    ship.export_ship_to_csv(ship_csv_path)
+    ship.export_ship_to_geojson(ship_geo_path)
+    ship_layer = ship.get_ship_layer(ship_geo_path, layer_name)
+    ship2_layer = ship.get_ship_layer(ship_geo_path, trmlayer_name)
 
     # get ship elements and feature number
     print("\nMenghitung jumlah kapal...\n")
@@ -159,12 +166,22 @@ if len(ship_list) > 0:
     # load two ship layers to project
     load_ship = LoadLayer(project_layout, ship_layer, ship_template)
     load_ship2 = LoadLayer(project_layout, ship2_layer, trm_template)
-    load_ship.addVectorToMap()
-    load_ship2.addVectorToMap()
+    load_ship.add_vector_to_map()
+    load_ship2.add_vector_to_map()
 
     # overlay wpp layer and ship extent
-    ship_extent = ship_layer.extent()
-    wpp_layer = WPPLayer(WPP_PATH, ship_extent)
+    ship_rect = ship_layer.extent()
+    ship_xmin = ship_rect.xMinimum()
+    ship_xmax = ship_rect.xMaximum()
+    ship_ymin = ship_rect.yMinimum()
+    ship_ymax = ship_rect.yMaximum()
+    ship_extent = f'{ship_xmin}, {ship_xmax}, {ship_ymin}, {ship_ymax}'
+    wpp_layer = WPPLayer(
+        WPP_PATH,
+        ship_extent,
+        layer_name='wppship_layer.gpkg',
+        output_dir=OUTPUT_FOLDER
+    )
 
 else:
     print('- Tidak ada data kapal')
@@ -174,7 +191,7 @@ else:
     ship_numbers = DataNumbers(ship_csv_path).getShipElements()
 
 # define layout manager
-layout_manager = Layout(project_type, method, feat_numbers, wil, radar_info_list, wpp_layer, wind_data)
+layout_manager = Layout(project_type, method, feat_numbers, wil, radar_info_list, wpp_layer, wind_layer)
 
 # insert ship elements to layout
 layout_manager.insertShipElements(ship_numbers)
@@ -188,7 +205,7 @@ layout_manager.setLayoutName(layer_name)
 
 # save project
 outputproj_path = f'{OUTPUT_FOLDER}/{layer_name}.qgz'
-project_layout.saveProject(outputproj_path)
+project_layout.save_project(outputproj_path)
 
 print('\nLayout telah dibuat\n')
 
@@ -204,12 +221,6 @@ print('\nSelesai')
 
 # exit QGIS application
 qgs_app.exitQgis()
-
-# set raster extent
-xmin = raster_extent.xMinimum()
-xmax = raster_extent.xMaximum()
-ymin = raster_extent.yMinimum()
-ymax = raster_extent.yMaximum()
 
 # open current project using command line
 os.chdir(SCRIPT_PATH)
