@@ -1,4 +1,5 @@
 from qgis.core import (
+    edit,
     QgsApplication,
     QgsProject,
     QgsRectangle,
@@ -40,16 +41,17 @@ class QgsApp:
 
 class QgsProc:
     def __init__(self):
-        pass
-        # self.qgis_process = "C:/OSGeo4W64/bin/qgis_process-qgis.bat"
+        self.qgis_process = "C:/OSGeo4W64/bin/qgis_process-qgis.bat"
 
     def run_process(self, algorithm, params):
-        cmd = f'qgis_process-qgis run {algorithm} {params}'
+        print(f'- Processing: {algorithm}')
+        cmd = f'{self.qgis_process} run {algorithm} {params}'
         result = subprocess.Popen(
             cmd,
             stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
+            universal_newlines=True,
             shell=True,
         )
         output, error = result.communicate()
@@ -58,35 +60,110 @@ class QgsProc:
         else:
             print(error)
 
-    def merge_vector_layer(self, layers, output, epsg_code=4326):
-        params = f'--LAYERS={layers} --CRS="EPSG:{epsg_code}" --OUTPUT={output}'
+    def temp_output(self, data_path, layer_name):
+        if isinstance(data_path, list):
+            base_path = os.path.dirname(data_path[-1])
+        else:
+            base_path = os.path.dirname(data_path)
+
+        temp_path = os.path.join(base_path, 'temp')
+
+        if not os.path.exists(temp_path):
+            os.makedirs(temp_path)
+        
+        temp_layer_path = os.path.join(temp_path, layer_name)
+        
+        return temp_layer_path
+    
+    def get_layer(self, layer_path):
+        layer_name = QFileInfo(layer_path).baseName()
+        layer = QgsVectorLayer(layer_path, layer_name)
+        
+        return layer
+
+    def merge_vector_layer(self, layers, epsg_code=4326, layer_name=None, output=None):
+        if output == None:
+            if layer_name != None:
+                layer_name = 'mergevectorlayers.gpkg'
+            output = self.temp_output(layers, layer_name)
+
+        params = f'--LAYERS={",".join(layers)} --CRS="EPSG:{epsg_code}" --OUTPUT={output}'
         algorithm = 'native:mergevectorlayers'
         self.run_process(algorithm, params)
+
+        layer = self.get_layer(output)
+
+        return layer
     
-    def extract_by_extent(self, input_layer, output, extent):
+    def extract_by_extent(self, input_layer, extent, layer_name=None, output=None):
+        if output == None:
+            if layer_name != None:
+                layer_name = 'extractlayerbyextent.gpkg'
+            output = self.temp_output(input_layer, layer_name)
+
         params = f'--INPUT={input_layer} --EXTENT={extent} --OUTPUT={output}'
         algorithm = 'native:extractlayerbyextent'
-        self.run_process(algorithm, params) 
+        self.run_process(algorithm, params)
+
+        layer = self.get_layer(output)
+
+        return layer
         
-    def buffer(self, input_layer, distance, output):
+    def buffer(self, input_layer, distance, layer_name=None, output=None):
+        if output == None:
+            if layer_name != None:
+                layer_name = 'buffer.gpkg'
+            output = self.temp_output(input_layer, layer_name)
+
         params = f'--INPUT={input_layer} --DISTANCE={distance} --OUTPUT={output}'
         algorithm = 'native:buffer'
-        self.run_process(algorithm, params)  
+        self.run_process(algorithm, params)
+
+        layer = self.get_layer(output)
+
+        return layer 
     
-    def reproject_layer(self, input_layer, output, epsg_code=4326):
+    def reproject_layer(self, input_layer, epsg_code=4326, layer_name=None, output=None):
+        if output == None:
+            if layer_name != None:
+                layer_name = 'reprojectlayer.gpkg'
+            output = self.temp_output(input_layer, layer_name)
+
         params = f'--INPUT={input_layer} --TARGET_CRS="EPSG:{epsg_code} --OUTPUT={output}'
         algorithm = 'native:reprojectlayer'
-        self.run_process(algorithm, params) 
+        self.run_process(algorithm, params)
 
-    def join_attributes_by_location(self, base_layer, join_layer, join_fields=None):
+        layer = self.get_layer(output)
+
+        return layer 
+
+    def join_attributes_by_location(self, base_layer, join_layer, join_fields=None, layer_name=None, output=None):
+        if output == None:
+            if layer_name != None:
+                layer_name = 'joinattributesbylocation.gpkg'
+            output = self.temp_output(base_layer, layer_name)
+
         params = f'--INPUT={base_layer} --JOIN={join_layer} --JOIN_FIELDS={join_fields} --METHOD=0 --OUTPUT={output}'
         algorithm = 'native:joinattributesbylocation'
-        self.run_process(algorithm, params) 
-    
-    def join_by_location_summary(self, base_layer, join_layer, join_fields):
-        params = f'--INPUT={base_layer} --JOIN={join_layer} --JOIN_FIELDS={join_fields} --SUMMARIES=[2,3,6] --OUTPUT={output}'
-        algorithm = 'native:joinbylocationsummary'
         self.run_process(algorithm, params)
+
+        layer = self.get_layer(output)
+
+        return layer 
+    
+    def join_by_location_summary(self, base_layer, join_layer, join_fields=None, output=None):
+        if output == None:
+            if layer_name != None:
+                layer_name = 'joinattributesbylocation.gpkg'
+            output = self.temp_output(base_layer, layer_name)
+
+        params = f'--INPUT={base_layer} --JOIN={join_layer} --JOIN_FIELDS={join_fields} --SUMMARIES=[2,3,6] --OUTPUT={output}'
+        algorithm = 'native:joinattributesbylocation'
+        self.run_process(algorithm, params)
+
+        layer = self.get_layer(output)
+
+        return layer
 
     
 
@@ -237,7 +314,7 @@ class RasterLayer:
 
 
 class VectorLayer(QgsProc):
-    def __init__(self, data_path):
+    def __init__(self, data_path, layer_name):
         super().__init__()
         if isinstance(data_path, list):
             data_list = data_path
@@ -246,16 +323,14 @@ class VectorLayer(QgsProc):
         elif isinstance(data_path, str):
             data_list = [data_path]
         
-        layers = []
-        for data in data_list:
-            layer_name = QFileInfo(data).baseName()
-            layer = QgsVectorLayer(data, layer_name)
-            layers.append(layer)
-
-        temp_path = os.path.join(os.path.dirname(data_list[-1]), 'temp', 'merge_layer.shp')
-        super().merge_vector_layer(layers, temp_path)
-        self.layer = QgsVectorLayer(temp_path, os.path.basename(temp_path))    
-
+        # layers = []
+        # for data in data_list:
+        #     layer_name = QFileInfo(data).baseName()
+        #     layer = QgsVectorLayer(data, layer_name)
+        #     layers.append(layer)
+        
+        self.layer = super().merge_vector_layer(data_list, layer_name)   
+    
     def get_vector_layer(self):
         return self.layer
     
@@ -265,23 +340,26 @@ class VectorLayer(QgsProc):
 
 class WindLayer(VectorLayer):
     def __init__(self, wind_list):
-        VectorLayer.__init__(self, wind_list)
+        super(VectorLayer, self).__init__(wind_list, layer_name='wind_layer.gpkg')
 
         # read wind data 'gml' in a list
-        self.wind_layer = VectorLayer.get_vector_layer(self)
-        self.wind_layer.dataProvider().addAttributes([QgsField("angle", QVariant.Double)])
-        self.wind_layer.dataProvider().addAttributes([QgsField("direction", QVariant.String)])
-        self.wind_layer.updateFields()
+        self.wind_layer = self.get_vector_layer()
 
-        self.wind_layer.startEditing()
-        for feat in self.wind_layer.getFeatures():
-            wind_ang = self.wind_angle(feat['zonalSpeed'], feat['meridionalSpeed'])
-            wind_dir = self.wind_direction(wind_ang)
-            feat.setAttribute(feat.fieldNameIndex('angle'), wind_ang)
-            feat.setAttribute(feat.fieldNameIndex('direction'), wind_dir)
-            self.wind_layer.updateFeature(feat)
+        with edit(self.wind_layer):
+            self.wind_layer.dataProvider().addAttributes(
+                [
+                    QgsField("angle", QVariant.Double),
+                    QgsField("direction", QVariant.String),
+                ]
+            )
+            self.wind_layer.updateFields()
 
-        self.wind_layer.commitChanges()
+            for feat in self.wind_layer.getFeatures():
+                wind_ang = self.wind_angle(feat['zonalSpeed'], feat['meridionalSpeed'])
+                wind_dir = self.wind_direction(wind_ang)
+                feat['angle'] = float(wind_ang)
+                feat['direction'] = str(wind_dir)
+                self.wind_layer.updateFeature(feat)
     
     @staticmethod
     def wind_angle(x, y):
@@ -331,15 +409,15 @@ class WindLayer(VectorLayer):
         return self.wind_layer
 
 
-class WPPLayer(VectorLayer):
+class WPPLayer(QgsProc):
     def __init__(self, wpp_path, extent):
-        VectorLayer.__init__(self, wpp_path)
-        self.wpp_layer = VectorLayer.get_vector_layer(self)
+        # VectorLayer.__init__(self, wpp_path)
+        # self.wpp_layer = VectorLayer.get_vector_layer(self)
 
-        QgsProc.__init__(self)
-        self.wpp_filter = QgsProc.extract_by_extent(self, self.wpp_layer, extent)
+        super().__init__()
+        self.wpp_filter = super().extract_by_extent(wpp_path, extent, layer_name='wpp_layer.gpkg')
         
-        self.wpp_list = [feat['WPP'][-3:] for feat in self.wpp_filter['OUTPUT'].getFeatures()]
+        self.wpp_list = [feat['WPP'][-3:] for feat in self.wpp_filter.getFeatures()]
 
         if len(self.wpp_list) == 1:
             self.wpp_area = f'WPP NRI {self.wpp_list[0]}'
@@ -353,33 +431,33 @@ class WPPLayer(VectorLayer):
 
 class ShipLayer(VectorLayer):
     def __init__(self, data_list, vms_list=None):
-        super().__init__(data_list)
+        super().__init__(data_list, layer_name='ship_layer.gpkg')
 
         self.ship_layer = super().get_vector_layer()
-        self.ship_layer.dataProvider().addAttributes([QgsField("DESC", QVariant.String)])
 
-        self.ship_layer.startEditing()
-        for feat in self.ship_layer.getFeatures():
-            if feat['AIS_MMSI'] != None:
-                feat.setAttribute(feat.fieldNameIndex('DESC'), 'AIS')
-                self.ship_layer.updateFeature(feat)
-        self.ship_layer.commitChanges()
-
-        self.ship_gdf['DESC'] = [
-            'AIS' if i is not None else None for i in self.ship_gdf['AIS_MMSI']]
+        with edit(self.ship_layer):
+            self.ship_layer.addAttribute(QgsField("DESC", QVariant.String))
+            self.ship_layer.updateFields()
+            
+            for feat in self.ship_layer.getFeatures():
+                if feat['AIS_MMSI'] != None:
+                    feat['DESC'] = 'AIS'
+                    # feat.setAttribute(feat.fieldNameIndex('DESC'), 'AIS')
+                    self.ship_layer.updateFeature(feat)
 
         if len(vms_list) > 0 or vms_list != None:
-            super().__init__(vms_list)
+            super().__init__(vms_list, layer_name='vms_layer.gpkg')
             self.vms_layer = super().get_vector_layer()
 
-            shipvms_layer = super().join_attributes_by_location(self.ship_layer, self.vms_layer, join_fields=['status'])
+            shipvms_layer = super().join_attributes_by_location(
+                self.ship_layer, self.vms_layer, join_fields=['status'], layer_name='shipvms_layer.gpkg')
 
-            self.ship_layer.startEditing()
-            for feat in shipvms_layer.getFeatures():
-                if feat['status'] == 'vms':
-                    feat.setAttribute(feat.fieldNameIndex('DESC'), 'VMS')
-                    self.ship_layer.updateFeature(feat)
-            self.ship_layer.commitChanges()
+            with edit(self.ship_layer):
+                for feat in shipvms_layer.getFeatures():
+                    if feat['status'] == 'vms':
+                        # feat.setAttribute(feat.fieldNameIndex('DESC'), 'VMS')
+                        feat['DESC'] = 'VMS'
+                        self.ship_layer.updateFeature(feat)
 
     def get_ship_layer(self, layer_path, layer_name):
         ship_layer = QgsVectorLayer(layer_path, layer_name, 'ogr')
