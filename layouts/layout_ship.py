@@ -180,19 +180,19 @@ def export_vector_layer(vector_layer, output_path, driver='ESRI Shapefile', colu
 
         df.to_csv(output_path)
 
-def get_ship_numbers(data_csv=None):
-    if data_csv != None:
-        data_df = pd.read_csv(data_csv)
+def get_ship_numbers(ship_csv_path=None):
+    if ship_csv_path != None:
+        ship_df = pd.read_csv(ship_csv_path)
         # get echo, AIS and VMS data
-        vms = data_df['Asosiasi (AIS/VMS)'] == 'VMS'
-        ais = data_df['Asosiasi (AIS/VMS)'] == 'AIS'
+        vms = ship_df['Asosiasi (AIS/VMS)'] == 'VMS'
+        ais = ship_df['Asosiasi (AIS/VMS)'] == 'AIS'
 
-        fv = data_df[vms]
-        fa = data_df[ais]
-        fu = data_df[~vms & ~ais]
+        fv = ship_df[vms]
+        fa = ship_df[ais]
+        fu = ship_df[~vms & ~ais]
 
         # ship data selection based on size
-        se = data_df['Panjang (m)']
+        se = ship_df['Panjang (m)']
         su = fu['Panjang (m)']
         sv = fv['Panjang (m)']
         sa = fa['Panjang (m)']
@@ -206,12 +206,12 @@ def get_ship_numbers(data_csv=None):
         a2 = fa[(sa > 50)]  # bukan kapal ikan
 
         # ship classification by 10 size scale
-        e0 = data_df[(se <= 10)]
-        e10 = data_df[(se > 10) & (se <= 20)]
-        e20 = data_df[(se > 20) & (se <= 30)]
-        e30 = data_df[(se > 30) & (se <= 40)]
-        e40 = data_df[(se > 40) & (se <= 50)]
-        e50 = data_df[(se > 50)]
+        e0 = ship_df[(se <= 10)]
+        e10 = ship_df[(se > 10) & (se <= 20)]
+        e20 = ship_df[(se > 20) & (se <= 30)]
+        e30 = ship_df[(se > 30) & (se <= 40)]
+        e40 = ship_df[(se > 40) & (se <= 50)]
+        e50 = ship_df[(se > 50)]
 
         # define component of ship number
         k0 = str(len(e0))
@@ -235,7 +235,7 @@ def get_ship_numbers(data_csv=None):
         k9 = str(len(fa))
 
         # total number of ship
-        k10 = str(len(data_df))
+        k10 = str(len(ship_df))
 
     else:
         k0 = k1 = k2 = k3 = k4 = k5 = k6 = k7 = k8 = k9 = k10 = k11 = '0'
@@ -278,7 +278,7 @@ def get_title_text(method, wpp_area, radar_info):
 
 def get_wind_text(wind_range, wind_dir):
     if wind_range != None:
-        wind_range = ' - '.join([str(i) for i in wind_range])
+        wind_range = f"{' - '.join([str(i) for i in wind_range])} m/s"
     else:
         wind_range = 'n/a'
     
