@@ -1,16 +1,14 @@
 import sys, os, glob
 import pandas as pd
 
-# source paths
-SCRIPT_PATH = os.getcwd()
-BASE_PATH = os.path.dirname(SCRIPT_PATH)
+from qgis.core import QgsProject
+from qgis.utils import iface
+from PyQt5.QtCore import QFileInfo
 
-sys.path.append(SCRIPT_PATH)
-from barata.barata_layout import Project, Layout
-
-# define project type and project path
-project_type = Project().get_project_type()
-project_path = Project().get_project_path()
+# define project path and project type
+project_path = QgsProject.instance().fileName()
+project_basename = QFileInfo(project_path).baseName()
+project_type = project_basename[-4:]
 
 # define data folder
 data_folder = os.path.dirname(project_path)
@@ -21,14 +19,22 @@ if project_type == 'oils':
     if len(data_list) > 0:
         datadf = pd.read_csv(data_list[-1])
         feat_number = len(datadf)
+
+        if feat_number == 1:
+            layout_id = [1]
+        elif feat_number > 1:
+            layout_id = [3, 2]
+
     else:
         feat_number = 0
-
-    # execute open layout for oils
-    Layout(project_type=project_type, feat_number=feat_number).openLayout()
+        layout_id = [0]      
+  
 else:
-    # execute open layout
-    Layout(project_type=project_type).openLayout()
+    layout_id = [0]
 
-if __name__ == '__main__':
-    pass
+layout_list = [(i, QgsProject.instance().layoutManager().layouts()[i]) for i in layout_id]
+
+# execute open layout
+for layout in layout_list:
+    iface.openLayoutDesigner(layout[1])
+    layout[1].refresh()
