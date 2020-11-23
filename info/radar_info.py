@@ -6,7 +6,8 @@ class RadarInfo:
     def __init__(self, rasterBaseName):
         name_list = rasterBaseName.split("_")
         self.rdr = name_list[0]
-        if 'CSK' in self.rdr:
+
+        if self.rdr[:3] == 'CSK':
             self.rdr_name = 'COSMO-SkyMed'
             self.cons = self.rdr[-1]
             self.sensor = {
@@ -32,7 +33,7 @@ class RadarInfo:
             self.rdr_fn = f"{self.rdr_name} {self.cons}"
             self.rdr_mode = f'{self.rdr_fn}, {self.sensor[self.mode]}'
 
-        elif 'Radarsat-2' or 'RS2' in self.rdr:
+        elif self.rdr == 'RS2' or self.rdr == 'Radarsat-2':
             self.rdr_name = 'RADARSAT-2'
             self.sensor = {
                 '': '',
@@ -51,11 +52,11 @@ class RadarInfo:
 
             self.rdr_fn = self.rdr_name
 
-            if 'RS2' in self.rdr:
+            if self.rdr == 'RS2':
                 self.pola = name_list[-3]
                 self.beam = name_list[4]
                 self.mode = self.beam[:-1]
-                
+
                 s_date = name_list[5]
                 s_time = name_list[6]
                 s_datetime = dateutil.parser.parse(f'{s_date}{s_time}')
@@ -69,7 +70,7 @@ class RadarInfo:
 
                 self.rdr_mode = f'{self.rdr_fn}, {self.sensor[self.mode]}'
 
-            elif 'Radarsat-2' in self.rdr:
+            elif self.rdr == 'Radarsat-2':
                 self.rdr_name = 'RADARSAT-2'
                 self.pola = ''
                 self.mode = ''
@@ -85,7 +86,7 @@ class RadarInfo:
 
                 self.rdr_mode = self.rdr_fn
 
-        elif 'S1' in self.rdr:
+        elif self.rdr[:2] == 'S1':
             self.rdr_name = 'Sentinel-1'
             self.cons = self.rdr[-1]
             self.sensor = {

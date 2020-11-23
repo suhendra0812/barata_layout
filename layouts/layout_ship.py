@@ -65,36 +65,50 @@ def run_processing(algorithm, params):
     params = params
     feedback = QgsProcessingFeedback()
     output = processing.run(algorithm, params, feedback=feedback)
-    return output['OUTPUT']
+    
+    if params['OUTPUT'] != QgsProcessing.TEMPORARY_OUTPUT:
+        layer_path = output['OUTPUT']
+        layer_name = QFileInfo(layer_path).baseName()
+        layer = QgsVectorLayer(layer_path, layer_name)
+    else:
+        layer = output['OUTPUT']
+    
+    return layer
 
-def merge_vector_layer(layer_list, epsg_code=4326):
+def merge_vector_layer(layer_list, epsg_code=4326, output_path=None):
     algorithm = 'native:mergevectorlayers'
+    if output_path == None:
+        output_path = QgsProcessing.TEMPORARY_OUTPUT
     params = {
         'LAYERS': layer_list,
         'CRS': QgsCoordinateReferenceSystem(f'EPSG:{epsg_code}'),
-        'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+        'OUTPUT': output_path
     }
     output = run_processing(algorithm, params)
     return output
 
-def extract_by_extent(input_layer, extent):
+def extract_by_extent(input_layer, extent, output_path=None):
     algorithm = 'native:extractbyextent'
+    if output_path == None:
+        output_path = QgsProcessing.TEMPORARY_OUTPUT
     params = {
         'INPUT': input_layer,
         'EXTENT': extent,
-        'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT
+        'OUTPUT': output_path
     }
     output = run_processing(algorithm, params)
     return output
 
-def join_attributes_by_location(base_layer, join_layer, join_fields=None):
+def join_attributes_by_location(base_layer, join_layer, join_fields=None, output_path=None):
     algorithm = 'native:joinattributesbylocation'
+    if output_path == None:
+        output_path = QgsProcessing.TEMPORARY_OUTPUT
     params = {
         'INPUT': base_layer,
         'JOIN': join_layer,
         'JOIN_FIELDS': join_fields,
         'METHOD': 0,
-        'OUTPUT': QgsProcessing.TEMPORARY_OUTPUT,
+        'OUTPUT': output_path
     }
     output = run_processing(algorithm, params)
     return output
@@ -339,6 +353,9 @@ wind_list = glob.glob(f'{data_folder}/*Wind.gml')
 ship_list = glob.glob(f'{data_folder}/*SHIP.shp')
 
 OUTPUT_FOLDER = os.path.dirname(raster_list[-1])
+TEMP_FOLDER = os.path.join(OUTPUT_FOLDER, 'temp')
+if not os.path.exists(TEMP_FOLDER):
+    os.makedirs(TEMP_FOLDER)
 
 print('\nKetersediaan data:')
 if len(raster_list) > 0:
@@ -428,8 +445,9 @@ if len(wind_list) > 0:
     wind_dir = get_wind_direction(wind_layer)
 
 # load wpp data and get WPP area which is overlaid within raster
-wpp_extent = f'{xmin}, {xmax}, {ymin}, {ymax}'
-wpp_layer = extract_by_extent(WPP_PATH, wpp_extent)
+wpp_extent = raster_extent
+wpp_temp_path = os.path.join(TEMP_FOLDER, 'wpp_layer.gpkg')
+wpp_layer = extract_by_extent(WPP_PATH, wpp_extent, output_path=wpp_temp_path)
 wpp_area = get_wpp_area(wpp_layer)
 
 # define layer name
@@ -449,7 +467,7 @@ if len(ship_list) > 0:
     ship_template = f'{TEMPLATE_PATH}/layer/ship_size_color_layer_template.qml'
     trm_template = f'{TEMPLATE_PATH}/layer/ais_vms_layer_template.qml'
 
-    print('\nMendapatkan informasi asosiasi dengan AIS dan VMS...\n')
+    print('Mendapatkan informasi asosiasi dengan AIS dan VMS...\n')
     for ship_path in ship_list:
         # get AIS_MMSI information on KML file
         read_kml.AIS(os.path.dirname(ship_path))
@@ -466,7 +484,8 @@ if len(ship_list) > 0:
             vms_list.append(vms_path[0])
 
     # get transmitted layer of ship data
-    ship_layer = merge_vector_layer(ship_list)
+    ship_temp_path = os.path.join(TEMP_FOLDER, 'ship_layer.gpkg')
+    ship_layer = merge_vector_layer(ship_list, output_path=ship_temp_path)
     with edit(ship_layer):
         ship_layer.addAttribute(QgsField("DESC", QVariant.String))
         ship_layer.updateFields()
@@ -476,9 +495,11 @@ if len(ship_list) > 0:
                 feat['DESC'] = 'AIS'
                 ship_layer.updateFeature(feat)
     if len(vms_list) > 0:
-        vms_layer = merge_vector_layer(vms_list)
+        vms_temp_path = os.path.join(TEMP_FOLDER, 'vms_layer.gpkg')
+        vms_layer = merge_vector_layer(vms_list, output_path=vms_temp_path)
 
-        shipvms_layer = join_attributes_by_location(ship_layer, vms_layer, join_fields=['status'])
+        shipvms_temp_path = os.path.join(TEMP_FOLDER, 'shipvms_layer.gpkg')
+        shipvms_layer = join_attributes_by_location(ship_layer, vms_layer, join_fields=['status'], output_path=shipvms_temp_path)
         with edit(shipvms_layer):
             for feat in shipvms_layer.getFeatures():
                 if feat['status'] == 'vms':
@@ -516,7 +537,8 @@ if len(ship_list) > 0:
     ship_ymax = ship_rect.yMaximum()
     ship_extent = f'{ship_xmin}, {ship_xmax}, {ship_ymin}, {ship_ymax}'
     
-    wpp_layer = extract_by_extent(WPP_PATH, ship_extent)
+    wppship_temp_path = os.path.join(TEMP_FOLDER, 'wppship_layer.gpkg')
+    wpp_layer = extract_by_extent(WPP_PATH, ship_extent, output_path=wppship_temp_path)
     wpp_area = get_wpp_area(wpp_layer)
 
 else:
@@ -617,6 +639,10 @@ print('\nSelesai')
 
 # exit QGIS application
 qgs.exitQgis()
+
+# remove all files in 'temp' folder
+os.chdir(OUTPUT_FOLDER)
+os.system('rmdir /s /q temp')
 
 # open current project using command line
 os.chdir(SCRIPT_PATH)

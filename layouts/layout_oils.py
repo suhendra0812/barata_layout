@@ -101,46 +101,6 @@ def extract_by_extent(input_layer, extent, output_path=None):
     output = run_processing(algorithm, params)
     return output
 
-def buffer(input_layer, distance, output_path=None):
-    algorithm = 'native:buffer'
-    if output_path == None:
-        output_path = QgsProcessing.TEMPORARY_OUTPUT
-    params = {
-        'INPUT': input_layer,
-        'DISTANCE': distance,
-        'OUTPUT': output_path
-    }
-    output = run_processing(algorithm, params)
-    return output
-
-def reproject_layer(input_layer, epsg_code=4326, output_path=None):
-    algorithm = 'native:reprojectlayer'
-    if output_path == None:
-        output_path = QgsProcessing.TEMPORARY_OUTPUT
-    params = {
-        'INPUT': input_layer,
-        'TARGET_CRS': QgsCoordinateReferenceSystem(f'EPSG:{epsg_code}'),
-        'OUTPUT': output_path
-    }
-    output = run_processing(algorithm, params)
-    return output
-
-def join_by_location_summary(base_layer, join_layer, join_fields=None, output_path=None):
-    algorithm = 'qgis:joinbylocationsummary'
-    if output_path == None:
-        output_path = QgsProcessing.TEMPORARY_OUTPUT
-    params = {
-        'INPUT': base_layer,
-        'JOIN': join_layer,
-        'PREDICATE': [0],
-        'JOIN_FIELDS': join_fields,
-        'SUMMARIES': [2,3,6],
-        'DISCARD_NONMATCHING':False,
-        'OUTPUT': output_path
-    }
-    output = run_processing(algorithm, params)
-    return output
-
 def zonal_statistics(input_vector, input_raster, column_prefix='_', output_path=None):
     algorithm = 'native:zonalstatisticsfb'
     if output_path == None:
@@ -318,14 +278,14 @@ def get_title_text(method, layout_id, wpp_area, radar_info):
     return title_txt
 
 def get_wind_text(wind_range, wind_dir):
-    if wind_range != None:
+    if all(wind_range):
         wind_range = f"{' - '.join([str(i) for i in wind_range])} m/s"
     else:
         wind_range = 'n/a'
     
     if wind_dir == None:
         wind_dir = 'n/a'
-        
+         
     wind_txt = f'{wind_range}\n{wind_dir}'
     return wind_txt
 
@@ -452,8 +412,8 @@ ymax = raster_extent.yMaximum()
 
 # load wind data and get wind range and direction
 if len(wind_list) > 0:
-    wind_path = os.path.join(TEMP_FOLDER, 'wind_layer.gpkg')
-    wind_layer = merge_vector_layer(wind_list, output_path=wind_path)
+    wind_temp_path = os.path.join(TEMP_FOLDER, 'wind_layer.gpkg')
+    wind_layer = merge_vector_layer(wind_list, output_path=wind_temp_path)
     with edit(wind_layer):
         wind_layer.dataProvider().addAttributes(
             [
@@ -471,11 +431,14 @@ if len(wind_list) > 0:
             wind_layer.updateFeature(feat)
     wind_range = get_wind_range(wind_layer)
     wind_dir = get_wind_direction(wind_layer)
+else:
+    wind_range = (None, None)
+    wind_dir = None
 
 # load wpp data and get WPP area which is overlaid within raster
 wpp_extent = raster_extent
-wpp_path = os.path.join(TEMP_FOLDER, 'wpp_layer.gpkg')
-wpp_layer = extract_by_extent(WPP_PATH, wpp_extent, output_path=wpp_path)
+wpp_temp_path = os.path.join(TEMP_FOLDER, 'wpp_layer.gpkg')
+wpp_layer = extract_by_extent(WPP_PATH, wpp_extent, output_path=wpp_temp_path)
 wpp_area = get_wpp_area(wpp_layer)
 
 # define layer name
@@ -492,7 +455,8 @@ if len(oil_list) > 0:
     oil_csv_path = f'{OUTPUT_FOLDER}/{layer_name}.csv'
 
     # get aggregation and transmitted layer of oil data
-    oil_layer = merge_vector_layer(oil_list)
+    oil_temp_path = os.path.join(TEMP_FOLDER, 'oil_layer.gpkg')
+    oil_layer = merge_vector_layer(oil_list, output_path=oil_temp_path)
 
     # get oil layer extent
     oil_extent = oil_layer.extent()
@@ -509,25 +473,27 @@ if len(oil_list) > 0:
             ]
         )
     if len(wind_list) > 0:
-        wspd_path = os.path.join(TEMP_FOLDER, 'wspd_interp.tif')
+        wspd_interp_path = os.path.join(TEMP_FOLDER, 'wspd_interp.tif')
         idw_interpolation(
             wind_layer,
             oil_extent,
             'speed',
             0.01,
-            wspd_path
+            wspd_interp_path
         )
-        wang_path = os.path.join(TEMP_FOLDER, 'wang_interp.tif')
+        wang_interp_path = os.path.join(TEMP_FOLDER, 'wang_interp.tif')
         idw_interpolation(
             wind_layer,
             oil_extent,
             'angle',
             0.01,
-            wang_path
+            wang_interp_path
         )
         
-        wspdoil_layer = zonal_statistics(oil_layer, wspd_path, column_prefix='speed_')
-        wangoil_layer = zonal_statistics(oil_layer, wang_path, column_prefix='angle_')
+        wspdoil_temp_path = os.path.join(TEMP_FOLDER, 'wspdoil_layer.gpkg')
+        wspdoil_layer = zonal_statistics(oil_layer, wspd_interp_path, column_prefix='speed_', output_path=wspdoil_temp_path)
+        wangoil_temp_path = os.path.join(TEMP_FOLDER, 'wangoil_layer.gpkg')
+        wangoil_layer = zonal_statistics(oil_layer, wang_interp_path, column_prefix='angle_', output_path=wang_temp_path)
         
         with edit(oil_layer):
             for oil_feat, wspdoil_feat in zip(oil_layer.getFeatures(), wspdoil_layer.getFeatures()):
@@ -555,7 +521,7 @@ if len(oil_list) > 0:
     oil_layer = QgsVectorLayer(oil_geo_path, layer_name)
 
     # get oil elements and feature number
-    print("\nMenghitung statistik tumpahan minyak...\n")
+    print("Menghitung statistik tumpahan minyak...\n")
     oil_numbers = get_oil_numbers(oil_csv_path)
     feat_numbers = oil_layer.featureCount()
 
@@ -563,7 +529,8 @@ if len(oil_list) > 0:
     load_vector_layer(oil_layer, oil_template, data_group)
 
     # overlay wpp layer and oil extent
-    wpp_layer = extract_by_extent(WPP_PATH, oil_extent)
+    wppoil_temp_path = os.path.join(TEMP_FOLDER, 'wppoil_layer.gpkg')
+    wpp_layer = extract_by_extent(WPP_PATH, oil_extent, output_path=wppoil_temp_path)
     wpp_area = get_wpp_area(wpp_layer)
 else:
     print('- Tidak ada data tumpahan minyak')
