@@ -55,7 +55,7 @@ class FileDialog:
                     None, 'Select Data Directory', self.base_path)
             elif self.method == 'gabungan':
                 self.path = QFileDialog.getExistingDirectory(
-                    None, 'Select Data Directory', self.base_path)[:-4] + '*'
+                    None, 'Select Data Directory', self.base_path)[:-5] + '*'
             else:
                 pass
 
