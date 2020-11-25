@@ -37,71 +37,65 @@ def get_ais_info(ship_path):
         # startdate = (shipdate - timedelta(hours=1)).strftime('%Y-%m-%dT%H:%M:%S')
         # stopdate = (shipdate + timedelta(hours=1)).strftime('%Y-%m-%dT%H:%M:%S')
 
-        #aisdata_list = glob.glob(f'{AISDATA_BASEPATH}/{ship_basepath[-15:-11]}/*{ship_basepath[-15:-7]}*_ais.csv')
+        aisdatazip_path = f'{AISDATA_BASEPATH}/{ship_basepath[-15:-11]}/indo_{ship_basepath[-15:-7]}_ais.zip'
+        
+        if not os.path.exists(aisdatazip_path):
+            print(f'Data AIS pada periode {ship_basepath[-15:-7]} tidak tersedia\n')
 
-        while True:
-            aisdata_list = glob.glob(f'{AISDATA_BASEPATH}/{ship_basepath[-15:-11]}/SEnSE-{ship_basepath[-15:-7]}*.zip')
-            if len(aisdata_list) > 0:
-                aisdatazip_path = aisdata_list[0]
-                aisdatacsv_path = f'{os.path.dirname(aisdatazip_path)}/indo_{ship_basepath[-15:-7]}_ais.csv'
+            # download AIS data from SEonSE Portal
+            ais_downloader = glob.glob(f'{AISDATA_BASEPATH}/*/ais_downloader.py')[0]
+            cmd = f'python {ais_downloader} {ship_basepath[-15:-7]}'
+            os.system(cmd)
+        
+        aisdatacsv_path = f'{os.path.dirname(aisdatazip_path)}/indo_{ship_basepath[-15:-7]}_ais.csv'
 
-                # extract ais data csv in zip file
-                with ZipFile(aisdatazip_path) as theZip:
-                    fileNames = theZip.namelist()
-                    for fileName in fileNames:
-                        if fileName.endswith('csv'):
-                            with theZip.open(fileName) as f:
-                                with open(aisdatacsv_path, 'wb') as outfile:
-                                    shutil.copyfileobj(f, outfile)
+        # extract ais data csv in zip file
+        with ZipFile(aisdatazip_path) as theZip:
+            fileNames = theZip.namelist()
+            for fileName in fileNames:
+                if fileName.endswith('csv'):
+                    with theZip.open(fileName) as f:
+                        with open(aisdatacsv_path, 'wb') as outfile:
+                            shutil.copyfileobj(f, outfile)
 
-                # read ais data csv
-                aisdatadf = pd.read_csv(aisdatacsv_path)
+        # read ais data csv
+        aisdatadf = pd.read_csv(aisdatacsv_path)
 
-                # filter ais data to data datetime
-                # aisdatadf = aisdatadf.loc[(aisdatadf['time'] >= startdate) & (aisdatadf['time'] <= stopdate)]
+        # filter ais data to data datetime
+        # aisdatadf = aisdatadf.loc[(aisdatadf['time'] >= startdate) & (aisdatadf['time'] <= stopdate)]
 
-                # get vessel name, ship type and country from ais data
-                def get_value(mmsi, column):
-                    value = aisdatadf[aisdatadf['mmsi'] == int(mmsi)][column].values
-                    if len(value) != 0:
-                        return value[0]
-                    else:
-                        return None
-
-                aisdf['Nama Kapal'] = [get_value(mmsi, 'vessel_name') for mmsi in aisdf['MMSI']]
-                aisdf['Tipe'] = [get_value(mmsi, 'ship_type') for mmsi in aisdf['MMSI']]
-                aisdf['Asal'] = [get_value(mmsi, 'country') for mmsi in aisdf['MMSI']]
-
-                # merge AIS dataframe to ship data
-                aisshipdf = pd.merge(aisdf, shipdf, how='right')
-                aisshipdf = aisshipdf[aisshipdf['Asosiasi (AIS/VMS)'] == 'AIS']
-
-                # filter only some columns to appear
-                shipaisdf = aisshipdf[['No.', 'Nama Kapal', 'Tipe', 'Asal', 'Longitude', 'Latitude', 'Heading (deg)']]
-                shipaisdf = shipaisdf.round(6)
-                shipaisdf['Heading (deg)'] = shipaisdf['Heading (deg)'].astype(int)
-
-                print('Informasi kapal AIS:')
-                for i, row in shipaisdf[['Nama Kapal', 'Tipe', 'Asal']].iterrows():
-                    print(f"{i+1}.\tNama\t: {row['Nama Kapal']}\n\tTipe\t: {row['Tipe']}\n\tAsal\t: {row['Asal']}\n")
-
-                shipaisdf.set_index('No.', inplace=True)
-                shipaisdf = shipaisdf.sort_index()
-                shipaisdf.to_csv(ship_path[:-9] + '_ais.csv')
-
-                print('Tabel AIS telah dibuat\n')
-
-                return shipaisdf
-
-                break
-            
+        # get vessel name, ship type and country from ais data
+        def get_value(mmsi, column):
+            value = aisdatadf[aisdatadf['mmsi'] == int(mmsi)][column].values
+            if len(value) != 0:
+                return value[0]
             else:
-                print(f'Data AIS pada periode {ship_basepath[-15:-7]} tidak tersedia\n')
+                return None
 
-                # download AIS data from SEonSE Portal
-                ais_downloader = glob.glob(f'{AISDATA_BASEPATH}/*/ais_downloader.py')[0]
-                cmd = f'python {ais_downloader} {ship_basepath[-15:-7]}'
-                os.system(cmd)
+        aisdf['Nama Kapal'] = [get_value(mmsi, 'vessel_name') for mmsi in aisdf['MMSI']]
+        aisdf['Tipe'] = [get_value(mmsi, 'ship_type') for mmsi in aisdf['MMSI']]
+        aisdf['Asal'] = [get_value(mmsi, 'country') for mmsi in aisdf['MMSI']]
+
+        # merge AIS dataframe to ship data
+        aisshipdf = pd.merge(aisdf, shipdf, how='right')
+        aisshipdf = aisshipdf[aisshipdf['Asosiasi (AIS/VMS)'] == 'AIS']
+
+        # filter only some columns to appear
+        shipaisdf = aisshipdf[['No.', 'Nama Kapal', 'Tipe', 'Asal', 'Longitude', 'Latitude', 'Heading (deg)']]
+        shipaisdf = shipaisdf.round(6)
+        shipaisdf['Heading (deg)'] = shipaisdf['Heading (deg)'].astype(int)
+
+        print('Informasi kapal AIS:')
+        for i, row in shipaisdf[['Nama Kapal', 'Tipe', 'Asal']].iterrows():
+            print(f"{i+1}.\tNama\t: {row['Nama Kapal']}\n\tTipe\t: {row['Tipe']}\n\tAsal\t: {row['Asal']}\n")
+
+        shipaisdf.set_index('No.', inplace=True)
+        shipaisdf = shipaisdf.sort_index()
+        shipaisdf.to_csv(ship_path[:-9] + '_ais.csv')
+
+        print('Tabel AIS telah dibuat\n')
+
+        return shipaisdf
 
     else:
         print('Tidak ada asosiasi dengan AIS\n')

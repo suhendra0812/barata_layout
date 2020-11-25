@@ -19,8 +19,8 @@ def correlation(data_path):
     starttime = (date_time - timedelta(minutes=30)).strftime('%m/%d/%Y %H:%M:%S')
     endtime = (date_time + timedelta(minutes=30)).strftime('%m/%d/%Y %H:%M:%S')
     
-    vms_list = glob.glob(f"{VMS_PATH}\\{date[:4]}\\*{date}*.csv")
-    if len(vms_list) == 0:
+    vms_path = f"{VMS_PATH}\\{date[:4]}\\indo_{date}_vms.csv"
+    if not os.path.exists(vms_path):
         print(f'Data VMS pada periode {date} tidak tersedia\n')
 
         # download VMS data from UMV Portal
@@ -28,12 +28,11 @@ def correlation(data_path):
         cmd = f'python {vms_downloader} {date}'
         subprocess.call(cmd)
 
-    for vms_path in vms_list:
-        vms_df = pd.read_csv(vms_path)
-        vmsfilter_df = vms_df.copy()
-        vmsfilter_df = vmsfilter_df.loc[(vmsfilter_df['Location date'] >= starttime) & (vmsfilter_df['Location date'] <= endtime)]
-    
-        vmsfilter_df.to_csv(f"{TEMP_VMS_PATH}\\dataUMV.csv", index=False)
+    vms_df = pd.read_csv(vms_path)
+    vmsfilter_df = vms_df.copy()
+    vmsfilter_df = vmsfilter_df.loc[(vmsfilter_df['Location date'] >= starttime) & (vmsfilter_df['Location date'] <= endtime)]
+
+    vmsfilter_df.to_csv(f"{TEMP_VMS_PATH}\\dataUMV.csv", index=False)
 
     if len(outputvms_list) == 0:   
         types = ('*SHIPKML.zip','*SHIP.shp','*SHIP.dbf','*SHIP.prj','*SHIP.shx')
