@@ -21,7 +21,7 @@ class RadarInfo:
             self.pola = name_list[5]
             self.mode = name_list[3]
 
-            s_datetime = dateutil.parser.parse(name_list[-3])
+            s_datetime = dateutil.parser.parse(name_list[8])
 
             self.tgl = s_datetime.strftime('%d')
             self.bln = s_datetime.strftime('%m')

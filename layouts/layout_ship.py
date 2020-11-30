@@ -282,10 +282,25 @@ def load_vector_layer(vector_layer, template, group):
     QgsProject.instance().layerTreeRoot().findLayer(vector_layer).setCustomProperty("showFeatureCount", True)
 
 def get_title_text(method, wpp_area, radar_info):
+    bulan = {
+        '01': 'JANUARI',
+        '02': 'FEBRUARI',
+        '03': 'MARET',
+        '04': 'APRIL',
+        '05': 'MEI',
+        '06': 'JUNI',
+        '07': 'JULI',
+        '08': 'AGUSTUS',
+        '09': 'SEPTEMBER',
+        '10': 'OKTOBER',
+        '11': 'NOVEMBER',
+        '12': 'DESEMBER'
+    }
+
     if method == 'satu':
-        periode_txt = datetime.strptime(radar_info.local, '%Y%m%d_%H%M%S').strftime('%d %B %Y PUKUL %H:%M:%S WIB')
+        periode_txt = f'{radar_info.tgl_local} {bulan[radar_info.bln_local]} {radar_info.thn_local} PUKUL {radar_info.jam_local}:{radar_info.m}:{radar_info.d} WIB'
     else:
-        periode_txt = datetime.strptime(radar_info.local, '%Y%m%d_%H%M%S').strftime('%d %B %Y PUKUL %H:%M WIB')
+        periode_txt = f'{radar_info.tgl_local} {bulan[radar_info.bln_local]} {radar_info.thn_local} PUKUL {radar_info.jam_local}:{radar_info.m} WIB'
     
     title_txt = f'PETA SEBARAN KAPAL DI PERAIRAN {wpp_area}\nPERIODE {periode_txt}'
     return title_txt
@@ -331,7 +346,7 @@ if len(basemap_group.findLayers()) > 3:
 
 project_path = QgsProject.instance().fileName()
 project_basename = QFileInfo(project_path).baseName()
-project_type = project_basename[-4:]
+project_type = project_basename.split('_')[-1]
 
 # define method
 method = sys.argv[-1]
@@ -500,12 +515,12 @@ if len(ship_list) > 0:
 
         shipvms_temp_path = os.path.join(TEMP_FOLDER, 'shipvms_layer.gpkg')
         shipvms_layer = join_attributes_by_location(ship_layer, vms_layer, join_fields=['status'], output_path=shipvms_temp_path)
-        with edit(shipvms_layer):
-            for feat in shipvms_layer.getFeatures():
-                if feat['status'] == 'vms':
-                    feat['DESC'] = 'VMS'
-                    shipvms_layer.updateFeature(feat)
-        ship_layer = shipvms_layer
+        
+        with edit(ship_layer):
+            for ship_feat, shipvms_feat in zip(ship_layer.getFeatures(), shipvms_layer.getFeatures()):
+                if shipvms_feat['status'] == 'vms':
+                    ship_feat['DESC'] = 'VMS'
+                    ship_layer.updateFeature(ship_feat)
     
     column_dict = {
         'LON_CENTRE': 'Longitude',

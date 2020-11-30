@@ -265,10 +265,25 @@ def get_oil_area_txt(oil_layer):
     return oil_area_txt
 
 def get_title_text(method, layout_id, wpp_area, radar_info):
+    bulan = {
+        '01': 'JANUARI',
+        '02': 'FEBRUARI',
+        '03': 'MARET',
+        '04': 'APRIL',
+        '05': 'MEI',
+        '06': 'JUNI',
+        '07': 'JULI',
+        '08': 'AGUSTUS',
+        '09': 'SEPTEMBER',
+        '10': 'OKTOBER',
+        '11': 'NOVEMBER',
+        '12': 'DESEMBER'
+    }
+
     if method == 'satu':
-        periode_txt = datetime.strptime(radar_info.local, '%Y%m%d_%H%M%S').strftime('%d %B %Y PUKUL %H:%M:%S WIB')
+        periode_txt = f'{radar_info.tgl_local} {bulan[radar_info.bln_local]} {radar_info.thn_local} PUKUL {radar_info.jam_local}:{radar_info.m}:{radar_info.d} WIB'
     else:
-        periode_txt = datetime.strptime(radar_info.local, '%Y%m%d_%H%M%S').strftime('%d %B %Y PUKUL %H:%M WIB')
+        periode_txt = f'{radar_info.tgl_local} {bulan[radar_info.bln_local]} {radar_info.thn_local} PUKUL {radar_info.jam_local}:{radar_info.m} WIB'
     
     if layout_id == 3:
         title_txt = f'PETA DETEKSI TUMPAHAN MINYAK DI PERAIRAN {wpp_area} (BAGIAN [%$id+1%])\nPERIODE {periode_txt}'
@@ -318,7 +333,7 @@ if len(basemap_group.findLayers()) > 3:
 
 project_path = QgsProject.instance().fileName()
 project_basename = QFileInfo(project_path).baseName()
-project_type = project_basename[-4:]
+project_type = project_basename.split('_')[-1]
 
 # define method
 method = sys.argv[-1]
@@ -464,12 +479,12 @@ if len(oil_list) > 0:
     with edit(oil_layer):
         oil_layer.dataProvider().addAttributes(
             [
-                QgsField('WSPDMIN', QVariant.Double),
-                QgsField('WSPDMAX', QVariant.Double),
-                QgsField('WSPDMEAN', QVariant.Double),
-                QgsField('WANGMIN', QVariant.Double),
-                QgsField('WANGMAX', QVariant.Double),
-                QgsField('WANGMEAN', QVariant.Double),
+                QgsField('MIN_WSPD', QVariant.Double),
+                QgsField('MAX_WSPD', QVariant.Double),
+                QgsField('MEAN_WSPD', QVariant.Double),
+                QgsField('MIN_WANG', QVariant.Double),
+                QgsField('MAX_WANG', QVariant.Double),
+                QgsField('MEAN_WANG', QVariant.Double),
             ]
         )
     if len(wind_list) > 0:
@@ -493,18 +508,18 @@ if len(oil_list) > 0:
         wspdoil_temp_path = os.path.join(TEMP_FOLDER, 'wspdoil_layer.gpkg')
         wspdoil_layer = zonal_statistics(oil_layer, wspd_interp_path, column_prefix='speed_', output_path=wspdoil_temp_path)
         wangoil_temp_path = os.path.join(TEMP_FOLDER, 'wangoil_layer.gpkg')
-        wangoil_layer = zonal_statistics(oil_layer, wang_interp_path, column_prefix='angle_', output_path=wang_temp_path)
+        wangoil_layer = zonal_statistics(oil_layer, wang_interp_path, column_prefix='angle_', output_path=wangoil_temp_path)
         
         with edit(oil_layer):
             for oil_feat, wspdoil_feat in zip(oil_layer.getFeatures(), wspdoil_layer.getFeatures()):
-                oil_feat['WSPDMIN'] = wspdoil_feat['speed_min']
-                oil_feat['WSPDMAX'] = wspdoil_feat['speed_max']
-                oil_feat['WSPDMEAN'] = wspdoil_feat['speed_mean']
+                oil_feat['MIN_WSPD'] = wspdoil_feat['speed_min']
+                oil_feat['MAX_WSPD'] = wspdoil_feat['speed_max']
+                oil_feat['MEAN_WSPD'] = wspdoil_feat['speed_mean']
                 oil_layer.updateFeature(oil_feat)
             for oil_feat, wangoil_feat in zip(oil_layer.getFeatures(), wangoil_layer.getFeatures()):
-                oil_feat['WANGMIN'] = wangoil_feat['angle_min']
-                oil_feat['WANGMAX'] = wangoil_feat['angle_max']
-                oil_feat['WANGMEAN'] = wangoil_feat['angle_mean']
+                oil_feat['MIN_WANG'] = wangoil_feat['angle_min']
+                oil_feat['MAX_WANG'] = wangoil_feat['angle_max']
+                oil_feat['MEAN_WANG'] = wangoil_feat['angle_mean']
                 oil_layer.updateFeature(oil_feat)
 
     column_dict = {
@@ -512,8 +527,8 @@ if len(oil_list) > 0:
         'BARIC_LAT': 'Latitude',
         'LENGTH_KM': 'Panjang (km)',
         'AREA_KM': 'Luas (km2)',
-        'WSPDMEAN': 'Kecepatan Angin (m/s)',
-        'WANGMEAN': 'Arah Angin (deg)',
+        'MEAN_WSPD': 'Kecepatan Angin (m/s)',
+        'MEAN_WANG': 'Arah Angin (deg)',
         'ALARM_LEV': 'Tingkat Kepercayaan',
     }
     export_vector_layer(oil_layer, oil_csv_path, driver='CSV', column_dict=column_dict)
