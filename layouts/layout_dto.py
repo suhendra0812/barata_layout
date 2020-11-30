@@ -1,4 +1,4 @@
-import sys, os, shutil
+import sys, os, glob, shutil
 import dateutil.parser
 from datetime import datetime, timedelta
 from xml.etree import ElementTree
@@ -107,7 +107,6 @@ def dto_layer(kml_path, layer_name):
                 desc = feat['description']
                 if desc != None:
                     desc = desc.strip()
-                    geom_list.append(feat.geometry())
                     if 'RADARSAT' in desc:
                         desc_dict = {}
                         for d in desc.split('\n'):
@@ -117,11 +116,13 @@ def dto_layer(kml_path, layer_name):
                         field = list(desc_dict.keys())
                         attr_list.append(attr)
                         field_list.append(field)
+                        geom_list.append(feat.geometry())
                     elif 'SAR' in desc:        
                         tree = ElementTree.fromstring(desc)
                         b_elems = tree.findall(".//b")
                         attr = [b.text for b in b_elems]
                         attr_list.append(attr)
+                        geom_list.append(feat.geometry())
 
     feat_list = []
     for i, geom in enumerate(geom_list):
@@ -227,10 +228,10 @@ if method == 'banyak':
             for i in data_group.children():
                 data_group.removeChildNode(i)
 
-        if len(basemap_group.findLayers()) > 3:
-            raster_layer_remove = basemap_group.findLayers()[3:-1]
-            for layer in raster_layer_remove:
-                basemap_group.removeChildNode(layer)
+        # if len(basemap_group.findLayers()) > 3:
+        #     raster_layer_remove = basemap_group.findLayers()[3:-1]
+        #     for layer in raster_layer_remove:
+        #         basemap_group.removeChildNode(layer)
 
         project_path = QgsProject.instance().fileName()
         project_basename = QFileInfo(project_path).baseName()
@@ -280,7 +281,7 @@ if method == 'banyak':
         dto_layer = QgsVectorLayer(dtogeo_path, layer_name)
 
         # load dto layer to project
-        dto_template = f'{TEMPLATE_PATH}/layer/dto_layer_template.qml'
+        dto_template = f'{TEMPLATE_PATH}/layer/dto_layer_atlas_template.qml'
         load_vector_layer(dto_layer, dto_template, data_group)
 
         # zoom to layer
@@ -293,7 +294,7 @@ if method == 'banyak':
 
         # load wpp data and get WPP area which is overlaid within raster
         wppdto_temp_path = os.path.join(TEMP_FOLDER, 'wppship_layer.gpkg')
-        wpp_layer = extract_by_extent(WPP_PATH, ship_extent, output_path=wppship_temp_path)
+        wpp_layer = extract_by_extent(WPP_PATH, dto_extent, output_path=wppdto_temp_path)
         wpp_area = get_wpp_area(wpp_layer)
 
         # define layout list
@@ -302,7 +303,7 @@ if method == 'banyak':
 
         # setup extent on main map
         map_item = sip.cast(layout[1].itemById("map"), QgsLayoutItemMap)
-        extent.scale(2)
+        dto_rect.scale(2)
         map_item.zoomToExtent(dto_rect)
 
         # set atlas
@@ -341,10 +342,10 @@ else:
         for i in data_group.children():
             data_group.removeChildNode(i)
 
-    if len(basemap_group.findLayers()) > 3:
-        raster_layer_remove = basemap_group.findLayers()[3:-1]
-        for layer in raster_layer_remove:
-            basemap_group.removeChildNode(layer)
+    # if len(basemap_group.findLayers()) > 3:
+    #     raster_layer_remove = basemap_group.findLayers()[3:-1]
+    #     for layer in raster_layer_remove:
+    #         basemap_group.removeChildNode(layer)
 
     project_path = QgsProject.instance().fileName()
     project_basename = QFileInfo(project_path).baseName()
@@ -402,7 +403,7 @@ else:
     dto_layer = QgsVectorLayer(dtogeo_path, layer_name)
 
     # load dto layer to project
-    dto_template = f'{TEMPLATE_PATH}/layer/dto_layer_template.qml'
+    dto_template = f'{TEMPLATE_PATH}/layer/dto_layer_atlas_template.qml'
     load_vector_layer(dto_layer, dto_template, data_group)
 
     # zoom to layer
@@ -422,9 +423,14 @@ else:
     layout_id = [0]
     layout_list = [(i, QgsProject.instance().layoutManager().layouts()[i]) for i in layout_id]
 
-    title_exp = """[%upper(format_date("Start Time"+ to_interval('7 hours'), 'dd MMMM yyyy pukul hh:mm:ss WIB', 'id'))%]"""
-    atlas_exp = """substr(@project_basename, 0, -19)||(format_date("Start Time"+to_interval('7 hours'), 'yyyyMMdd_hhmmss'))||'_dto'"""
-    note_exp = """[%title(format_date("Start Time", 'dd MMMM yyyy', 'id'))%] sekitar pukul [%CASE WHEN to_time("Start Time") >=  to_time('06:21:00') AND to_time("Start Time") <=  to_time('18:21:00') THEN '06:00 WIB' ELSE '20:00 WIB' END%] \nSensor Mode : [% "Mode" %]"""
+    if sat_name == 'RADARSAT-2':
+        title_exp = """[%upper(format_date("Start UTC Time"+ to_interval('7 hours'), 'dd MMMM yyyy pukul hh:mm:ss WIB', 'id'))%]"""
+        atlas_exp = """substr(@project_basename, 0, -19)||(format_date("Start UTC Time"+to_interval('7 hours'), 'yyyyMMdd_hhmmss'))||'_dto'"""
+        note_exp = """[%title(format_date("Start UTC Time", 'dd MMMM yyyy', 'id'))%] sekitar pukul [%CASE WHEN to_time("Start UTC Time") >=  to_time('06:21:00') AND to_time("Start UTC Time") <=  to_time('18:21:00') THEN '06:00 WIB' ELSE '20:00 WIB' END%] \nSensor Mode : [% "Sensor Mode" %]"""
+    else:
+        title_exp = """[%upper(format_date("Sensing Start"+ to_interval('7 hours'), 'dd MMMM yyyy pukul hh:mm:ss WIB', 'id'))%]"""
+        atlas_exp = """substr(@project_basename, 0, -19)||(format_date("Sensing Start"+to_interval('7 hours'), 'yyyyMMdd_hhmmss'))||'_dto'"""
+        note_exp = """[%title(format_date("Sensing Start", 'dd MMMM yyyy', 'id'))%] sekitar pukul [%CASE WHEN to_time("Sensing Start") >=  to_time('06:21:00') AND to_time("Sensing Start") <=  to_time('18:21:00') THEN '06:00 WIB' ELSE '20:00 WIB' END%] \nSensor Mode : [% "Sensor Mode" %]"""
     
     for layout in layout_list:
         # setup extent on main map
