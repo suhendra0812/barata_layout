@@ -2,8 +2,6 @@ import sys, os, glob
 import numpy as np
 import pandas as pd
 from datetime import datetime
-import locale
-locale.setlocale(locale.LC_TIME, "id_ID")
 
 from qgis.core import (
     edit,
