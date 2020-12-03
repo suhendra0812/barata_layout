@@ -433,10 +433,10 @@ for data_folder in data_folder_list:
         local = radar_info.local
 
         # define layout method based on data length
-        # if len(raster_list) == 1:
-        #     method = 'satu'
-        # else:
-        #     method = 'gabungan'
+        if len(raster_list) == 1:
+            method = 'satu'
+        else:
+            method = 'gabungan'
 
     # set raster extent
     xmin = raster_extent.xMinimum()
