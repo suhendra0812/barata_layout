@@ -121,34 +121,48 @@ def wind_direction(angle):
         wind_ang = angle + 180
     elif angle > 180:
         wind_ang = angle - 180
+    else:
+        wind_ang = np.nan
 
     # define wind direction value to wind direction name
-    if wind_ang > 22.5 and wind_ang <= 67.5:
-        wind_dir = "Timur Laut"
-    elif wind_ang > 67.5 and wind_ang <= 112.5:
-        wind_dir = "Timur"
-    elif wind_ang > 112.5 and wind_ang <= 157.5:
-        wind_dir = "Tenggara"
-    elif wind_ang > 157.5 and wind_ang <= 202.5:
-        wind_dir = "Selatan"
-    elif wind_ang > 202.5 and wind_ang <= 247.5:
-        wind_dir = "Barat Daya"
-    elif wind_ang > 247.5 and wind_ang <= 292.5:
-        wind_dir = "Barat"
-    elif wind_ang > 292.5 and wind_ang <= 337.5:
-        wind_dir = "Barat Laut"
+    if not np.isnan(wind_ang):
+        if wind_ang > 22.5 and wind_ang <= 67.5:
+            wind_dir = "Timur Laut"
+        elif wind_ang > 67.5 and wind_ang <= 112.5:
+            wind_dir = "Timur"
+        elif wind_ang > 112.5 and wind_ang <= 157.5:
+            wind_dir = "Tenggara"
+        elif wind_ang > 157.5 and wind_ang <= 202.5:
+            wind_dir = "Selatan"
+        elif wind_ang > 202.5 and wind_ang <= 247.5:
+            wind_dir = "Barat Daya"
+        elif wind_ang > 247.5 and wind_ang <= 292.5:
+            wind_dir = "Barat"
+        elif wind_ang > 292.5 and wind_ang <= 337.5:
+            wind_dir = "Barat Laut"
+        else:
+            wind_dir = "Utara"
     else:
-        wind_dir = "Utara"
+        wind_dir = None
+    
     return wind_dir
 
 def get_wind_range(wind_layer):
-    wind_sp = [feat['speed'] for feat in wind_layer.getFeatures()]
+    wind_sp = []
+    for feat in wind_layer.getFeatures('"speed" != \'nan\''):
+        feat_sp = float(feat['speed'])
+        if not np.isnan(feat_sp):
+            wind_sp.append(feat_sp)
     wsp_min = round(min(wind_sp), 2)
     wsp_max = round(max(wind_sp), 2)
     return wsp_min, wsp_max
 
 def get_wind_direction(wind_layer):
-    wind_ang = [feat['angle'] for feat in wind_layer.getFeatures()]
+    wind_ang = []
+    for feat in wind_layer.getFeatures('"speed" != \'nan\''):
+        feat_ang = float(feat['angle'])
+        if not np.isnan(feat_ang):
+            wind_ang.append(feat_ang)
     ang_mean = np.mean(wind_ang)
     wind_dir = wind_direction(ang_mean)
     return wind_dir
@@ -438,24 +452,29 @@ ymax = raster_extent.yMaximum()
 
 # load wind data and get wind range and direction
 if len(wind_list) > 0:
-    wind_layer = merge_vector_layer(wind_list)
+    wind_temp_path = os.path.join(TEMP_FOLDER, 'wind_layer.gpkg')
+    wind_layer = merge_vector_layer(wind_list, output_path=wind_temp_path)
     with edit(wind_layer):
         wind_layer.dataProvider().addAttributes(
             [
-                QgsField("angle", QVariant.Double),
+                QgsField("angle", QVariant.Double, "double", 10, 3),
                 QgsField("direction", QVariant.String),
             ]
         )
         wind_layer.updateFields()
 
-        for feat in wind_layer.getFeatures():
-            wind_ang = wind_angle(feat['zonalSpeed'], feat['meridionalSpeed'])
+        for feat in wind_layer.getFeatures('"speed" != \'nan\''):
+            wind_ang = wind_angle(float(feat['zonalSpeed']), float(feat['meridionalSpeed']))
             wind_dir = wind_direction(wind_ang)
             feat['angle'] = float(wind_ang)
             feat['direction'] = str(wind_dir)
             wind_layer.updateFeature(feat)
+
     wind_range = get_wind_range(wind_layer)
     wind_dir = get_wind_direction(wind_layer)
+else:
+    wind_range = (None, None)
+    wind_dir = None
 
 # load wpp data and get WPP area which is overlaid within raster
 wpp_extent = raster_extent
