@@ -2,6 +2,7 @@ import sys, os, glob
 import numpy as np
 import pandas as pd
 from datetime import datetime
+from dateutil.parser
 
 from qgis.core import (
     edit,
@@ -59,7 +60,6 @@ import processing
 from processing.core.Processing import Processing
 Processing.initialize()
 qgs.processingRegistry().addProvider(QgsNativeAlgorithms())
-
 
 def run_processing(algorithm, params):
     params = params
@@ -330,13 +330,18 @@ def get_source_text(radar_info_list):
 
     return source_txt
 
+def sort_by_date(f):
+    dt_text = 'T'.join(os.path.basename(f).split('_')[1:3]).replace('*','')
+    dt = dateutil.parser.parse(dt_text)
+    return dt
+
 
 # define method
 folder_list = glob.glob(
     os.path.join(
         BASE_PATH,
         '2.seonse_outputs',
-        '*', 
+        'cosmo*', 
         '*',
         '*',
     )
@@ -345,303 +350,298 @@ folder_list = glob.glob(
 data_folder_list = []
 for folder in folder_list:
     if os.path.isdir(folder):
-        data_folder_list.append(f'{folder[:-4]}*')
+        if len(os.path.basename(folder).split('_')) == 3:
+            data_folder_list.append(f'{folder[:-4]}*')
 
 data_folder_list = list(set(data_folder_list))
+data_folder_list.sort(key=sort_by_date)
 
 for data_folder in data_folder_list:
     print('\nSumber data:')
     print(data_folder)
 
-    # define project type and remove previous layer
-    QgsProject.instance().read(PROJECT_PATH)
-    data_group = QgsProject.instance().layerTreeRoot().findGroups()[0]
-    basemap_group = QgsProject.instance().layerTreeRoot().findGroups()[1]
-    if len(data_group.findLayers()) > 0:
-        for i in data_group.children():
-            data_group.removeChildNode(i)
-
-    if len(basemap_group.findLayers()) > 3:
-        raster_layer_remove = basemap_group.findLayers()[3:-1]
-        for layer in raster_layer_remove:
-            basemap_group.removeChildNode(layer)
-
-    project_path = QgsProject.instance().fileName()
-    project_basename = QFileInfo(project_path).baseName()
-    project_type = project_basename.split('_')[-1]
+    print('\nKetersediaan data:')
 
     # define list of data based on data folder
     raster_list = glob.glob(f'{data_folder}/*.tif')
     wind_list = glob.glob(f'{data_folder}/*Wind.gml')
     oil_list = glob.glob(f'{data_folder}/*OIL.shp')
+    oilgeojson_list = glob.glob(f'{data_folder}/*oils.geojson')
 
-    OUTPUT_FOLDER = os.path.dirname(raster_list[-1])
-    TEMP_FOLDER = os.path.join(OUTPUT_FOLDER, 'temp')
-    if not os.path.exists(TEMP_FOLDER):
-        os.makedirs(TEMP_FOLDER)
+    if len(oilgeojson_list) == 0:
+    
+        if len(raster_list) > 0:
+            print('- Ada data raster')
 
-    print('\nKetersediaan data:')
-    if len(raster_list) > 0:
-        print('- Ada data raster')
-    else:
-        print('- Tidak ada data raster')
-    if len(wind_list) > 0:
-        print('- Ada data angin')
-    else:
-        print('- Tidak ada data angin')
-    if len(oil_list) > 0:
-        print('- Ada data tumpahan minyak')
-    else:
-        print('- Tidak ada data tumpahan minyak')
+            if len(oil_list) > 0:
+                print('- Ada data tumpahan minyak')
 
-    print('\n')
+                # define project type and remove previous layer
+                QgsProject.instance().read(PROJECT_PATH)
+                data_group = QgsProject.instance().layerTreeRoot().findGroups()[0]
+                basemap_group = QgsProject.instance().layerTreeRoot().findGroups()[1]
+                if len(data_group.findLayers()) > 0:
+                    for i in data_group.children():
+                        data_group.removeChildNode(i)
 
-    # load raster layer and get raster info
-    if len(raster_list) > 0:
-        raster_basename_list = []
-        raster_layer_list = []
+                if len(basemap_group.findLayers()) > 3:
+                    raster_layer_remove = basemap_group.findLayers()[3:-1]
+                    for layer in raster_layer_remove:
+                        basemap_group.removeChildNode(layer)
 
-        for raster_path in raster_list:
-            rasterbasename = QFileInfo(raster_path).baseName()
-            rasterlayer = QgsRasterLayer(raster_path, rasterbasename)
-            if not rasterlayer.isValid():
-                print("rasterlayer is not valid")
+                project_path = QgsProject.instance().fileName()
+                project_basename = QFileInfo(project_path).baseName()
+                project_type = project_basename.split('_')[-1]
 
-            raster_basename_list.append(rasterbasename)
-            raster_layer_list.append(rasterlayer)
-        
-        # set up extent
-        raster_extent = QgsRectangle()
-        raster_extent.setMinimal()
+                OUTPUT_FOLDER = os.path.dirname(raster_list[-1])
+                TEMP_FOLDER = os.path.join(OUTPUT_FOLDER, 'temp')
+                if not os.path.exists(TEMP_FOLDER):
+                    os.makedirs(TEMP_FOLDER)
+                
+                # load raster layer and get raster info
+                raster_basename_list = []
+                raster_layer_list = []
 
-        for raster_layer in raster_layer_list:
-            # combine extent with raster layer extent
-            raster_extent.combineExtentWith(raster_layer.extent())
+                for raster_path in raster_list:
+                    rasterbasename = QFileInfo(raster_path).baseName()
+                    rasterlayer = QgsRasterLayer(raster_path, rasterbasename)
+                    if not rasterlayer.isValid():
+                        print("rasterlayer is not valid")
 
-        # set extent to canvas
-        QgsMapCanvas().setExtent(raster_extent)
-        QgsMapCanvas().refresh()
+                    raster_basename_list.append(rasterbasename)
+                    raster_layer_list.append(rasterlayer)
+                
+                # set up extent
+                raster_extent = QgsRectangle()
+                raster_extent.setMinimal()
 
-        for raster_layer in raster_layer_list:
-            load_raster_layer(raster_layer, basemap_group)
+                for raster_layer in raster_layer_list:
+                    # combine extent with raster layer extent
+                    raster_extent.combineExtentWith(raster_layer.extent())
 
-        # get radar_info info from raster filename
-        wil = os.path.basename(OUTPUT_FOLDER)[:-16]
-        radar_info_list = []
-        for raster_basename in raster_basename_list:
-            radar_info = RadarInfo(raster_basename)
-            radar_info_list.append(radar_info)
-        
-        local = radar_info.local
+                # set extent to canvas
+                QgsMapCanvas().setExtent(raster_extent)
+                QgsMapCanvas().refresh()
 
-        # define layout method based on data length
-        if len(raster_list) == 1:
-            method = 'satu'
+                for raster_layer in raster_layer_list:
+                    load_raster_layer(raster_layer, basemap_group)
+
+                # get radar_info info from raster filename
+                wil = os.path.basename(OUTPUT_FOLDER)[:-16]
+                radar_info_list = []
+                for raster_basename in raster_basename_list:
+                    radar_info = RadarInfo(raster_basename)
+                    radar_info_list.append(radar_info)
+                
+                local = radar_info.local
+
+                # define layout method based on data length
+                if len(raster_list) == 1:
+                    method = 'satu'
+                    layer_name = f'{wil}_{local}_{project_type}'
+                else:
+                    method = 'gabungan'
+                    layer_name = f'{wil}_{local[:-2]}_{project_type}'
+
+                # set raster extent
+                xmin = raster_extent.xMinimum()
+                xmax = raster_extent.xMaximum()
+                ymin = raster_extent.yMinimum()
+                ymax = raster_extent.yMaximum()
+
+                # load wpp data and get WPP area which is overlaid within raster
+                wpp_extent = raster_extent
+                wpp_temp_path = os.path.join(TEMP_FOLDER, 'wpp_layer.gpkg')
+                wpp_layer = extract_by_extent(WPP_PATH, wpp_extent, output_path=wpp_temp_path)
+                wpp_area = get_wpp_area(wpp_layer)
+
+                # define path of oil template and oil csv path
+                oil_template = f'{TEMPLATE_PATH}/layer/oils_level_layer_template.qml'
+                oil_geo_path = f'{OUTPUT_FOLDER}/{layer_name}.geojson'
+                oil_csv_path = f'{OUTPUT_FOLDER}/{layer_name}.csv'
+
+                # get aggregation and transmitted layer of oil data
+                oil_temp_path = os.path.join(TEMP_FOLDER, 'oil_layer.gpkg')
+                oil_layer = merge_vector_layer(oil_list, output_path=oil_temp_path)
+
+                # get oil layer extent
+                oil_extent = oil_layer.extent()
+
+                with edit(oil_layer):
+                    oil_layer.dataProvider().addAttributes(
+                        [
+                            QgsField('MIN_WSPD', QVariant.Double),
+                            QgsField('MAX_WSPD', QVariant.Double),
+                            QgsField('MEAN_WSPD', QVariant.Double),
+                            QgsField('MIN_WANG', QVariant.Double),
+                            QgsField('MAX_WANG', QVariant.Double),
+                            QgsField('MEAN_WANG', QVariant.Double),
+                        ]
+                    )
+                    oil_layer.updateFields()
+
+                if len(wind_list) > 0:
+                    print('- Ada data angin')
+                    
+                    # load wind data and get wind range and direction
+                    wind_temp_path = os.path.join(TEMP_FOLDER, 'wind_layer.gpkg')
+                    wind_layer = merge_vector_layer(wind_list, output_path=wind_temp_path)
+                    with edit(wind_layer):
+                        wind_layer.dataProvider().addAttributes(
+                            [
+                                QgsField("angle", QVariant.Double, "double", 10, 3),
+                                QgsField("direction", QVariant.String),
+                            ]
+                        )
+                        wind_layer.updateFields()
+
+                        for feat in wind_layer.getFeatures('"speed" != \'nan\''):
+                            wind_ang = wind_angle(float(feat['zonalSpeed']), float(feat['meridionalSpeed']))
+                            wind_dir = wind_direction(wind_ang)
+                            feat['angle'] = float(wind_ang)
+                            feat['direction'] = str(wind_dir)
+                            wind_layer.updateFeature(feat)
+
+                    wind_range = get_wind_range(wind_layer)
+                    wind_dir = get_wind_direction(wind_layer)
+
+                    wspd_interp_path = os.path.join(TEMP_FOLDER, 'wspd_interp.tif')
+                    idw_interpolation(
+                        wind_layer,
+                        oil_extent,
+                        'speed',
+                        0.01,
+                        wspd_interp_path
+                    )
+                    wang_interp_path = os.path.join(TEMP_FOLDER, 'wang_interp.tif')
+                    idw_interpolation(
+                        wind_layer,
+                        oil_extent,
+                        'angle',
+                        0.01,
+                        wang_interp_path
+                    )
+                    
+                    wspdoil_temp_path = os.path.join(TEMP_FOLDER, 'wspdoil_layer.gpkg')
+                    wspdoil_layer = zonal_statistics(oil_layer, wspd_interp_path, column_prefix='speed_', output_path=wspdoil_temp_path)
+                    wangoil_temp_path = os.path.join(TEMP_FOLDER, 'wangoil_layer.gpkg')
+                    wangoil_layer = zonal_statistics(oil_layer, wang_interp_path, column_prefix='angle_', output_path=wangoil_temp_path)
+                    
+                    with edit(oil_layer):
+                        for oil_feat, wspdoil_feat in zip(oil_layer.getFeatures(), wspdoil_layer.getFeatures()):
+                            oil_feat['MIN_WSPD'] = wspdoil_feat['speed_min']
+                            oil_feat['MAX_WSPD'] = wspdoil_feat['speed_max']
+                            oil_feat['MEAN_WSPD'] = wspdoil_feat['speed_mean']
+                            oil_layer.updateFeature(oil_feat)
+                        for oil_feat, wangoil_feat in zip(oil_layer.getFeatures(), wangoil_layer.getFeatures()):
+                            oil_feat['MIN_WANG'] = wangoil_feat['angle_min']
+                            oil_feat['MAX_WANG'] = wangoil_feat['angle_max']
+                            oil_feat['MEAN_WANG'] = wangoil_feat['angle_mean']
+                            oil_layer.updateFeature(oil_feat)
+                
+                else:
+                    print('- Tidak ada data angin')
+                    wind_range = (None, None)
+                    wind_dir = None
+                
+                column_dict = {
+                    'BARIC_LON': 'Longitude',
+                    'BARIC_LAT': 'Latitude',
+                    'LENGTH_KM': 'Panjang (km)',
+                    'AREA_KM': 'Luas (km2)',
+                    'MEAN_WSPD': 'Kecepatan Angin (m/s)',
+                    'MEAN_WANG': 'Arah Angin (deg)',
+                    'ALARM_LEV': 'Tingkat Kepercayaan',
+                }
+                export_vector_layer(oil_layer, oil_csv_path, driver='CSV', column_dict=column_dict)
+                export_vector_layer(oil_layer, oil_geo_path, driver='GeoJSON')
+                oil_layer = QgsVectorLayer(oil_geo_path, layer_name)
+
+                # get oil elements and feature number
+                print("Menghitung statistik tumpahan minyak...\n")
+                oil_numbers = get_oil_numbers(oil_csv_path)
+                feat_numbers = oil_layer.featureCount()
+
+                # load oil layer to project
+                load_vector_layer(oil_layer, oil_template, data_group)
+
+                # overlay wpp layer and oil extent
+                wppoil_temp_path = os.path.join(TEMP_FOLDER, 'wppoil_layer.gpkg')
+                wpp_layer = extract_by_extent(WPP_PATH, oil_extent, output_path=wppoil_temp_path)
+                wpp_area = get_wpp_area(wpp_layer)
+
+                # define layout list
+                if feat_numbers == 0:
+                    layout_id = [0]
+                elif feat_numbers == 1:
+                    layout_id = [1]
+                elif feat_numbers > 1:
+                    layout_id = [3, 2]
+
+                layout_list = [(i, QgsProject.instance().layoutManager().layouts()[i]) for i in layout_id]
+
+                # set atlas and oil area text to specific layout
+                for layout in layout_list:
+                    if layout[0] == 1 or layout[0] == 3:
+                        if layout[0] == 1:
+                            atlas_name = "@layout_name"
+                        elif layout[0] == 3:
+                            atlas_name = "@layout_name||@atlas_featurenumber"
+                        # set atlas
+                        layout[1].atlas().setCoverageLayer(oil_layer)
+                        layout[1].atlas().setEnabled(True)
+                        layout[1].atlas().setFilenameExpression(atlas_name)
+                    elif layout[0] == 2:
+                        oil_area_txt = get_oil_area_txt(oil_layer)
+                        oil_area_item = sip.cast(layout[1].itemById("luas"), QgsLayoutItemLabel)
+                        oil_area_item.setText(oil_area_txt)
+
+                    # setup extent on main map
+                    map_item = sip.cast(layout[1].itemById("map"), QgsLayoutItemMap)
+                    map_item.zoomToExtent(raster_extent)
+
+                    # set the overview map
+                    overview_item = QgsLayoutItemMapOverview('overview', map_item)
+                    overview_item.setLinkedMap(map_item)
+
+                    # add title map
+                    title_txt = get_title_text(method, layout[0], wpp_area, radar_info)
+                    title_item = sip.cast(layout[1].itemById("judul"), QgsLayoutItemLabel)
+                    title_item.setText(title_txt)
+
+                    # add wind information
+                    wind_txt = get_wind_text(wind_range, wind_dir)
+                    wind_item = sip.cast(layout[1].itemById("angin"), QgsLayoutItemLabel)
+                    wind_item.setText(wind_txt)
+
+                    # add source text
+                    source_txt = get_source_text(radar_info_list)
+                    source_item = sip.cast(layout[1].itemById("sumber"), QgsLayoutItemLabel)
+                    source_item.setText(source_txt)
+
+                    # set layout name
+                    layout[1].setName(layer_name)
+                    if layout[0] == 3:
+                        layout[1].setName(f'{layer_name}_')
+
+                # save project
+                outputproj_path = f'{OUTPUT_FOLDER}/{layer_name}.qgz'
+                QgsProject.instance().write(outputproj_path)
+
+                print('\nLayout telah dibuat\n')
+
+                print('\nSelesai')
+
+                # remove all files in 'temp' folder
+                os.chdir(OUTPUT_FOLDER)
+                os.system('rmdir /s /q temp')
+
+            else:
+                print('- Tidak ada data tumpahan minyak')
+
         else:
-            method = 'gabungan'
-
-    # set raster extent
-    xmin = raster_extent.xMinimum()
-    xmax = raster_extent.xMaximum()
-    ymin = raster_extent.yMinimum()
-    ymax = raster_extent.yMaximum()
-
-    # load wind data and get wind range and direction
-    if len(wind_list) > 0:
-        wind_temp_path = os.path.join(TEMP_FOLDER, 'wind_layer.gpkg')
-        wind_layer = merge_vector_layer(wind_list, output_path=wind_temp_path)
-        with edit(wind_layer):
-            wind_layer.dataProvider().addAttributes(
-                [
-                    QgsField("angle", QVariant.Double, "double", 10, 3),
-                    QgsField("direction", QVariant.String),
-                ]
-            )
-            wind_layer.updateFields()
-
-            for feat in wind_layer.getFeatures('"speed" != \'nan\''):
-                wind_ang = wind_angle(float(feat['zonalSpeed']), float(feat['meridionalSpeed']))
-                wind_dir = wind_direction(wind_ang)
-                feat['angle'] = float(wind_ang)
-                feat['direction'] = str(wind_dir)
-                wind_layer.updateFeature(feat)
-
-        wind_range = get_wind_range(wind_layer)
-        wind_dir = get_wind_direction(wind_layer)
-    else:
-        wind_range = (None, None)
-        wind_dir = None
-
-    # load wpp data and get WPP area which is overlaid within raster
-    wpp_extent = raster_extent
-    wpp_temp_path = os.path.join(TEMP_FOLDER, 'wpp_layer.gpkg')
-    wpp_layer = extract_by_extent(WPP_PATH, wpp_extent, output_path=wpp_temp_path)
-    wpp_area = get_wpp_area(wpp_layer)
-
-    # define layer name
-    if method == 'satu':
-        layer_name = f'{wil}_{local}_{project_type}'
-    else:
-        layer_name = f'{wil}_{local[:-2]}_{project_type}'
-
-    # load data layer based on project type and setup the layout
-    if len(oil_list) > 0:
-        # define path of oil template and oil csv path
-        oil_template = f'{TEMPLATE_PATH}/layer/oils_level_layer_template.qml'
-        oil_geo_path = f'{OUTPUT_FOLDER}/{layer_name}.geojson'
-        oil_csv_path = f'{OUTPUT_FOLDER}/{layer_name}.csv'
-
-        # get aggregation and transmitted layer of oil data
-        oil_temp_path = os.path.join(TEMP_FOLDER, 'oil_layer.gpkg')
-        oil_layer = merge_vector_layer(oil_list, output_path=oil_temp_path)
-
-        # get oil layer extent
-        oil_extent = oil_layer.extent()
-
-        with edit(oil_layer):
-            oil_layer.dataProvider().addAttributes(
-                [
-                    QgsField('MIN_WSPD', QVariant.Double),
-                    QgsField('MAX_WSPD', QVariant.Double),
-                    QgsField('MEAN_WSPD', QVariant.Double),
-                    QgsField('MIN_WANG', QVariant.Double),
-                    QgsField('MAX_WANG', QVariant.Double),
-                    QgsField('MEAN_WANG', QVariant.Double),
-                ]
-            )
-            oil_layer.updateFields()
+            print('- Tidak ada data raster')
             
-        if len(wind_list) > 0:
-            wspd_interp_path = os.path.join(TEMP_FOLDER, 'wspd_interp.tif')
-            idw_interpolation(
-                wind_layer,
-                oil_extent,
-                'speed',
-                0.01,
-                wspd_interp_path
-            )
-            wang_interp_path = os.path.join(TEMP_FOLDER, 'wang_interp.tif')
-            idw_interpolation(
-                wind_layer,
-                oil_extent,
-                'angle',
-                0.01,
-                wang_interp_path
-            )
-            
-            wspdoil_temp_path = os.path.join(TEMP_FOLDER, 'wspdoil_layer.gpkg')
-            wspdoil_layer = zonal_statistics(oil_layer, wspd_interp_path, column_prefix='speed_', output_path=wspdoil_temp_path)
-            wangoil_temp_path = os.path.join(TEMP_FOLDER, 'wangoil_layer.gpkg')
-            wangoil_layer = zonal_statistics(oil_layer, wang_interp_path, column_prefix='angle_', output_path=wangoil_temp_path)
-            
-            with edit(oil_layer):
-                for oil_feat, wspdoil_feat in zip(oil_layer.getFeatures(), wspdoil_layer.getFeatures()):
-                    oil_feat['MIN_WSPD'] = wspdoil_feat['speed_min']
-                    oil_feat['MAX_WSPD'] = wspdoil_feat['speed_max']
-                    oil_feat['MEAN_WSPD'] = wspdoil_feat['speed_mean']
-                    oil_layer.updateFeature(oil_feat)
-                for oil_feat, wangoil_feat in zip(oil_layer.getFeatures(), wangoil_layer.getFeatures()):
-                    oil_feat['MIN_WANG'] = wangoil_feat['angle_min']
-                    oil_feat['MAX_WANG'] = wangoil_feat['angle_max']
-                    oil_feat['MEAN_WANG'] = wangoil_feat['angle_mean']
-                    oil_layer.updateFeature(oil_feat)
-
-        column_dict = {
-            'BARIC_LON': 'Longitude',
-            'BARIC_LAT': 'Latitude',
-            'LENGTH_KM': 'Panjang (km)',
-            'AREA_KM': 'Luas (km2)',
-            'MEAN_WSPD': 'Kecepatan Angin (m/s)',
-            'MEAN_WANG': 'Arah Angin (deg)',
-            'ALARM_LEV': 'Tingkat Kepercayaan',
-        }
-        export_vector_layer(oil_layer, oil_csv_path, driver='CSV', column_dict=column_dict)
-        export_vector_layer(oil_layer, oil_geo_path, driver='GeoJSON')
-        oil_layer = QgsVectorLayer(oil_geo_path, layer_name)
-
-        # get oil elements and feature number
-        print("Menghitung statistik tumpahan minyak...\n")
-        oil_numbers = get_oil_numbers(oil_csv_path)
-        feat_numbers = oil_layer.featureCount()
-
-        # load oil layer to project
-        load_vector_layer(oil_layer, oil_template, data_group)
-
-        # overlay wpp layer and oil extent
-        wppoil_temp_path = os.path.join(TEMP_FOLDER, 'wppoil_layer.gpkg')
-        wpp_layer = extract_by_extent(WPP_PATH, oil_extent, output_path=wppoil_temp_path)
-        wpp_area = get_wpp_area(wpp_layer)
-    else:
-        print('- Tidak ada data tumpahan minyak')
-        feat_numbers = 0
-        oil_csv_path = None
-        oil_numbers = get_oil_numbers(oil_csv_path)
-
-    # define layout list
-    if feat_numbers == 0:
-        layout_id = [0]
-    elif feat_numbers == 1:
-        layout_id = [1]
-    elif feat_numbers > 1:
-        layout_id = [3, 2]
-
-    layout_list = [(i, QgsProject.instance().layoutManager().layouts()[i]) for i in layout_id]
-
-    # set atlas and oil area text to specific layout
-    for layout in layout_list:
-        if layout[0] == 1 or layout[0] == 3:
-            if layout[0] == 1:
-                atlas_name = "@layout_name"
-            elif layout[0] == 3:
-                atlas_name = "@layout_name||@atlas_featurenumber"
-            # set atlas
-            layout[1].atlas().setCoverageLayer(oil_layer)
-            layout[1].atlas().setEnabled(True)
-            layout[1].atlas().setFilenameExpression(atlas_name)
-        elif layout[0] == 2:
-            oil_area_txt = get_oil_area_txt(oil_layer)
-            oil_area_item = sip.cast(layout[1].itemById("luas"), QgsLayoutItemLabel)
-            oil_area_item.setText(oil_area_txt)
-
-        # setup extent on main map
-        map_item = sip.cast(layout[1].itemById("map"), QgsLayoutItemMap)
-        map_item.zoomToExtent(raster_extent)
-
-        # set the overview map
-        overview_item = QgsLayoutItemMapOverview('overview', map_item)
-        overview_item.setLinkedMap(map_item)
-
-        # add title map
-        title_txt = get_title_text(method, layout[0], wpp_area, radar_info)
-        title_item = sip.cast(layout[1].itemById("judul"), QgsLayoutItemLabel)
-        title_item.setText(title_txt)
-
-        # add wind information
-        wind_txt = get_wind_text(wind_range, wind_dir)
-        wind_item = sip.cast(layout[1].itemById("angin"), QgsLayoutItemLabel)
-        wind_item.setText(wind_txt)
-
-        # add source text
-        source_txt = get_source_text(radar_info_list)
-        source_item = sip.cast(layout[1].itemById("sumber"), QgsLayoutItemLabel)
-        source_item.setText(source_txt)
-
-        # set layout name
-        layout[1].setName(layer_name)
-        if layout[0] == 3:
-            layout[1].setName(f'{layer_name}_')
-
-    # save project
-    outputproj_path = f'{OUTPUT_FOLDER}/{layer_name}.qgz'
-    QgsProject.instance().write(outputproj_path)
-
-    print('\nLayout telah dibuat\n')
-
-    print('\nSelesai')
-
-    # exit QGIS application
-    qgs.exitQgis()
-
-    # remove all files in 'temp' folder
-    os.chdir(OUTPUT_FOLDER)
-    os.system('rmdir /s /q temp')
+# exit QGIS application
+qgs.exitQgis()
+    

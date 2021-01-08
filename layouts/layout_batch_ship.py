@@ -2,6 +2,7 @@ import sys, os, glob
 import numpy as np
 import pandas as pd
 from datetime import datetime
+import dateutil.parser
 
 from qgis.core import (
     edit,
@@ -343,12 +344,18 @@ def get_source_text(radar_info_list):
 
     return source_txt
 
+def sort_by_date(f):
+    dt_text = 'T'.join(os.path.basename(f).split('_')[1:3]).replace('*','')
+    dt = dateutil.parser.parse(dt_text)
+    return dt
+
+
 # define method
 folder_list = glob.glob(
     os.path.join(
         BASE_PATH,
         '2.seonse_outputs',
-        '*', 
+        'cosmo*', 
         '*',
         '*',
     )
@@ -357,323 +364,325 @@ folder_list = glob.glob(
 data_folder_list = []
 for folder in folder_list:
     if os.path.isdir(folder):
-        data_folder_list.append(f'{folder[:-4]}*')
+        if len(os.path.basename(folder).split('_')) == 3:
+            data_folder_list.append(f'{folder[:-4]}*')
 
 data_folder_list = list(set(data_folder_list))
+data_folder_list.sort(key=sort_by_date)
 
 for data_folder in data_folder_list:
+
     print('\nSumber data:')
     print(data_folder)
 
-    # define project type and remove previous layer
-    QgsProject.instance().read(PROJECT_PATH)
-    data_group = QgsProject.instance().layerTreeRoot().findGroups()[0]
-    basemap_group = QgsProject.instance().layerTreeRoot().findGroups()[1]
-    if len(data_group.findLayers()) > 0:
-        for i in data_group.children():
-            data_group.removeChildNode(i)
-
-    if len(basemap_group.findLayers()) > 3:
-        raster_layer_remove = basemap_group.findLayers()[3:-1]
-        for layer in raster_layer_remove:
-            basemap_group.removeChildNode(layer)
-
-    project_path = QgsProject.instance().fileName()
-    project_basename = QFileInfo(project_path).baseName()
-    project_type = project_basename.split('_')[-1]
-
+    print('\nKetersediaan data:')
+    
     # define list of data based on data folder
     raster_list = glob.glob(f'{data_folder}/*.tif')
     wind_list = glob.glob(f'{data_folder}/*Wind.gml')
     ship_list = glob.glob(f'{data_folder}/*SHIP.shp')
+    shipgeojson_list = glob.glob(f'{data_folder}/*ship.geojson')
 
-    OUTPUT_FOLDER = os.path.dirname(raster_list[-1])
-    TEMP_FOLDER = os.path.join(OUTPUT_FOLDER, 'temp')
-    if not os.path.exists(TEMP_FOLDER):
-        os.makedirs(TEMP_FOLDER)
+    if len(shipgeojson_list) == 0:
+    
+        if len(raster_list) > 0:
+            print('- Ada data raster')
 
-    print('\nKetersediaan data:')
-    if len(raster_list) > 0:
-        print('- Ada data raster')
-    else:
-        print('- Tidak ada data raster')
-    if len(wind_list) > 0:
-        print('- Ada data angin')
-    else:
-        print('- Tidak ada data angin')
-    if len(ship_list) > 0:
-        print('- Ada data kapal')
-    else:
-        print('- Tidak ada data kapal')
+            if len(ship_list) > 0:
+                print('- Ada data kapal')
 
-    print('\n')
+                # define project type and remove previous layer
+                QgsProject.instance().read(PROJECT_PATH)
+                data_group = QgsProject.instance().layerTreeRoot().findGroups()[0]
+                basemap_group = QgsProject.instance().layerTreeRoot().findGroups()[1]
+                if len(data_group.findLayers()) > 0:
+                    for i in data_group.children():
+                        data_group.removeChildNode(i)
 
-    # load raster layer and get raster info
-    if len(raster_list) > 0:
-        raster_basename_list = []
-        raster_layer_list = []
+                if len(basemap_group.findLayers()) > 3:
+                    raster_layer_remove = basemap_group.findLayers()[3:-1]
+                    for layer in raster_layer_remove:
+                        basemap_group.removeChildNode(layer)
 
-        for raster_path in raster_list:
-            rasterbasename = QFileInfo(raster_path).baseName()
-            rasterlayer = QgsRasterLayer(raster_path, rasterbasename)
-            if not rasterlayer.isValid():
-                print("rasterlayer is not valid")
+                project_path = QgsProject.instance().fileName()
+                project_basename = QFileInfo(project_path).baseName()
+                project_type = project_basename.split('_')[-1]
 
-            raster_basename_list.append(rasterbasename)
-            raster_layer_list.append(rasterlayer)
-        
-        # set up extent
-        raster_extent = QgsRectangle()
-        raster_extent.setMinimal()
+                OUTPUT_FOLDER = os.path.dirname(raster_list[-1])
+                TEMP_FOLDER = os.path.join(OUTPUT_FOLDER, 'temp')
+                if not os.path.exists(TEMP_FOLDER):
+                    os.makedirs(TEMP_FOLDER)
 
-        for raster_layer in raster_layer_list:
-            # combine extent with raster layer extent
-            raster_extent.combineExtentWith(raster_layer.extent())
+                raster_basename_list = []
+                raster_layer_list = []
 
-        # set extent to canvas
-        QgsMapCanvas().setExtent(raster_extent)
-        QgsMapCanvas().refresh()
+                for raster_path in raster_list:
+                    rasterbasename = QFileInfo(raster_path).baseName()
+                    rasterlayer = QgsRasterLayer(raster_path, rasterbasename)
+                    if not rasterlayer.isValid():
+                        print("rasterlayer is not valid")
 
-        for raster_layer in raster_layer_list:
-            load_raster_layer(raster_layer, basemap_group)
+                    raster_basename_list.append(rasterbasename)
+                    raster_layer_list.append(rasterlayer)
+                
+                # set up extent
+                raster_extent = QgsRectangle()
+                raster_extent.setMinimal()
 
-        # get radar_info info from raster filename
-        wil = os.path.basename(OUTPUT_FOLDER)[:-16]
-        radar_info_list = []
-        for raster_basename in raster_basename_list:
-            radar_info = RadarInfo(raster_basename)
-            radar_info_list.append(radar_info)
-        
-        local = radar_info.local
+                for raster_layer in raster_layer_list:
+                    # combine extent with raster layer extent
+                    raster_extent.combineExtentWith(raster_layer.extent())
 
-        # define layout method based on data length
-        if len(raster_list) == 1:
-            method = 'satu'
+                # set extent to canvas
+                QgsMapCanvas().setExtent(raster_extent)
+                QgsMapCanvas().refresh()
+
+                for raster_layer in raster_layer_list:
+                    load_raster_layer(raster_layer, basemap_group)
+
+                # get radar_info info from raster filename
+                wil = os.path.basename(OUTPUT_FOLDER)[:-16]
+                radar_info_list = []
+                for raster_basename in raster_basename_list:
+                    radar_info = RadarInfo(raster_basename)
+                    radar_info_list.append(radar_info)
+                
+                local = radar_info.local
+
+                # define layout method based on data length
+                if len(raster_list) == 1:
+                    method = 'satu'
+                    layer_name = f'{wil}_{local}_{project_type}'
+                else:
+                    method = 'gabungan'
+                    layer_name = f'{wil}_{local[:-2]}_{project_type}'
+
+                # set raster extent
+                xmin = raster_extent.xMinimum()
+                xmax = raster_extent.xMaximum()
+                ymin = raster_extent.yMinimum()
+                ymax = raster_extent.yMaximum()
+
+                # load wpp data and get WPP area which is overlaid within raster
+                wpp_extent = raster_extent
+                wpp_temp_path = os.path.join(TEMP_FOLDER, 'wpp_layer.gpkg')
+                wpp_layer = extract_by_extent(WPP_PATH, wpp_extent, output_path=wpp_temp_path)
+                wpp_area = get_wpp_area(wpp_layer)
+
+                # define transmitted layer name and ship csv path
+                trmlayer_name = f'{layer_name[:-4]}AIS/VMS'
+                ship_geo_path = f'{OUTPUT_FOLDER}/{layer_name}.geojson'
+                ship_csv_path = f'{OUTPUT_FOLDER}/{layer_name}.csv'
+
+                # define path of ship template
+                ship_template = f'{TEMPLATE_PATH}/layer/ship_size_color_layer_template.qml'
+                trm_template = f'{TEMPLATE_PATH}/layer/ais_vms_layer_template.qml'
+
+                print('Mendapatkan informasi asosiasi dengan AIS dan VMS...\n')
+                for ship_path in ship_list:
+                    # get AIS_MMSI information on KML file
+                    read_kml.AIS(os.path.dirname(ship_path))
+
+                    # execute VMS correlation
+                    # vms_correlation.correlation(os.path.dirname(ship_path))
+
+                # define correlated VMS availability
+                vms_list = []
+                for raster_path in raster_list:
+                    vms_ff = os.path.dirname(raster_path)[-15:].replace('_', '')
+                    vms_path = glob.glob(f'{BARATA_SHIP_PATH}/{vms_ff}*/*.shp')
+                    if len(vms_path) > 0:
+                        vms_list.append(vms_path[0])
+
+                # get transmitted layer of ship data
+                ship_temp_path = os.path.join(TEMP_FOLDER, 'ship_layer.gpkg')
+                ship_layer = merge_vector_layer(ship_list, output_path=ship_temp_path)
+                with edit(ship_layer):
+                    ship_layer.addAttribute(QgsField("DESC", QVariant.String))
+                    ship_layer.updateFields()
+                    
+                    for feat in ship_layer.getFeatures():
+                        if feat['AIS_MMSI'] != None:
+                            feat['DESC'] = 'AIS'
+                            ship_layer.updateFeature(feat)
+
+                if len(vms_list) > 0:
+                    vms_temp_path = os.path.join(TEMP_FOLDER, 'vms_layer.gpkg')
+                    vms_layer = merge_vector_layer(vms_list, output_path=vms_temp_path)
+
+                    shipvms_temp_path = os.path.join(TEMP_FOLDER, 'shipvms_layer.gpkg')
+                    shipvms_layer = join_attributes_by_location(ship_layer, vms_layer, join_fields=['status'], output_path=shipvms_temp_path)
+                    
+                    with edit(ship_layer):
+                        for ship_feat, shipvms_feat in zip(ship_layer.getFeatures(), shipvms_layer.getFeatures()):
+                            if shipvms_feat['status'] == 'vms':
+                                ship_feat['DESC'] = 'VMS'
+                                ship_layer.updateFeature(ship_feat)
+                
+                column_dict = {
+                    'LON_CENTRE': 'Longitude',
+                    'LAT_CENTRE': 'Latitude',
+                    'TARGET_DIR': 'Heading (deg)',
+                    'LENGTH': 'Panjang (m)',
+                    'DESC': 'Asosiasi (AIS/VMS)',
+                    'AIS_MMSI': 'MMSI',
+                }
+                export_vector_layer(ship_layer, ship_csv_path, driver='CSV', column_dict=column_dict)
+                export_vector_layer(ship_layer, ship_geo_path, driver='GeoJSON')
+                ship_layer = QgsVectorLayer(ship_geo_path, layer_name)
+                ship2_layer = QgsVectorLayer(ship_geo_path, trmlayer_name)
+
+                # get ship elements and feature number
+                print("\nMenghitung jumlah kapal...\n")
+                ship_numbers = get_ship_numbers(ship_csv_path)
+                feat_numbers = ship_layer.featureCount()
+
+                # load two ship layers to project
+                load_vector_layer(ship_layer, ship_template, data_group)
+                load_vector_layer(ship2_layer, trm_template, data_group)
+
+                # overlay wpp layer and ship extent
+                ship_rect = ship_layer.extent()
+                ship_xmin = ship_rect.xMinimum()
+                ship_xmax = ship_rect.xMaximum()
+                ship_ymin = ship_rect.yMinimum()
+                ship_ymax = ship_rect.yMaximum()
+                ship_extent = f'{ship_xmin}, {ship_xmax}, {ship_ymin}, {ship_ymax}'
+                
+                wppship_temp_path = os.path.join(TEMP_FOLDER, 'wppship_layer.gpkg')
+                wpp_layer = extract_by_extent(WPP_PATH, ship_extent, output_path=wppship_temp_path)
+                wpp_area = get_wpp_area(wpp_layer)
+
+                if len(wind_list) > 0:
+                    print('- Ada data angin')
+
+                    wind_temp_path = os.path.join(TEMP_FOLDER, 'wind_layer.gpkg')
+                    wind_layer = merge_vector_layer(wind_list, output_path=wind_temp_path)
+                    with edit(wind_layer):
+                        wind_layer.dataProvider().addAttributes(
+                            [
+                                QgsField("angle", QVariant.Double, "double", 10, 3),
+                                QgsField("direction", QVariant.String),
+                            ]
+                        )
+                        wind_layer.updateFields()
+
+                        for feat in wind_layer.getFeatures('"speed" != \'nan\''):
+                            wind_ang = wind_angle(float(feat['zonalSpeed']), float(feat['meridionalSpeed']))
+                            wind_dir = wind_direction(wind_ang)
+                            feat['angle'] = float(wind_ang)
+                            feat['direction'] = str(wind_dir)
+                            wind_layer.updateFeature(feat)
+
+                    wind_range = get_wind_range(wind_layer)
+                    wind_dir = get_wind_direction(wind_layer)
+
+                else:
+                    print('- Tidak ada data angin')
+
+                    wind_range = (None, None)
+                    wind_dir = None
+
+                # define layout list
+                layout_id = [0]
+                layout_list = [(i, QgsProject.instance().layoutManager().layouts()[i]) for i in layout_id]
+
+                # insert elements to layout
+                for layout in layout_list:
+                    # add ship size classification
+                    ship_item0 = sip.cast(layout[1].itemById(
+                        "unit0"), QgsLayoutItemLabel)
+                    ship_item0.setText(ship_numbers[0])
+                    ship_item1 = sip.cast(layout[1].itemById(
+                        "unit1"), QgsLayoutItemLabel)
+                    ship_item1.setText(ship_numbers[1])
+                    ship_item2 = sip.cast(layout[1].itemById(
+                        "unit2"), QgsLayoutItemLabel)
+                    ship_item2.setText(ship_numbers[2])
+                    ship_item3 = sip.cast(layout[1].itemById(
+                        "unit3"), QgsLayoutItemLabel)
+                    ship_item3.setText(ship_numbers[3])
+                    ship_item4 = sip.cast(layout[1].itemById(
+                        "unit4"), QgsLayoutItemLabel)
+                    ship_item4.setText(ship_numbers[4])
+                    ship_item5 = sip.cast(layout[1].itemById(
+                        "unit5"), QgsLayoutItemLabel)
+                    ship_item5.setText(ship_numbers[5])
+
+                    # add number of VMS, AIS and untransmitted ship
+                    ship_item6 = sip.cast(layout[1].itemById(
+                        "unit9"), QgsLayoutItemLabel)
+                    ship_item6.setText(ship_numbers[11])
+                    ship_item6 = sip.cast(layout[1].itemById(
+                        "unit6"), QgsLayoutItemLabel)
+                    ship_item6.setText(ship_numbers[9])
+                    ship_item7 = sip.cast(layout[1].itemById(
+                        "unit7"), QgsLayoutItemLabel)
+                    ship_item7.setText(ship_numbers[6])
+
+                    # add total number of ship
+                    ship_item8 = sip.cast(layout[1].itemById(
+                        "unit8"), QgsLayoutItemLabel)
+                    ship_item8.setText(ship_numbers[10])
+
+                    data_item = sip.cast(layout[1].itemById(
+                        "data"), QgsLayoutItemLabel)
+                    if (int(ship_numbers[9])) > 0 or (int(ship_numbers[11])) > 0:
+                        data_item.setText("<Ada data>")
+                    else:
+                        data_item.setText("<Tidak ada data>")
+
+                    # setup extent on main map
+                    map_item = sip.cast(layout[1].itemById("map"), QgsLayoutItemMap)
+                    map_item.zoomToExtent(raster_extent)
+
+                    # set the overview map
+                    overview_item = QgsLayoutItemMapOverview('overview', map_item)
+                    overview_item.setLinkedMap(map_item)
+
+                    # add title map
+                    title_txt = get_title_text(method, wpp_area, radar_info)
+                    title_item = sip.cast(layout[1].itemById("judul"), QgsLayoutItemLabel)
+                    title_item.setText(title_txt)
+
+                    # add wind information
+                    wind_txt = get_wind_text(wind_range, wind_dir)
+                    wind_item = sip.cast(layout[1].itemById("angin"), QgsLayoutItemLabel)
+                    wind_item.setText(wind_txt)
+
+                    # add source text
+                    source_txt = get_source_text(radar_info_list)
+                    source_item = sip.cast(layout[1].itemById("sumber"), QgsLayoutItemLabel)
+                    source_item.setText(source_txt)
+
+                    # set layout name
+                    layout[1].setName(layer_name)
+
+                # save project
+                outputproj_path = f'{OUTPUT_FOLDER}/{layer_name}.qgz'
+                QgsProject.instance().write(outputproj_path)
+
+                print('\nLayout telah dibuat\n')
+
+                if ship_csv_path is not None:
+                    # get vessel info
+                    print('-----------------------------------------')
+                    print('\nMendapatkan informasi vessel...\n')
+                    ais_info = vessel_info.get_ais_info(ship_csv_path)
+                    vms_info = vessel_info.get_vms_info(ship_csv_path)
+                    print('-----------------------------------------')
+
+                print('\nSelesai')
+
+                # remove all files in 'temp' folder
+                os.chdir(OUTPUT_FOLDER)
+                os.system('rmdir /s /q temp')
+
+            else:
+                print('- Tidak ada data kapal')     
+
         else:
-            method = 'gabungan'
+            print('- Tidak ada data raster')
 
-    # set raster extent
-    xmin = raster_extent.xMinimum()
-    xmax = raster_extent.xMaximum()
-    ymin = raster_extent.yMinimum()
-    ymax = raster_extent.yMaximum()
-
-    # load wind data and get wind range and direction
-    if len(wind_list) > 0:
-        wind_temp_path = os.path.join(TEMP_FOLDER, 'wind_layer.gpkg')
-        wind_layer = merge_vector_layer(wind_list, output_path=wind_temp_path)
-        with edit(wind_layer):
-            wind_layer.dataProvider().addAttributes(
-                [
-                    QgsField("angle", QVariant.Double, "double", 10, 3),
-                    QgsField("direction", QVariant.String),
-                ]
-            )
-            wind_layer.updateFields()
-
-            for feat in wind_layer.getFeatures('"speed" != \'nan\''):
-                wind_ang = wind_angle(float(feat['zonalSpeed']), float(feat['meridionalSpeed']))
-                wind_dir = wind_direction(wind_ang)
-                feat['angle'] = float(wind_ang)
-                feat['direction'] = str(wind_dir)
-                wind_layer.updateFeature(feat)
-
-        wind_range = get_wind_range(wind_layer)
-        wind_dir = get_wind_direction(wind_layer)
-    else:
-        wind_range = (None, None)
-        wind_dir = None
-
-    # define layer name
-    if method == 'satu':
-        layer_name = f'{wil}_{local}_{project_type}'
-    else:
-        layer_name = f'{wil}_{local[:-2]}_{project_type}'
-
-    # load data layer based on project type and setup the layout
-    if len(ship_list) > 0:
-        # define transmitted layer name and ship csv path
-        trmlayer_name = f'{layer_name[:-4]}AIS/VMS'
-        ship_geo_path = f'{OUTPUT_FOLDER}/{layer_name}.geojson'
-        ship_csv_path = f'{OUTPUT_FOLDER}/{layer_name}.csv'
-
-        # define path of ship template
-        ship_template = f'{TEMPLATE_PATH}/layer/ship_size_color_layer_template.qml'
-        trm_template = f'{TEMPLATE_PATH}/layer/ais_vms_layer_template.qml'
-
-        print('Mendapatkan informasi asosiasi dengan AIS dan VMS...\n')
-        for ship_path in ship_list:
-            # get AIS_MMSI information on KML file
-            read_kml.AIS(os.path.dirname(ship_path))
-
-            # execute VMS correlation
-            vms_correlation.correlation(os.path.dirname(ship_path))
-
-        # define correlated VMS availability
-        vms_list = []
-        for raster_path in raster_list:
-            vms_ff = os.path.dirname(raster_path)[-15:].replace('_', '')
-            vms_path = glob.glob(f'{BARATA_SHIP_PATH}/{vms_ff}*/*.shp')
-            if len(vms_path) > 0:
-                vms_list.append(vms_path[0])
-
-        # get transmitted layer of ship data
-        ship_temp_path = os.path.join(TEMP_FOLDER, 'ship_layer.gpkg')
-        ship_layer = merge_vector_layer(ship_list, output_path=ship_temp_path)
-        with edit(ship_layer):
-            ship_layer.addAttribute(QgsField("DESC", QVariant.String))
-            ship_layer.updateFields()
-            
-            for feat in ship_layer.getFeatures():
-                if feat['AIS_MMSI'] != None:
-                    feat['DESC'] = 'AIS'
-                    ship_layer.updateFeature(feat)
-        if len(vms_list) > 0:
-            vms_temp_path = os.path.join(TEMP_FOLDER, 'vms_layer.gpkg')
-            vms_layer = merge_vector_layer(vms_list, output_path=vms_temp_path)
-
-            shipvms_temp_path = os.path.join(TEMP_FOLDER, 'shipvms_layer.gpkg')
-            shipvms_layer = join_attributes_by_location(ship_layer, vms_layer, join_fields=['status'], output_path=shipvms_temp_path)
-            
-            with edit(ship_layer):
-                for ship_feat, shipvms_feat in zip(ship_layer.getFeatures(), shipvms_layer.getFeatures()):
-                    if shipvms_feat['status'] == 'vms':
-                        ship_feat['DESC'] = 'VMS'
-                        ship_layer.updateFeature(ship_feat)
-        
-        column_dict = {
-            'LON_CENTRE': 'Longitude',
-            'LAT_CENTRE': 'Latitude',
-            'TARGET_DIR': 'Heading (deg)',
-            'LENGTH': 'Panjang (m)',
-            'DESC': 'Asosiasi (AIS/VMS)',
-            'AIS_MMSI': 'MMSI',
-        }
-        export_vector_layer(ship_layer, ship_csv_path, driver='CSV', column_dict=column_dict)
-        export_vector_layer(ship_layer, ship_geo_path, driver='GeoJSON')
-        ship_layer = QgsVectorLayer(ship_geo_path, layer_name)
-        ship2_layer = QgsVectorLayer(ship_geo_path, trmlayer_name)
-
-        # get ship elements and feature number
-        print("\nMenghitung jumlah kapal...\n")
-        ship_numbers = get_ship_numbers(ship_csv_path)
-        feat_numbers = ship_layer.featureCount()
-
-        # load two ship layers to project
-        load_vector_layer(ship_layer, ship_template, data_group)
-        load_vector_layer(ship2_layer, trm_template, data_group)
-
-        # overlay wpp layer and ship extent
-        ship_rect = ship_layer.extent()
-        ship_xmin = ship_rect.xMinimum()
-        ship_xmax = ship_rect.xMaximum()
-        ship_ymin = ship_rect.yMinimum()
-        ship_ymax = ship_rect.yMaximum()
-        ship_extent = f'{ship_xmin}, {ship_xmax}, {ship_ymin}, {ship_ymax}'
-        
-        wppship_temp_path = os.path.join(TEMP_FOLDER, 'wppship_layer.gpkg')
-        wpp_layer = extract_by_extent(WPP_PATH, ship_extent, output_path=wppship_temp_path)
-        wpp_area = get_wpp_area(wpp_layer)
-
-    else:
-        feat_numbers = 0
-        ship_csv_path = None
-        ship_numbers = get_ship_numbers(ship_csv_path)
-
-    # define layout list
-    layout_id = [0]
-    layout_list = [(i, QgsProject.instance().layoutManager().layouts()[i]) for i in layout_id]
-
-    # insert elements to layout
-    for layout in layout_list:
-        # add ship size classification
-        ship_item0 = sip.cast(layout[1].itemById(
-            "unit0"), QgsLayoutItemLabel)
-        ship_item0.setText(ship_numbers[0])
-        ship_item1 = sip.cast(layout[1].itemById(
-            "unit1"), QgsLayoutItemLabel)
-        ship_item1.setText(ship_numbers[1])
-        ship_item2 = sip.cast(layout[1].itemById(
-            "unit2"), QgsLayoutItemLabel)
-        ship_item2.setText(ship_numbers[2])
-        ship_item3 = sip.cast(layout[1].itemById(
-            "unit3"), QgsLayoutItemLabel)
-        ship_item3.setText(ship_numbers[3])
-        ship_item4 = sip.cast(layout[1].itemById(
-            "unit4"), QgsLayoutItemLabel)
-        ship_item4.setText(ship_numbers[4])
-        ship_item5 = sip.cast(layout[1].itemById(
-            "unit5"), QgsLayoutItemLabel)
-        ship_item5.setText(ship_numbers[5])
-
-        # add number of VMS, AIS and untransmitted ship
-        ship_item6 = sip.cast(layout[1].itemById(
-            "unit9"), QgsLayoutItemLabel)
-        ship_item6.setText(ship_numbers[11])
-        ship_item6 = sip.cast(layout[1].itemById(
-            "unit6"), QgsLayoutItemLabel)
-        ship_item6.setText(ship_numbers[9])
-        ship_item7 = sip.cast(layout[1].itemById(
-            "unit7"), QgsLayoutItemLabel)
-        ship_item7.setText(ship_numbers[6])
-
-        # add total number of ship
-        ship_item8 = sip.cast(layout[1].itemById(
-            "unit8"), QgsLayoutItemLabel)
-        ship_item8.setText(ship_numbers[10])
-
-        data_item = sip.cast(layout[1].itemById(
-            "data"), QgsLayoutItemLabel)
-        if (int(ship_numbers[9])) > 0 or (int(ship_numbers[11])) > 0:
-            data_item.setText("<Ada data>")
-        else:
-            data_item.setText("<Tidak ada data>")
-
-        # setup extent on main map
-        map_item = sip.cast(layout[1].itemById("map"), QgsLayoutItemMap)
-        map_item.zoomToExtent(raster_extent)
-
-        # set the overview map
-        overview_item = QgsLayoutItemMapOverview('overview', map_item)
-        overview_item.setLinkedMap(map_item)
-
-        # add title map
-        title_txt = get_title_text(method, wpp_area, radar_info)
-        title_item = sip.cast(layout[1].itemById("judul"), QgsLayoutItemLabel)
-        title_item.setText(title_txt)
-
-        # add wind information
-        wind_txt = get_wind_text(wind_range, wind_dir)
-        wind_item = sip.cast(layout[1].itemById("angin"), QgsLayoutItemLabel)
-        wind_item.setText(wind_txt)
-
-        # add source text
-        source_txt = get_source_text(radar_info_list)
-        source_item = sip.cast(layout[1].itemById("sumber"), QgsLayoutItemLabel)
-        source_item.setText(source_txt)
-
-        # set layout name
-        layout[1].setName(layer_name)
-
-    # save project
-    outputproj_path = f'{OUTPUT_FOLDER}/{layer_name}.qgz'
-    QgsProject.instance().write(outputproj_path)
-
-    print('\nLayout telah dibuat\n')
-
-    if ship_csv_path is not None:
-        # get vessel info
-        print('-----------------------------------------')
-        print('\nMendapatkan informasi vessel...\n')
-        ais_info = vessel_info.get_ais_info(ship_csv_path)
-        vms_info = vessel_info.get_vms_info(ship_csv_path)
-        print('-----------------------------------------')
-
-    print('\nSelesai')
-
-    # exit QGIS application
-    qgs.exitQgis()
-
-    # remove all files in 'temp' folder
-    os.chdir(OUTPUT_FOLDER)
-    os.system('rmdir /s /q temp')
+# exit QGIS application
+qgs.exitQgis()
