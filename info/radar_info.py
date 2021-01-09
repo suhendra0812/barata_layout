@@ -33,7 +33,7 @@ class RadarInfo:
             self.rdr_fn = f"{self.rdr_name} {self.cons}"
             self.rdr_mode = f'{self.rdr_fn}, {self.sensor[self.mode]}'
 
-        elif self.rdr == 'RS2' or self.rdr == 'Radarsat-2':
+        elif self.rdr == 'RS2' or self.rdr.split('-')[0] == 'Radarsat':
             self.rdr_name = 'RADARSAT-2'
             self.sensor = {
                 '': '',
@@ -70,7 +70,7 @@ class RadarInfo:
 
                 self.rdr_mode = f'{self.rdr_fn}, {self.sensor[self.mode]}'
 
-            elif self.rdr == 'Radarsat-2':
+            elif self.rdr.split('-')[0] == 'Radarsat':
                 self.rdr_name = 'RADARSAT-2'
                 self.pola = ''
                 self.mode = ''

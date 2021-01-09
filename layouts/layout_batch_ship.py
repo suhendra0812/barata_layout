@@ -1,4 +1,4 @@
-import sys, os, glob
+import sys, os, glob, shutil
 import numpy as np
 import pandas as pd
 from datetime import datetime
@@ -28,37 +28,6 @@ from qgis.analysis import QgsNativeAlgorithms
 from PyQt5.QtCore import QFileInfo, QVariant
 from PyQt5.QtWidgets import QFileDialog
 import sip
-
-# source paths
-SCRIPT_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-BASE_PATH = os.path.dirname(SCRIPT_PATH)
-BASEMAP_PATH = os.path.join(BASE_PATH, '1.basemaps')
-BARATA_SHIP_PATH = os.path.join(BASE_PATH, '7.barata_ship/output')
-TEMPLATE_PATH = os.path.join(SCRIPT_PATH, 'templates')
-QGIS_PATH = 'C:/OSGeo4W64/apps/qgis'
-PLUGINS_PATH = os.path.join(QGIS_PATH, 'python', 'plugins')
-PROJECT_PATH = os.path.join(TEMPLATE_PATH, 'project', 'layout_ship.qgz')
-WPP_PATH = os.path.join(BASEMAP_PATH, 'WPP_Full_PermenKP182014.shp')
-OPENLAYOUT_PATH = os.path.join(SCRIPT_PATH, 'utils', 'open_layout.py')
-QGIS_BAT = 'C:/OSGeo4W64/bin/qgis.bat'
-
-sys.path.append(SCRIPT_PATH)
-
-from utils import read_kml, vms_correlation
-from info.radar_info import RadarInfo
-from info import vessel_info
-
-# set QGIS application path and initialize it
-QgsApplication.setPrefixPath(QGIS_PATH, True)
-qgs = QgsApplication([], False)
-qgs.initQgis()
-
-# set QGIS Processing plugins and initialize it
-sys.path.append(PLUGINS_PATH)
-import processing
-from processing.core.Processing import Processing
-Processing.initialize()
-qgs.processingRegistry().addProvider(QgsNativeAlgorithms())
 
 def run_processing(algorithm, params):
     params = params
@@ -344,34 +313,7 @@ def get_source_text(radar_info_list):
 
     return source_txt
 
-def sort_by_date(f):
-    dt_text = 'T'.join(os.path.basename(f).split('_')[1:3]).replace('*','')
-    dt = dateutil.parser.parse(dt_text)
-    return dt
-
-
-# define method
-folder_list = glob.glob(
-    os.path.join(
-        BASE_PATH,
-        '2.seonse_outputs',
-        'cosmo*', 
-        '*',
-        '*',
-    )
-)
-
-data_folder_list = []
-for folder in folder_list:
-    if os.path.isdir(folder):
-        if len(os.path.basename(folder).split('_')) == 3:
-            data_folder_list.append(f'{folder[:-4]}*')
-
-data_folder_list = list(set(data_folder_list))
-data_folder_list.sort(key=sort_by_date)
-
-for data_folder in data_folder_list:
-
+def run_layout(data_folder):
     print('\nSumber data:')
     print(data_folder)
 
@@ -414,32 +356,10 @@ for data_folder in data_folder_list:
                     os.makedirs(TEMP_FOLDER)
 
                 raster_basename_list = []
-                raster_layer_list = []
-
                 for raster_path in raster_list:
                     rasterbasename = QFileInfo(raster_path).baseName()
-                    rasterlayer = QgsRasterLayer(raster_path, rasterbasename)
-                    if not rasterlayer.isValid():
-                        print("rasterlayer is not valid")
-
                     raster_basename_list.append(rasterbasename)
-                    raster_layer_list.append(rasterlayer)
                 
-                # set up extent
-                raster_extent = QgsRectangle()
-                raster_extent.setMinimal()
-
-                for raster_layer in raster_layer_list:
-                    # combine extent with raster layer extent
-                    raster_extent.combineExtentWith(raster_layer.extent())
-
-                # set extent to canvas
-                QgsMapCanvas().setExtent(raster_extent)
-                QgsMapCanvas().refresh()
-
-                for raster_layer in raster_layer_list:
-                    load_raster_layer(raster_layer, basemap_group)
-
                 # get radar_info info from raster filename
                 wil = os.path.basename(OUTPUT_FOLDER)[:-16]
                 radar_info_list = []
@@ -456,6 +376,33 @@ for data_folder in data_folder_list:
                 else:
                     method = 'gabungan'
                     layer_name = f'{wil}_{local[:-2]}_{project_type}'
+                
+                # save project
+                outputproj_path = f'{OUTPUT_FOLDER}/{layer_name}.qgz'
+                QgsProject.instance().write(outputproj_path)
+                
+                raster_layer_list = []
+                for raster_path in raster_list:
+                    rasterlayer = QgsRasterLayer(raster_path, rasterbasename)
+                    if not rasterlayer.isValid():
+                        print("rasterlayer is not valid")
+
+                    raster_layer_list.append(rasterlayer)
+                
+                # set up extent
+                raster_extent = QgsRectangle()
+                raster_extent.setMinimal()
+
+                for raster_layer in raster_layer_list:
+                    # combine extent with raster layer extent
+                    raster_extent.combineExtentWith(raster_layer.extent())
+
+                # set extent to canvas
+                QgsMapCanvas().setExtent(raster_extent)
+                QgsMapCanvas().refresh()
+
+                for raster_layer in raster_layer_list:
+                    load_raster_layer(raster_layer, basemap_group)
 
                 # set raster extent
                 xmin = raster_extent.xMinimum()
@@ -561,7 +508,8 @@ for data_folder in data_folder_list:
                     with edit(wind_layer):
                         wind_layer.dataProvider().addAttributes(
                             [
-                                QgsField("angle", QVariant.Double, "double", 10, 3),
+                                # QgsField("angle", QVariant.Double, "double", 10, 3),
+                                QgsField("angle", QVariant.String),
                                 QgsField("direction", QVariant.String),
                             ]
                         )
@@ -659,7 +607,6 @@ for data_folder in data_folder_list:
                     layout[1].setName(layer_name)
 
                 # save project
-                outputproj_path = f'{OUTPUT_FOLDER}/{layer_name}.qgz'
                 QgsProject.instance().write(outputproj_path)
 
                 print('\nLayout telah dibuat\n')
@@ -674,9 +621,10 @@ for data_folder in data_folder_list:
 
                 print('\nSelesai')
 
-                # remove all files in 'temp' folder
-                os.chdir(OUTPUT_FOLDER)
-                os.system('rmdir /s /q temp')
+                # # remove all files in 'temp' folder
+                # os.chmod(OUTPUT_FOLDER, 0o777)
+                # shutil.rmtree(OUTPUT_FOLDER)
+
 
             else:
                 print('- Tidak ada data kapal')     
@@ -684,5 +632,72 @@ for data_folder in data_folder_list:
         else:
             print('- Tidak ada data raster')
 
-# exit QGIS application
-qgs.exitQgis()
+def sort_by_date(f):
+    dt_text = 'T'.join(os.path.basename(f).split('_')[1:3]).replace('*','')
+    dt = dateutil.parser.parse(dt_text)
+    return dt
+
+def delete_temp(data_folder):
+    temp_list = glob.glob(f'{data_folder}/temp')
+    for temp in temp_list:
+        os.chmod(temp, 0o777)
+        shutil.rmtree(temp)
+
+if __name__ == "__main__":
+
+    # source paths
+    SCRIPT_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    BASE_PATH = os.path.dirname(SCRIPT_PATH)
+    BASEMAP_PATH = os.path.join(BASE_PATH, '1.basemaps')
+    BARATA_SHIP_PATH = os.path.join(BASE_PATH, '7.barata_ship/output')
+    TEMPLATE_PATH = os.path.join(SCRIPT_PATH, 'templates')
+    QGIS_PATH = 'C:/OSGeo4W64/apps/qgis'
+    PLUGINS_PATH = os.path.join(QGIS_PATH, 'python', 'plugins')
+    PROJECT_PATH = os.path.join(TEMPLATE_PATH, 'project', 'layout_ship.qgz')
+    WPP_PATH = os.path.join(BASEMAP_PATH, 'WPP_Full_PermenKP182014.shp')
+    OPENLAYOUT_PATH = os.path.join(SCRIPT_PATH, 'utils', 'open_layout.py')
+    QGIS_BAT = 'C:/OSGeo4W64/bin/qgis.bat'
+
+    sys.path.append(SCRIPT_PATH)
+
+    from utils import read_kml, vms_correlation
+    from info.radar_info import RadarInfo
+    from info import vessel_info
+
+    # set QGIS application path and initialize it
+    QgsApplication.setPrefixPath(QGIS_PATH, True)
+    qgs = QgsApplication([], False)
+    qgs.initQgis()
+
+    # set QGIS Processing plugins and initialize it
+    sys.path.append(PLUGINS_PATH)
+    import processing
+    from processing.core.Processing import Processing
+    Processing.initialize()
+    QgsApplication.processingRegistry().addProvider(QgsNativeAlgorithms())
+
+    # define method
+    folder_list = glob.glob(
+        os.path.join(
+            BASE_PATH,
+            '2.seonse_outputs',
+            'radar*', 
+            '*',
+            '*',
+        )
+    )
+
+    data_folder_list = []
+    for folder in folder_list:
+        if os.path.isdir(folder):
+            if len(os.path.basename(folder).split('_')) == 3:
+                data_folder_list.append(f'{folder[:-4]}*')
+
+    data_folder_list = list(set(data_folder_list))
+    data_folder_list.sort(key=sort_by_date)
+
+    for data_folder in data_folder_list:
+        run_layout(data_folder)
+
+    # exit QGIS application
+    qgs.exitQgis()

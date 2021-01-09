@@ -1,8 +1,8 @@
-import sys, os, glob
+import sys, os, glob, shutil
 import numpy as np
 import pandas as pd
 from datetime import datetime
-from dateutil.parser
+import dateutil.parser
 
 from qgis.core import (
     edit,
@@ -33,33 +33,6 @@ from qgis.analysis import (
 from PyQt5.QtCore import QFileInfo, QVariant
 from PyQt5.QtWidgets import QFileDialog
 import sip
-
-# source paths
-SCRIPT_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-BASE_PATH = os.path.dirname(SCRIPT_PATH)
-BASEMAP_PATH = os.path.join(BASE_PATH, '1.basemaps')
-TEMPLATE_PATH = os.path.join(SCRIPT_PATH, 'templates')
-QGIS_PATH = 'C:/OSGeo4W64/apps/qgis'
-PLUGINS_PATH = os.path.join(QGIS_PATH, 'python', 'plugins')
-PROJECT_PATH = os.path.join(TEMPLATE_PATH, 'project', 'layout_oils.qgz')
-WPP_PATH = os.path.join(BASEMAP_PATH, 'WPP_Full_PermenKP182014.shp')
-OPENLAYOUT_PATH = os.path.join(SCRIPT_PATH, 'utils', 'open_layout.py')
-QGIS_BAT = 'C:/OSGeo4W64/bin/qgis.bat'
-
-sys.path.append(SCRIPT_PATH)
-from info.radar_info import RadarInfo
-
-# set QGIS application path and initialize it
-QgsApplication.setPrefixPath(QGIS_PATH, True)
-qgs = QgsApplication([], False)
-qgs.initQgis()
-
-# set QGIS Processing plugins and initialize it
-sys.path.append(PLUGINS_PATH)
-import processing
-from processing.core.Processing import Processing
-Processing.initialize()
-qgs.processingRegistry().addProvider(QgsNativeAlgorithms())
 
 def run_processing(algorithm, params):
     params = params
@@ -94,6 +67,17 @@ def extract_by_extent(input_layer, extent, output_path=None):
     params = {
         'INPUT': input_layer,
         'EXTENT': extent,
+        'OUTPUT': output_path
+    }
+    output = run_processing(algorithm, params)
+    return output
+
+def dissolve(input_layer, output_path=None):
+    algorithm = 'native:dissolve'
+    if output_path == None:
+        output_path = QgsProcessing.TEMPORARY_OUTPUT
+    params = {
+        'INPUT': input_layer,
         'OUTPUT': output_path
     }
     output = run_processing(algorithm, params)
@@ -330,33 +314,7 @@ def get_source_text(radar_info_list):
 
     return source_txt
 
-def sort_by_date(f):
-    dt_text = 'T'.join(os.path.basename(f).split('_')[1:3]).replace('*','')
-    dt = dateutil.parser.parse(dt_text)
-    return dt
-
-
-# define method
-folder_list = glob.glob(
-    os.path.join(
-        BASE_PATH,
-        '2.seonse_outputs',
-        'cosmo*', 
-        '*',
-        '*',
-    )
-)
-
-data_folder_list = []
-for folder in folder_list:
-    if os.path.isdir(folder):
-        if len(os.path.basename(folder).split('_')) == 3:
-            data_folder_list.append(f'{folder[:-4]}*')
-
-data_folder_list = list(set(data_folder_list))
-data_folder_list.sort(key=sort_by_date)
-
-for data_folder in data_folder_list:
+def run_layout(data_folder):
     print('\nSumber data:')
     print(data_folder)
 
@@ -398,34 +356,11 @@ for data_folder in data_folder_list:
                 if not os.path.exists(TEMP_FOLDER):
                     os.makedirs(TEMP_FOLDER)
                 
-                # load raster layer and get raster info
                 raster_basename_list = []
-                raster_layer_list = []
-
                 for raster_path in raster_list:
                     rasterbasename = QFileInfo(raster_path).baseName()
-                    rasterlayer = QgsRasterLayer(raster_path, rasterbasename)
-                    if not rasterlayer.isValid():
-                        print("rasterlayer is not valid")
-
                     raster_basename_list.append(rasterbasename)
-                    raster_layer_list.append(rasterlayer)
                 
-                # set up extent
-                raster_extent = QgsRectangle()
-                raster_extent.setMinimal()
-
-                for raster_layer in raster_layer_list:
-                    # combine extent with raster layer extent
-                    raster_extent.combineExtentWith(raster_layer.extent())
-
-                # set extent to canvas
-                QgsMapCanvas().setExtent(raster_extent)
-                QgsMapCanvas().refresh()
-
-                for raster_layer in raster_layer_list:
-                    load_raster_layer(raster_layer, basemap_group)
-
                 # get radar_info info from raster filename
                 wil = os.path.basename(OUTPUT_FOLDER)[:-16]
                 radar_info_list = []
@@ -442,6 +377,33 @@ for data_folder in data_folder_list:
                 else:
                     method = 'gabungan'
                     layer_name = f'{wil}_{local[:-2]}_{project_type}'
+                
+                # save project
+                outputproj_path = f'{OUTPUT_FOLDER}/{layer_name}.qgz'
+                QgsProject.instance().write(outputproj_path)
+                
+                raster_layer_list = []
+                for raster_path in raster_list:
+                    rasterlayer = QgsRasterLayer(raster_path, rasterbasename)
+                    if not rasterlayer.isValid():
+                        print("rasterlayer is not valid")
+
+                    raster_layer_list.append(rasterlayer)
+                
+                # set up extent
+                raster_extent = QgsRectangle()
+                raster_extent.setMinimal()
+
+                for raster_layer in raster_layer_list:
+                    # combine extent with raster layer extent
+                    raster_extent.combineExtentWith(raster_layer.extent())
+
+                # set extent to canvas
+                QgsMapCanvas().setExtent(raster_extent)
+                QgsMapCanvas().refresh()
+
+                for raster_layer in raster_layer_list:
+                    load_raster_layer(raster_layer, basemap_group)
 
                 # set raster extent
                 xmin = raster_extent.xMinimum()
@@ -505,39 +467,50 @@ for data_folder in data_folder_list:
                     wind_range = get_wind_range(wind_layer)
                     wind_dir = get_wind_direction(wind_layer)
 
-                    wspd_interp_path = os.path.join(TEMP_FOLDER, 'wspd_interp.tif')
-                    idw_interpolation(
-                        wind_layer,
-                        oil_extent,
-                        'speed',
-                        0.01,
-                        wspd_interp_path
-                    )
-                    wang_interp_path = os.path.join(TEMP_FOLDER, 'wang_interp.tif')
-                    idw_interpolation(
-                        wind_layer,
-                        oil_extent,
-                        'angle',
-                        0.01,
-                        wang_interp_path
-                    )
-                    
-                    wspdoil_temp_path = os.path.join(TEMP_FOLDER, 'wspdoil_layer.gpkg')
-                    wspdoil_layer = zonal_statistics(oil_layer, wspd_interp_path, column_prefix='speed_', output_path=wspdoil_temp_path)
-                    wangoil_temp_path = os.path.join(TEMP_FOLDER, 'wangoil_layer.gpkg')
-                    wangoil_layer = zonal_statistics(oil_layer, wang_interp_path, column_prefix='angle_', output_path=wangoil_temp_path)
-                    
-                    with edit(oil_layer):
-                        for oil_feat, wspdoil_feat in zip(oil_layer.getFeatures(), wspdoil_layer.getFeatures()):
-                            oil_feat['MIN_WSPD'] = wspdoil_feat['speed_min']
-                            oil_feat['MAX_WSPD'] = wspdoil_feat['speed_max']
-                            oil_feat['MEAN_WSPD'] = wspdoil_feat['speed_mean']
-                            oil_layer.updateFeature(oil_feat)
-                        for oil_feat, wangoil_feat in zip(oil_layer.getFeatures(), wangoil_layer.getFeatures()):
-                            oil_feat['MIN_WANG'] = wangoil_feat['angle_min']
-                            oil_feat['MAX_WANG'] = wangoil_feat['angle_max']
-                            oil_feat['MEAN_WANG'] = wangoil_feat['angle_mean']
-                            oil_layer.updateFeature(oil_feat)
+                    wind_dissolve_temp_path = os.path.join(TEMP_FOLDER, 'wind_dissolve_layer.gpkg')
+                    wind_dissolve_layer = dissolve(wind_layer, wind_dissolve_temp_path)
+
+                    oil_dissolve_temp_path = os.path.join(TEMP_FOLDER, 'oil_dissolve_layer.gpkg')
+                    oil_dissolve_layer = dissolve(oil_layer, oil_dissolve_temp_path)
+
+                    for wind_dissolve_feat in wind_dissolve_layer.getFeatures():
+                        wind_dissolve_geom = wind_dissolve_feat.geometry()
+                        for oil_dissolve_feat in oil_dissolve_layer.getFeatures():
+                            oil_dissolve_geom = oil_dissolve_feat.geometry()
+                            if wind_dissolve_geom.intersects(oil_dissolve_geom):
+                                wspd_interp_path = os.path.join(TEMP_FOLDER, 'wspd_interp.tif')
+                                idw_interpolation(
+                                    wind_layer,
+                                    oil_extent,
+                                    'speed',
+                                    0.01,
+                                    wspd_interp_path
+                                )
+                                wang_interp_path = os.path.join(TEMP_FOLDER, 'wang_interp.tif')
+                                idw_interpolation(
+                                    wind_layer,
+                                    oil_extent,
+                                    'angle',
+                                    0.01,
+                                    wang_interp_path
+                                )
+                                
+                                wspdoil_temp_path = os.path.join(TEMP_FOLDER, 'wspdoil_layer.gpkg')
+                                wspdoil_layer = zonal_statistics(oil_layer, wspd_interp_path, column_prefix='speed_', output_path=wspdoil_temp_path)
+                                wangoil_temp_path = os.path.join(TEMP_FOLDER, 'wangoil_layer.gpkg')
+                                wangoil_layer = zonal_statistics(oil_layer, wang_interp_path, column_prefix='angle_', output_path=wangoil_temp_path)
+                                
+                                with edit(oil_layer):
+                                    for oil_feat, wspdoil_feat in zip(oil_layer.getFeatures(), wspdoil_layer.getFeatures()):
+                                        oil_feat['MIN_WSPD'] = wspdoil_feat['speed_min']
+                                        oil_feat['MAX_WSPD'] = wspdoil_feat['speed_max']
+                                        oil_feat['MEAN_WSPD'] = wspdoil_feat['speed_mean']
+                                        oil_layer.updateFeature(oil_feat)
+                                    for oil_feat, wangoil_feat in zip(oil_layer.getFeatures(), wangoil_layer.getFeatures()):
+                                        oil_feat['MIN_WANG'] = wangoil_feat['angle_min']
+                                        oil_feat['MAX_WANG'] = wangoil_feat['angle_max']
+                                        oil_feat['MEAN_WANG'] = wangoil_feat['angle_mean']
+                                        oil_layer.updateFeature(oil_feat)
                 
                 else:
                     print('- Tidak ada data angin')
@@ -625,7 +598,6 @@ for data_folder in data_folder_list:
                         layout[1].setName(f'{layer_name}_')
 
                 # save project
-                outputproj_path = f'{OUTPUT_FOLDER}/{layer_name}.qgz'
                 QgsProject.instance().write(outputproj_path)
 
                 print('\nLayout telah dibuat\n')
@@ -641,7 +613,70 @@ for data_folder in data_folder_list:
 
         else:
             print('- Tidak ada data raster')
-            
-# exit QGIS application
-qgs.exitQgis()
+
+def sort_by_date(f):
+    dt_text = 'T'.join(os.path.basename(f).split('_')[1:3]).replace('*','')
+    dt = dateutil.parser.parse(dt_text)
+    return dt
+
+def delete_temp(data_folder):
+    temp_list = glob.glob(f'{data_folder}/temp')
+    for temp in temp_list:
+        os.chmod(temp, 0o777)
+        shutil.rmtree(temp)
+
+if __name__ == "__main__":
+
+    # source paths
+    SCRIPT_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    BASE_PATH = os.path.dirname(SCRIPT_PATH)
+    BASEMAP_PATH = os.path.join(BASE_PATH, '1.basemaps')
+    TEMPLATE_PATH = os.path.join(SCRIPT_PATH, 'templates')
+    QGIS_PATH = 'C:/OSGeo4W64/apps/qgis'
+    PLUGINS_PATH = os.path.join(QGIS_PATH, 'python', 'plugins')
+    PROJECT_PATH = os.path.join(TEMPLATE_PATH, 'project', 'layout_oils.qgz')
+    WPP_PATH = os.path.join(BASEMAP_PATH, 'WPP_Full_PermenKP182014.shp')
+    OPENLAYOUT_PATH = os.path.join(SCRIPT_PATH, 'utils', 'open_layout.py')
+    QGIS_BAT = 'C:/OSGeo4W64/bin/qgis.bat'
+
+    sys.path.append(SCRIPT_PATH)
+    from info.radar_info import RadarInfo
+
+    # set QGIS application path and initialize it
+    QgsApplication.setPrefixPath(QGIS_PATH, True)
+    qgs = QgsApplication([], False)
+    qgs.initQgis()
+
+    # set QGIS Processing plugins and initialize it
+    sys.path.append(PLUGINS_PATH)
+    import processing
+    from processing.core.Processing import Processing
+    Processing.initialize()
+    qgs.processingRegistry().addProvider(QgsNativeAlgorithms())
+    
+    # define method
+    folder_list = glob.glob(
+        os.path.join(
+            BASE_PATH,
+            '2.seonse_outputs',
+            'radar*', 
+            '*',
+            '*',
+        )
+    )
+
+    data_folder_list = []
+    for folder in folder_list:
+        if os.path.isdir(folder):
+            if len(os.path.basename(folder).split('_')) == 3:
+                data_folder_list.append(f'{folder[:-4]}*')
+
+    data_folder_list = list(set(data_folder_list))
+    data_folder_list.sort(key=sort_by_date)
+
+    for data_folder in data_folder_list:
+        run_layout(data_folder)
+
+    # exit QGIS application
+    qgs.exitQgis()
     
