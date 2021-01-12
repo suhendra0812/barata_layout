@@ -20,6 +20,7 @@ class RadarInfo:
 
             self.pola = name_list[5]
             self.mode = name_list[3]
+            self.level = name_list[1]
 
             s_datetime = dateutil.parser.parse(name_list[8])
 
@@ -53,9 +54,10 @@ class RadarInfo:
             self.rdr_fn = self.rdr_name
 
             if self.rdr == 'RS2':
-                self.pola = name_list[-3]
                 self.beam = name_list[4]
                 self.mode = self.beam[:-1]
+                self.pola = name_list[7]
+                self.level = name_list[8]
 
                 s_date = name_list[5]
                 s_time = name_list[6]
@@ -74,6 +76,7 @@ class RadarInfo:
                 self.rdr_name = 'RADARSAT-2'
                 self.pola = ''
                 self.mode = ''
+                self.level = ''
 
                 s_datetime = dateutil.parser.parse(''.join(name_list[-7:-1]))
 
@@ -97,6 +100,7 @@ class RadarInfo:
             }
             self.mode = name_list[1]
             self.pola = name_list[3]
+            self.level = name_list[2]
 
             s_datetime = dateutil.parser.parse(name_list[4])
 
